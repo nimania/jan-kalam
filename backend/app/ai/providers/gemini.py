@@ -4,13 +4,15 @@ Used when settings.ai_provider == "gemini" and a key is set. Gemini can be told
 to return JSON directly (response_mime_type), which makes parsing clean. The key
 lives server-side only. Not exercised by the offline test suite.
 
-Self-healing model selection: Google returns 404 when the configured model name
-is not valid for this API version / key ("Call ListModels to see the list of
-available models"). So instead of trusting a hard-coded name, we ask the key
-which models it actually supports for generateContent and pick the best one,
-preferring the configured model. If a chosen model still 404s on the actual
-call, we blacklist it and fall through to the next best — so a stale or
-inconsistent model name can never block the whole run. Resolution is cached.
+Two robustness features:
+  • Self-healing model selection — Google returns 404 when the configured model
+    name isn't valid for this key/version ("Call ListModels…"). So we ask the key
+    which models it supports for generateContent and pick the best; if a chosen
+    model still 404s we blacklist it and fall through to the next best.
+  • Multi-key rotation — AI_API_KEY may hold SEVERAL keys (comma / whitespace /
+    newline separated). Each free key has its own quota, so on a 429 (rate/quota)
+    we rotate to the next key. This multiplies sustainable throughput on the free
+    tier without any paid billing.
 """
 from __future__ import annotations
 
@@ -32,6 +34,23 @@ _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 # Shared across every GeminiProvider instance for the life of the process.
 _resolved_model: str | None = None
 _bad_models: set[str] = set()
+_key_idx: int = 0
+
+
+def _keys() -> list[str]:
+    """Parse AI_API_KEY into one or more keys (comma / whitespace separated)."""
+    raw = settings.ai_api_key or ""
+    keys = [k.strip() for k in re.split(r"[,\s]+", raw) if k.strip()]
+    return keys or [""]
+
+
+def _current_key(keys: list[str]) -> str:
+    return keys[_key_idx % len(keys)]
+
+
+def _rotate_key(keys: list[str]) -> None:
+    global _key_idx
+    _key_idx = (_key_idx + 1) % len(keys)
 
 
 def _short(name: str) -> str:
@@ -121,17 +140,13 @@ class GeminiProvider:
 
     def generate(self, *, system: str, user: str, context: dict) -> ProviderResult:
         started = time.perf_counter()
-        headers = {
-            "x-goog-api-key": settings.ai_api_key or "",
-            "content-type": "application/json",
-        }
         payload = {
             "system_instruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": user}]}],
             "generationConfig": {"response_mime_type": "application/json"},
         }
 
-        body = self._call(headers, payload)
+        body = self._call(payload)
 
         text = self._extract_text(body)
         data = self._parse_json(text)
@@ -146,32 +161,42 @@ class GeminiProvider:
             raw=text,
         )
 
-    def _call(self, headers: dict, payload: dict) -> dict:
-        """Resolve a model and POST generateContent. On 404, blacklist that model
-        and try the next best. On 429, back off. Correct URL includes '/models/'."""
-        api_key = settings.ai_api_key or ""
+    def _call(self, payload: dict) -> dict:
+        """Resolve a model and POST generateContent, with self-healing:
+          • 404  → blacklist the model and try the next best,
+          • 429  → rotate to the next API key (or back off if only one key),
+          • 200  → done. Correct URL includes '/models/'."""
+        keys = _keys()
+        n_keys = len(keys)
+        attempts = max(6, n_keys + 3)
         resp = None
-        for _model_try in range(5):
-            self.model = _resolve_model(self._preferred, api_key, self.timeout)
-            url = f"{_BASE}/models/{self.model}:generateContent"
-            for wait in (0, 2, 5, 12):  # 429 backoff (free tier is a few req/min)
-                if wait:
-                    logger.info("rate limited; retrying in %ss", wait)
-                    time.sleep(wait)
-                resp = httpx.post(url, headers=headers, json=payload, timeout=self.timeout)
-                if resp.status_code != 429:
-                    break
-            if resp.status_code == 404:
-                logger.warning("model '%s' returned 404; blacklisting and retrying",
-                               self.model)
-                _mark_bad(self.model)
+        for i in range(attempts):
+            key = _current_key(keys)
+            model = _resolve_model(self._preferred, key, self.timeout)
+            self.model = model
+            url = f"{_BASE}/models/{model}:generateContent"
+            headers = {"x-goog-api-key": key, "content-type": "application/json"}
+            resp = httpx.post(url, headers=headers, json=payload, timeout=self.timeout)
+            code = resp.status_code
+            if code == 200:
+                return resp.json()
+            if code == 404:
+                logger.warning("model '%s' returned 404; blacklisting", model)
+                _mark_bad(model)
                 continue
-            resp.raise_for_status()
-            return resp.json()
-        # Exhausted model attempts — surface the last error.
+            if code == 429:
+                if n_keys > 1:
+                    logger.info("key #%d rate-limited; rotating key", _key_idx + 1)
+                    _rotate_key(keys)
+                else:
+                    wait = min(2 * (i + 1), 12)
+                    logger.info("rate limited; backing off %ss", wait)
+                    time.sleep(wait)
+                continue
+            resp.raise_for_status()  # other errors: surface immediately
         if resp is not None:
             resp.raise_for_status()
-        raise RuntimeError("Gemini request failed: no usable model")
+        raise RuntimeError("Gemini request failed after retries")
 
     @staticmethod
     def _extract_text(body: dict) -> str:

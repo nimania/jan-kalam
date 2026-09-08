@@ -6,3 +6,6 @@ backend/**/*.db
 venv/
 .env
 .pytest_cache/
+
+# update bundle (safe to delete)
+_jk_v2.tgz

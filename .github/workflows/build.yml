@@ -7,7 +7,8 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: "0 */2 * * *"          # every 2 hours (safe on the free tier)
+    - cron: "0 * * * *"            # every hour (the build DB is cached, so each
+                                    # run only synthesizes genuinely NEW stories)
 
 permissions:
   contents: read
@@ -29,17 +30,27 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: pip install -r requirements.txt
+      # Persist the news DB between hourly runs so we DON'T re-synthesize the same
+      # stories every hour (only new clusters cost an AI call). Restores the most
+      # recent cache; always saves a fresh one (unique key + prefix restore-keys).
+      - name: Restore news database (cache)
+        uses: actions/cache@v4
+        with:
+          path: backend/build.db
+          key: jankalam-db-${{ github.run_id }}
+          restore-keys: |
+            jankalam-db-
       - name: Generate news (ingest → cluster → rank → synthesize → export)
         working-directory: backend
         env:
           DATABASE_URL: "sqlite:///./build.db"
           # These come from repo Settings → Secrets. If unset, the free offline
-          # mock is used (placeholder synthesis).
+          # mock is used (placeholder synthesis). AI_API_KEY may hold SEVERAL keys
+          # (comma-separated) — the provider rotates through them on rate limits.
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_MODEL_STRONG: ${{ secrets.AI_MODEL_STRONG }}
         run: |
-          rm -f build.db
           python -m scripts.seed
           python -c "from app.tasks.scheduler import run_full_cycle; print(run_full_cycle())"
           python -m scripts.export_static
