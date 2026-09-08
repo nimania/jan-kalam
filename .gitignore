@@ -1,0 +1,8 @@
+# build output & local files (never committed)
+backend/public/
+backend/**/*.db
+**/__pycache__/
+.venv/
+venv/
+.env
+.pytest_cache/

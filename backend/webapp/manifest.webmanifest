@@ -1,0 +1,19 @@
+{
+  "name": "جان‌کلام — هوش خبری فارسی",
+  "short_name": "جان‌کلام",
+  "description": "هوش خبری فارسی: واقعیت جدا از تحلیل، و دیدگاه هر منبع به‌تفکیک.",
+  "lang": "fa",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f2f4f0",
+  "theme_color": "#155a4f",
+  "icons": [
+    { "src": "/icons/icon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" },
+    { "src": "/icons/icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any" },
+    { "src": "/icons/icon-maskable-512.png", "type": "image/png", "sizes": "512x512", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,7 @@
+# SITE_ADDRESS comes from .env.
+#   - a real domain (e.g. news.example.com)  -> automatic HTTPS via Let's Encrypt
+#   - ":80"                                   -> plain HTTP, reach it by server IP (for testing)
+{$SITE_ADDRESS} {
+	encode gzip
+	reverse_proxy web:8000
+}

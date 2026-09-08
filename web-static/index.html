@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>جان‌کلام</title>
+  <meta name="description" content="هوش خبری فارسی — واقعیت جدا از تحلیل، و دیدگاه هر منبع به‌تفکیک.">
+  <meta name="theme-color" content="#155a4f">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <div class="brand" onclick="showFeed()">
+        <span class="logo">جان‌کلام</span>
+        <span class="tag">هوش خبری فارسی</span>
+      </div>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="theme" aria-label="روشن / تیره" title="روشن / تیره">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="feed-view">
+      <div class="lede">
+        <h1>مهم‌ترین‌های امروز، در چند جمله</h1>
+        <p>به‌جای خواندن ده‌ها خبر، جان‌کلامِ هر رویداد را بخوان: واقعیت جدا از تحلیل، و دیدگاه هر منبع به‌تفکیک.</p>
+        <p class="muted" id="built" style="margin-top:8px"></p>
+      </div>
+      <div class="rule"><span>خط خبری</span><span class="l"></span></div>
+      <div class="feed" id="feed"><div class="spinner"></div></div>
+    </section>
+
+    <section class="detail" id="detail-view"></section>
+
+    <section class="topics-view" id="topics-view">
+      <div class="lede">
+        <h1>موضوعات را دنبال کن</h1>
+        <p>موضوع‌هایی که برایت مهم‌اند را انتخاب کن (روی این دستگاه ذخیره می‌شود).</p>
+      </div>
+      <div class="topic-grid" id="topic-grid"><div class="spinner"></div></div>
+    </section>
+  </main>
+
+  <nav class="tabbar">
+    <div class="inner">
+      <button class="tab active" id="tab-feed" onclick="showFeed()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg>
+        خط خبری
+      </button>
+      <button class="tab" id="tab-topics" onclick="showTopics()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10Z" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.5"/></svg>
+        موضوعات
+      </button>
+    </div>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>

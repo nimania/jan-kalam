@@ -1,0 +1,60 @@
+name: Build & Deploy Jan Kalam (static)
+
+# Runs OUTSIDE Iran on GitHub's servers, so it can reach news sources and the AI.
+# It generates the news and publishes a static site to GitHub Pages — free.
+on:
+  workflow_dispatch: {}            # manual "Run" button
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 */2 * * *"          # every 2 hours (safe on the free tier)
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements.txt
+      - name: Generate news (ingest → cluster → rank → synthesize → export)
+        working-directory: backend
+        env:
+          DATABASE_URL: "sqlite:///./build.db"
+          # These come from repo Settings → Secrets. If unset, the free offline
+          # mock is used (placeholder synthesis).
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL_STRONG: ${{ secrets.AI_MODEL_STRONG }}
+        run: |
+          rm -f build.db
+          python -m scripts.seed
+          python -c "from app.tasks.scheduler import run_full_cycle; print(run_full_cycle())"
+          python -m scripts.export_static
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: backend/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
