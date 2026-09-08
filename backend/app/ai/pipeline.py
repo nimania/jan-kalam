@@ -157,6 +157,7 @@ def synthesize_drafts(db: Session, *, limit: int = 20,
         select(Story)
         .where(Story.status == StoryStatus.draft)
         .options(selectinload(Story.article_links).selectinload(StoryArticle.article))
+        .order_by(Story.importance_score.desc())
         .limit(limit)
     ).scalars().unique().all()
     results = [synthesize_story(db, s, provider=provider) for s in stories]
