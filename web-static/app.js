@@ -149,11 +149,26 @@ function showAsk(i) {
 
 /* ---- بورس اخبار ---- */
 let _trendsLoaded = false;
+const grp = n => Number(n).toLocaleString("en-US");
 async function renderTrends() {
   if (_trendsLoaded) return;
   const el = document.getElementById("trends");
   try {
-    const t = await getJSON(`${DATA}/trends.json`);
+    const [t, prices] = await Promise.all([
+      getJSON(`${DATA}/trends.json`),
+      getJSON(`${DATA}/prices.json`).catch(() => []),
+    ]);
+    const priceRows = (prices || []).map(p => {
+      const cls = p.dir === "up" ? "up" : p.dir === "down" ? "down" : "flat";
+      const arrow = p.dir === "up" ? "▲" : p.dir === "down" ? "▼" : "—";
+      return `<div class="price"><div class="p-label">${esc(p.label_fa)}</div>
+        <div class="p-val">${faN(grp(p.value))} <span class="p-unit">${esc(p.unit_fa)}</span></div>
+        <div class="p-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪</div></div>`;
+    }).join("");
+    const priceBoard = (prices && prices.length) ? `
+      <div class="rule" style="margin-top:0"><span>نرخِ لحظه‌ای بازار</span><span class="l"></span></div>
+      <div class="price-grid">${priceRows}</div>
+      <p class="muted" style="margin:2px 0 8px">منبع نرخ‌ها: tgju — هر ساعت به‌روز می‌شود.</p>` : "";
     const topics = (t.topics || []);
     const bars = topics.map(tp => `<div class="vbar"><div class="vb-name">${esc(tp.name_fa)}</div>
       <div class="vb-track"><div class="vb-fill" style="width:${Math.max(6, tp.pct)}%"></div></div>
@@ -163,6 +178,7 @@ async function renderTrends() {
       <span class="t-val">${faN(h.source_count)}</span>
       <span class="t-chg tx-up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M6 11l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>منبع</span></div>`).join("");
     el.innerHTML = `
+      ${priceBoard}
       <div class="tx-hero"><span class="val">${faN(t.story_total || 0)}</span><span class="lbl">خبرِ فعال روی تخته</span>
         <span class="spacer" style="flex:1"></span><span class="lbl">${faN(topics.length)} موضوع فعال</span></div>
       <div class="rule"><span>داغ‌ترین موضوع‌ها</span><span class="l"></span></div>

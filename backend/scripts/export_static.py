@@ -20,6 +20,7 @@ import shutil
 from app.credibility import compute_credibility
 from app.db.session import SessionLocal
 from app.factcheck import service as fc_svc
+from app.prices import service as price_svc
 from app.repositories import stories as story_repo
 from app.repositories import topics as topic_repo
 from app.services import ask as ask_svc
@@ -92,6 +93,7 @@ def run() -> None:
 
     _write(os.path.join(DATA, "trends.json"), trends_svc.compute_trends(db))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
+    _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
 
     from datetime import datetime, timezone
     _write(os.path.join(DATA, "meta.json"),

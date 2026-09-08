@@ -43,6 +43,16 @@ SOURCES = [
     ("ایران اینترنشنال (Iran International)", "https://www.iranintl.com", "https://www.iranintl.com/en/rss", "iran-intl", 0.6),
     ("رادیو فردا (Radio Farda)", "https://www.radiofarda.com", "https://www.radiofarda.com/api/zrqiteuuir", "iran-intl", 0.65),
     ("دویچه‌وله فارسی (DW Persian)", "https://www.dw.com/fa-ir", "https://rss.dw.com/rdf/rss-per-all", "iran-intl", 0.75),
+    # --- more Persian domestic ---
+    ("خبرآنلاین", "https://www.khabaronline.ir", "https://www.khabaronline.ir/rss", "iran", 0.6),
+    ("تابناک", "https://www.tabnak.ir", "https://www.tabnak.ir/fa/rss/allnews", "iran", 0.55),
+    ("فرارو", "https://fararu.com", "https://fararu.com/fa/rss/allnews", "iran", 0.55),
+    ("انتخاب", "https://www.entekhab.ir", "https://www.entekhab.ir/fa/rss/allnews", "iran", 0.55),
+    ("مشرق نیوز", "https://www.mashreghnews.ir", "https://www.mashreghnews.ir/rss", "iran", 0.5),
+    # --- more Persian international / diaspora ---
+    ("یورونیوز فارسی", "https://parsi.euronews.com", "https://parsi.euronews.com/rss", "iran-intl", 0.7),
+    ("کیهان لندن", "https://kayhan.london", "https://kayhan.london/feed/", "iran-intl", 0.55),
+    ("صدای آمریکا فارسی (VOA)", "https://ir.voanews.com", "https://ir.voanews.com/rss", "iran-intl", 0.6),
 ]
 
 TOPICS = [

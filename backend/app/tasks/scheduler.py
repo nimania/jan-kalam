@@ -35,6 +35,7 @@ def run_full_cycle() -> dict:
     from app.ai.pipeline import synthesize_drafts
     from app.clustering.service import cluster_articles
     from app.ranking.service import rank_stories
+    from app.tagging.service import tag_stories
 
     db = SessionLocal()
     try:
@@ -42,11 +43,13 @@ def run_full_cycle() -> dict:
         clustered = cluster_articles(db)
         ranked = rank_stories(db)
         synthed = synthesize_drafts(db)
+        tagged = tag_stories(db)  # assign topics by keyword (no AI cost)
         summary = {
             "ingested_new": sum(r.new for r in ing),
             "clusters_new": clustered.get("new_stories", 0),
             "ranked": ranked.get("ranked", 0),
             "published": synthed.get("published", 0),
+            "tagged": tagged.get("tagged", 0),
         }
         logger.info("full cycle complete: %s", summary)
         return summary
