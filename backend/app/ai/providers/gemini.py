@@ -8,7 +8,9 @@ Self-healing model selection: Google returns 404 when the configured model name
 is not valid for this API version / key ("Call ListModels to see the list of
 available models"). So instead of trusting a hard-coded name, we ask the key
 which models it actually supports for generateContent and pick the best one,
-preferring the configured model. The result is cached for the process.
+preferring the configured model. If a chosen model still 404s on the actual
+call, we blacklist it and fall through to the next best — so a stale or
+inconsistent model name can never block the whole run. Resolution is cached.
 """
 from __future__ import annotations
 
@@ -27,13 +29,21 @@ logger = get_logger("ai.gemini")
 _BASE = "https://generativelanguage.googleapis.com/v1beta"
 _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 
-# Resolved once per process, shared by every GeminiProvider instance.
+# Shared across every GeminiProvider instance for the life of the process.
 _resolved_model: str | None = None
+_bad_models: set[str] = set()
 
 
 def _short(name: str) -> str:
     """'models/gemini-2.5-flash' -> 'gemini-2.5-flash' (also strips leading slash)."""
     return name.rsplit("/", 1)[-1]
+
+
+def _mark_bad(model: str) -> None:
+    """Remember a model that 404'd so we never pick it again, and force re-resolve."""
+    global _resolved_model
+    _bad_models.add(model)
+    _resolved_model = None
 
 
 def _score_model(name: str) -> int:
@@ -73,28 +83,30 @@ def _list_models(api_key: str, timeout: float) -> list[str]:
 
 
 def _resolve_model(preferred: str, api_key: str, timeout: float) -> str:
-    """Pick a usable model: the configured one if the key supports it, else the
-    best available. Falls back to the configured name if listing fails."""
+    """Pick a usable model: the configured one if the key supports it (and it
+    hasn't 404'd), else the best available. Falls back to the configured name if
+    listing fails. Never returns a blacklisted model unless nothing else is left."""
     global _resolved_model
     if _resolved_model:
         return _resolved_model
-    try:
-        available = _list_models(api_key, timeout)
-    except Exception as exc:
-        logger.warning("could not list Gemini models (%s); using '%s'", exc, preferred)
-        _resolved_model = preferred
-        return _resolved_model
 
     pref = _short(preferred)
+    try:
+        available = [a for a in _list_models(api_key, timeout) if a not in _bad_models]
+    except Exception as exc:
+        logger.warning("could not list Gemini models (%s); using '%s'", exc, pref)
+        _resolved_model = pref
+        return _resolved_model
+
     if pref in available:
         chosen = pref
     elif available:
         chosen = sorted(available, key=_score_model, reverse=True)[0]
     else:
-        chosen = pref
+        chosen = pref  # nothing else offered — last resort
     if chosen != pref:
-        logger.info("configured model '%s' unavailable; using '%s'", pref, chosen)
-    logger.info("Gemini model resolved to '%s' (%d available)", chosen, len(available))
+        logger.info("using Gemini model '%s' (configured '%s' not usable)", chosen, pref)
+    logger.info("Gemini model resolved to '%s' (%d usable)", chosen, len(available))
     _resolved_model = chosen
     return _resolved_model
 
@@ -109,18 +121,17 @@ class GeminiProvider:
 
     def generate(self, *, system: str, user: str, context: dict) -> ProviderResult:
         started = time.perf_counter()
-        api_key = settings.ai_api_key or ""
-        # Discover a working model (cached across calls).
-        self.model = _resolve_model(self._preferred, api_key, self.timeout)
-
-        headers = {"x-goog-api-key": api_key, "content-type": "application/json"}
+        headers = {
+            "x-goog-api-key": settings.ai_api_key or "",
+            "content-type": "application/json",
+        }
         payload = {
             "system_instruction": {"parts": [{"text": system}]},
             "contents": [{"role": "user", "parts": [{"text": user}]}],
             "generationConfig": {"response_mime_type": "application/json"},
         }
 
-        body = self._post_with_retry(headers, payload)
+        body = self._call(headers, payload)
 
         text = self._extract_text(body)
         data = self._parse_json(text)
@@ -135,32 +146,32 @@ class GeminiProvider:
             raw=text,
         )
 
-    def _post_with_retry(self, headers: dict, payload: dict) -> dict:
-        """POST generateContent, backing off on 429 (free-tier rate limit)."""
-        global _resolved_model
-        url = f"{_BASE}/{self.model}:generateContent"
-        delays = [2, 5, 12]  # seconds; free tier is a few requests/minute
-        last_exc: Exception | None = None
-        for attempt in range(len(delays) + 1):
-            resp = httpx.post(url, headers=headers, json=payload, timeout=self.timeout)
-            if resp.status_code == 429 and attempt < len(delays):
-                wait = delays[attempt]
-                logger.info("rate limited; retrying in %ss", wait)
-                time.sleep(wait)
-                continue
+    def _call(self, headers: dict, payload: dict) -> dict:
+        """Resolve a model and POST generateContent. On 404, blacklist that model
+        and try the next best. On 429, back off. Correct URL includes '/models/'."""
+        api_key = settings.ai_api_key or ""
+        resp = None
+        for _model_try in range(5):
+            self.model = _resolve_model(self._preferred, api_key, self.timeout)
+            url = f"{_BASE}/models/{self.model}:generateContent"
+            for wait in (0, 2, 5, 12):  # 429 backoff (free tier is a few req/min)
+                if wait:
+                    logger.info("rate limited; retrying in %ss", wait)
+                    time.sleep(wait)
+                resp = httpx.post(url, headers=headers, json=payload, timeout=self.timeout)
+                if resp.status_code != 429:
+                    break
             if resp.status_code == 404:
-                # Cached model went stale (shouldn't happen after resolve) — clear
-                # the cache so the next call re-discovers, then fail this one.
-                _resolved_model = None
-            try:
-                resp.raise_for_status()
-            except Exception as exc:
-                last_exc = exc
-                raise
+                logger.warning("model '%s' returned 404; blacklisting and retrying",
+                               self.model)
+                _mark_bad(self.model)
+                continue
+            resp.raise_for_status()
             return resp.json()
-        if last_exc:
-            raise last_exc
-        raise RuntimeError("Gemini request failed after retries")
+        # Exhausted model attempts — surface the last error.
+        if resp is not None:
+            resp.raise_for_status()
+        raise RuntimeError("Gemini request failed: no usable model")
 
     @staticmethod
     def _extract_text(body: dict) -> str:
