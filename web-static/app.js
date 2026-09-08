@@ -17,8 +17,10 @@ function impInfo(v) {
 }
 function relTime(iso) {
   if (!iso) return "";
-  const h = Math.floor((Date.now() - new Date(iso)) / 3.6e6);
-  if (h < 1) return "همین حالا";
+  const mins = Math.floor((Date.now() - new Date(iso)) / 6e4);
+  if (mins < 1) return "همین حالا";
+  if (mins < 60) return faN(mins) + " دقیقه پیش";
+  const h = Math.floor(mins / 60);
   if (h < 24) return faN(h) + " ساعت پیش";
   const d = Math.floor(h / 24);
   return d === 1 ? "دیروز" : faN(d) + " روز پیش";
@@ -273,6 +275,31 @@ document.getElementById("theme").addEventListener("click", () => {
 });
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 
-// build time (optional data/meta.json)
-getJSON(`${DATA}/meta.json`).then(m => { if (m.built) document.getElementById("built").textContent = "به‌روزرسانی: " + m.built; }).catch(() => {});
+// build time — shown relative to now ("۲۰ دقیقه پیش")
+getJSON(`${DATA}/meta.json`).then(m => {
+  const t = m.built_iso ? relTime(m.built_iso) : m.built;
+  if (t) document.getElementById("built").textContent = "به‌روزرسانی: " + t;
+}).catch(() => {});
+
+// compact price strip on the home page (dollar / euro / lira / emami coin)
+async function renderHomePrices() {
+  const el = document.getElementById("home-prices");
+  if (!el) return;
+  try {
+    const prices = await getJSON(`${DATA}/prices.json`);
+    if (!prices || !prices.length) return;
+    const want = ["دلار آمریکا", "یورو", "لیر ترکیه", "سکه امامی"];
+    const pick = want.map(w => prices.find(p => p.label_fa === w)).filter(Boolean);
+    if (!pick.length) return;
+    el.innerHTML = pick.map(p => {
+      const cls = p.dir === "up" ? "up" : p.dir === "down" ? "down" : "flat";
+      const arrow = p.dir === "up" ? "▲" : p.dir === "down" ? "▼" : "—";
+      return `<div class="hp"><span class="hp-label">${esc(p.label_fa)}</span>
+        <span class="hp-val">${faN(grp(p.value))}</span>
+        <span class="hp-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪</span></div>`;
+    }).join("") + `<button class="hp-more" onclick="showTrends()">بورس اخبار ›</button>`;
+  } catch (e) {}
+}
+
 loadFeed();
+renderHomePrices();

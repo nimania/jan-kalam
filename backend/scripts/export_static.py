@@ -96,8 +96,10 @@ def run() -> None:
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
 
     from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
     _write(os.path.join(DATA, "meta.json"),
-           {"built": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+           {"built": now.strftime("%Y-%m-%d %H:%M UTC"),
+            "built_iso": now.isoformat(),
             "count": len(cards)})
 
     db.close()

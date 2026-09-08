@@ -21,6 +21,7 @@ _ITEMS = [
     ("دلار آمریکا", ["price_dollar_rl"], "تومان", True),
     ("یورو", ["price_eur"], "تومان", True),
     ("پوند", ["price_gbp"], "تومان", True),
+    ("لیر ترکیه", ["price_try"], "تومان", True),
     ("درهم امارات", ["price_aed"], "تومان", True),
     ("سکه امامی", ["sekee", "sekee_new"], "تومان", True),
     ("نیم‌سکه", ["nim"], "تومان", True),

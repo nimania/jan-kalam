@@ -64,28 +64,35 @@ def to_detail(story: Story) -> StoryDetail:
         )
         for sv in story.source_views
     ]
-    sources = [
-        SourceRef(
-            source_name=sv.source_name,
-            original_headline=sv.original_headline,
-            article_url=sv.article_url,
-            published_at=sv.published_at,
-        )
-        for sv in story.source_views
-    ]
-    # Fall back to article links for citations if no source_views yet.
-    if not sources:
-        for link in story.article_links:
-            a = link.article
-            if a:
-                sources.append(
-                    SourceRef(
-                        source_name=a.source_name,
-                        original_headline=a.title,
-                        article_url=a.article_url,
-                        published_at=a.published_at,
-                    )
+    # Citations must open the REAL source article, so build them from the
+    # article links (which always carry a working article_url). Falling back to
+    # source_views produced dead "#" links whenever the AI's source_name didn't
+    # exactly match an article. De-duplicate by URL, keep order.
+    sources = []
+    seen_urls: set[str] = set()
+    for link in story.article_links:
+        a = link.article
+        if a and a.article_url and a.article_url not in seen_urls:
+            seen_urls.add(a.article_url)
+            sources.append(
+                SourceRef(
+                    source_name=a.source_name,
+                    original_headline=a.title,
+                    article_url=a.article_url,
+                    published_at=a.published_at,
                 )
+            )
+    # Last resort: source_views (only if there are no article links at all).
+    if not sources:
+        sources = [
+            SourceRef(
+                source_name=sv.source_name,
+                original_headline=sv.original_headline,
+                article_url=sv.article_url,
+                published_at=sv.published_at,
+            )
+            for sv in story.source_views
+        ]
     topics = [
         TopicRef(id=tl.topic.id, slug=tl.topic.slug, name_fa=tl.topic.name_fa)
         for tl in story.topic_links
