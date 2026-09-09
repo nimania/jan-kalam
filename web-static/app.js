@@ -67,12 +67,12 @@ function feedCard(s) {
   const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge clickable" data-src="${esc(x)}" onclick="event.stopPropagation();openSource(this.dataset.src)">${esc(x)}</span>`).join("");
   return `<button class="card" onclick="openStory('${s.id}')">
     <div class="meta"><span class="chip">${CAT_FA[s.category] || "خبر"}</span>
-      <span class="dot"></span><span class="muted">${relTime(s.published_at)}</span>${geoBadge(s.geo)}
+      <span class="dot"></span><span class="muted">${relTime(s.published_at)}</span>${geoBadge(s.geo)}${trendBadge(s.trend)}
       <span class="imp ${imp.cls}"><span class="bars"><i></i><i></i><i></i></span><span class="lbl">${imp.lbl}</span></span></div>
     <h2>${esc(s.headline_fa || "")}</h2>
     <p class="kalam">${esc(s.summary_fa || "")}</p>
     <div class="foot"><span class="sources-mini">${faN(s.source_count || 0)} منبع:</span>${badges}
-      <span class="cred-row">${credBadge(s.credibility)}${fcBadge(s.factcheck)}</span></div>
+      <span class="cred-row">${credBadge(s.credibility)}${fcBadge(s.factcheck)}${saveBtn(s.id)}</span></div>
   </button>`;
 }
 
@@ -88,12 +88,26 @@ async function loadFeed() {
   }
 }
 const tierOf = s => impInfo(s.importance_score).cls;   // high | mid | low
+function feedFilter(mode) {
+  if (mode === "mine") return mineFeed();
+  if (mode === "rising") return ALL.filter(s => s.trend && s.trend.rising);
+  if (mode === "hot") return ALL.filter(s => s.trend && s.trend.hot);
+  if (mode === "high" || mode === "mid" || mode === "low") return ALL.filter(s => tierOf(s) === mode);
+  return ALL;
+}
 function renderFeed() {
   const el = document.getElementById("feed");
   if (!ALL.length) { el.innerHTML = `<div class="state"><div class="big">هنوز خبری منتشر نشده</div></div>`; return; }
-  const items = tier === "all" ? ALL : ALL.filter(s => tierOf(s) === tier);
+  if (tier === "mine" && followCount() === 0 && !(FOLLOW.saved && FOLLOW.saved.length)) {
+    el.innerHTML = `<div class="state mine-empty"><div class="big">خط خبریِ تو خالی است</div>
+      <p class="muted">با زدنِ ستارهٔ ★ روی موضوع‌ها (در تبِ موضوعات)، استان‌ها (در صفحهٔ ایران) و منابع، یا ذخیرهٔ خبرها، اینجا خط خبریِ شخصیِ خودت ساخته می‌شود — روی همین دستگاه.</p></div>`;
+    return;
+  }
+  const items = feedFilter(tier);
+  const empty = { rising: "الان خبری در حالِ رشد نیست", hot: "الان خبرِ داغی نداریم",
+    mine: "هنوز خبری از دنبال‌شده‌هایت نیست" }[tier] || "خبری در این نما نیست";
   el.innerHTML = items.length ? items.map(feedCard).join("")
-    : `<div class="state"><div class="big">خبری در این سطح نیست</div></div>`;
+    : `<div class="state"><div class="big">${empty}</div></div>`;
 }
 function setTier(t) {
   tier = t;
@@ -144,12 +158,24 @@ async function openStory(id) {
         <span class="ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></span></a>` : ""}
     </div>` : "";
 
+  const tr = s.trend;
+  const trendSec = (tr && tr.total_sources > 1) ? `
+    <div class="layers"><h3 class="section-h">روندِ پوشش <span class="n">۴۸ ساعتِ اخیر</span> ${trendBadge(tr)}</h3>
+      <div class="trend-box">
+        <div class="trend-stat"><span class="ts-v">${faN(tr.total_sources)}</span><span>منبع تاکنون</span></div>
+        <div class="trend-stat"><span class="ts-v">${faN(tr.velocity)}</span><span>در ۶ ساعتِ اخیر</span></div>
+        <div class="trend-stat"><span class="ts-v">${faN(tr.ratio)}×</span><span>شتابِ پوشش</span></div>
+      </div>
+      <div class="chart-wrap">${svgSpark(tr.curve || [], { w: 320, h: 60 })}</div>
+      <p class="muted" style="margin:6px 0 0">شمارِ تجمعیِ منابعِ مستقل که این خبر را پوشش داده‌اند؛ شیبِ تندتر یعنی خبر سریع‌تر در حالِ گسترش است.</p>
+    </div>` : "";
+
   const chips = (s.asks || []).map((a, i) => `<button class="qchip" onclick="showAsk(${i})">${esc(a.q)}</button>`).join("");
   window._asks = s.asks || [];
 
   v.innerHTML = `
     <button class="back" onclick="showFeed()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به خط خبری</button>
-    <div class="d-head"><div class="meta"><span class="chip">${CAT_FA[s.category] || "خبر"}</span><span class="dot"></span><span class="muted">${relTime(s.published_at)}</span></div>
+    <div class="d-head"><div class="meta"><span class="chip">${CAT_FA[s.category] || "خبر"}</span><span class="dot"></span><span class="muted">${relTime(s.published_at)}</span>${trendBadge(s.trend)}<span class="spacer" style="flex:1"></span>${saveBtn(s.id)}</div>
       <h1>${esc(s.headline_fa || "")}</h1>
       <div class="d-meta"><span class="imp ${imp.cls}"><span class="bars"><i></i><i></i><i></i></span><span class="lbl">${imp.lbl}</span></span>
         <span class="dot"></span><span class="muted">${faN(s.source_count || 0)} منبع</span>
@@ -159,6 +185,7 @@ async function openStory(id) {
       <div class="qa"><h3>چرا اهمیت دارد؟</h3><p>${esc(s.why_it_matters_fa || "—")}</p></div></div>
     ${known}
     ${cred}
+    ${trendSec}
     <div class="layers"><h3 class="section-h">منابع چه می‌گویند <span class="n">دیدگاه هر منبع، جدا از واقعیت</span></h3><div class="views">${views || '<p class="muted">—</p>'}</div>${consensus}</div>
     <div class="layers"><h3 class="section-h">منابع</h3><div class="cites">${cites}</div></div>
     <div class="ask"><div class="a-h"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="color:var(--accent)"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z" stroke-linejoin="round"/></svg> دربارهٔ این خبر بپرس</div>
@@ -181,9 +208,11 @@ async function renderTrends() {
   if (_trendsLoaded) return;
   const el = document.getElementById("trends");
   try {
-    const [t, prices] = await Promise.all([
+    if (!ALL.length) { try { ALL = await getJSON(`${DATA}/stories.json`); } catch (e) {} }
+    const [t, prices, st] = await Promise.all([
       getJSON(`${DATA}/trends.json`),
       getJSON(`${DATA}/prices.json`).catch(() => []),
+      getJSON(`${DATA}/stats.json`).catch(() => null),
     ]);
     const priceRows = (prices || []).map(p => {
       const cls = p.dir === "up" ? "up" : p.dir === "down" ? "down" : "flat";
@@ -197,22 +226,36 @@ async function renderTrends() {
       <div class="price-grid">${priceRows}</div>
       <p class="muted" style="margin:2px 0 8px">منبع نرخ‌ها: tgju — هر ساعت به‌روز می‌شود.</p>` : "";
     const topics = (t.topics || []);
-    const bars = topics.map(tp => `<div class="vbar"><div class="vb-name">${esc(tp.name_fa)}</div>
-      <div class="vb-track"><div class="vb-fill" style="width:${Math.max(6, tp.pct)}%"></div></div>
-      <div class="vb-num">${faN(tp.story_count)} خبر</div></div>`).join("");
+    const g = t.google || {};
+    const googleOn = Object.keys(g).length > 0;
+    const rows = topics.map(tp => {
+      const series = tp.series || [];
+      const cmp = g[tp.slug];
+      const chart = cmp
+        ? `<div class="tp-chart cmp">${svgCompare(series, cmp.points.map(p => p.v))}</div>
+           <div class="cmp-legend"><span class="lg a">جان‌کلام</span><span class="lg b">گوگل ترندز</span></div>`
+        : `<div class="tp-chart">${svgSpark(series, { w: 150, h: 34 })}</div>`;
+      return `<button class="tp-row" onclick="openTopic('${tp.slug}')">
+        <div class="tp-head"><span class="tp-name">${esc(tp.name_fa)}</span>${growthTag(tp.growth)}
+          <span class="tp-n">${faN(tp.story_count)} خبر · هفته: ${faN(tp.last7 == null ? tp.story_count : tp.last7)}</span></div>
+        ${chart}</button>`;
+    }).join("");
     const hot = (t.hottest || []).map(h => `<div class="ticker" onclick="openStory('${h.id}')" style="cursor:pointer">
       <span class="t-name">${esc(h.headline_fa)}<span class="t-cat">${CAT_FA[h.category] || ""}</span></span>
       <span class="t-val">${faN(h.source_count)}</span>
       <span class="t-chg tx-up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M6 11l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>منبع</span></div>`).join("");
+    const statsSection = st ? `<div class="rule" style="margin-top:2px"><span>نبض خبری</span><span class="l"></span></div>${statsBlock(st)}` : "";
     el.innerHTML = `
       ${priceBoard}
+      ${statsSection}
       <div class="tx-hero"><span class="val">${faN(t.story_total || 0)}</span><span class="lbl">خبرِ فعال روی تخته</span>
         <span class="spacer" style="flex:1"></span><span class="lbl">${faN(topics.length)} موضوع فعال</span></div>
-      <div class="rule"><span>داغ‌ترین موضوع‌ها</span><span class="l"></span></div>
-      <div class="bars-block">${bars || '<p class="muted">—</p>'}</div>
+      <div class="rule"><span>رشدِ موضوع‌ها <span class="n">۱۴ روزِ اخیر</span></span><span class="l"></span></div>
+      <div class="tp-board">${rows || '<p class="muted">—</p>'}</div>
+      ${googleOn ? '' : '<p class="muted" style="margin:8px 0 0">مقایسه با گوگل ترندز فعلاً در دسترس نیست (آزمایشی).</p>'}
       <div class="rule" style="margin-top:26px"><span>پرپوشش‌ترین خبرها</span><span class="l"></span></div>
       <div class="tickers">${hot || '<p class="muted">—</p>'}</div>
-      <p class="muted" style="margin-top:18px">«پوشش» یعنی چند منبعِ مستقل یک خبر را گزارش کرده‌اند. هرچه بیشتر، خبر داغ‌تر.</p>`;
+      <p class="muted" style="margin-top:18px">«رشد» = مقایسهٔ خبرهای این هفته با هفتهٔ پیش. «پوشش» = چند منبعِ مستقل یک خبر را گفته‌اند.</p>`;
     _trendsLoaded = true;
   } catch (e) {
     el.innerHTML = `<div class="state"><div class="big">بورس اخبار بارگذاری نشد</div></div>`;
@@ -303,9 +346,9 @@ async function renderTopics() {
       el.innerHTML = `<div class="state"><div class="big">هنوز موضوعی دسته‌بندی نشده</div><p class="muted">با به‌روزرسانیِ بعدی پر می‌شود.</p></div>`;
       return;
     }
-    el.innerHTML = counted.map(t => `<button class="topic" onclick="openTopic('${t.slug}')">
+    el.innerHTML = counted.map(t => `<div class="topic" role="button" tabindex="0" onclick="openTopic('${t.slug}')">
       <div class="t-body"><div class="t-fa">${esc(t.name_fa)}</div><div class="t-count">${faN(t.n)} خبر</div></div>
-      <span class="t-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></button>`).join("");
+      ${followBtn("topics", t.slug, "دنبال", "دنبال کن")}</div>`).join("");
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">موضوعات بارگذاری نشد</div></div>`; }
 }
 
@@ -334,6 +377,9 @@ function openTopic(slug) {
   document.getElementById("ta-feed").innerHTML = groupedFeed(items);
 }
 
+function followBar(kind, id, note) {
+  return `<div class="follow-bar">${followBtn(kind, id, "در حال دنبال‌کردن", "دنبال کن")}<span class="fb-note">${esc(note)}</span></div>`;
+}
 function openSource(name) {
   if (!ALL.length) return;
   show("topicarchive"); setTab("feed");
@@ -342,7 +388,7 @@ function openSource(name) {
   const items = ALL.filter(s => (s.source_names || []).includes(name));
   document.getElementById("ta-title").textContent = "منبع: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر از این منبع";
-  document.getElementById("ta-feed").innerHTML = groupedFeed(items);
+  document.getElementById("ta-feed").innerHTML = followBar("sources", name, "خبرهای این منبع در «خط خبری من» بیاید") + groupedFeed(items);
 }
 
 /* ---- ایران — province map + scope classification ----
@@ -372,11 +418,18 @@ async function renderIran() {
     const total = (sc.local || 0) + (sc.national || 0) + (sc.international || 0);
     const scopes = [["all", "همه", total], ["local", "استانی", sc.local || 0],
       ["national", "کشوری", sc.national || 0], ["international", "بین‌المللی", sc.international || 0]];
+    const provChips = Object.entries(PATHS).map(([slug, p]) => {
+      const n = pc[slug] || 0, on = isF("provinces", slug);
+      return `<button class="pfollow ${on ? "on" : ""}" onclick="hitProvFollow('${slug}',this)"><span class="pf-star">★</span>${esc(p.fa)}${n ? ` <span class="chip-n">${faN(n)}</span>` : ""}</button>`;
+    }).join("");
     el.innerHTML = `
       <div class="iran-map">
         <svg viewBox="${VIEWBOX}" class="iran-svg" role="img" aria-label="نقشهٔ استان‌های ایران">${paths}</svg>
       </div>
-      <p class="muted" style="text-align:center;margin:2px 0 16px">روی هر استان بزن تا خبرهایش را ببینی — رنگِ پررنگ‌تر یعنی خبرِ بیشتر.</p>
+      <p class="muted" style="text-align:center;margin:2px 0 12px">روی هر استان بزن تا خبرهایش را ببینی — رنگِ پررنگ‌تر یعنی خبرِ بیشتر.</p>
+      <details class="prov-follow"><summary>دنبال‌کردنِ استان‌ها ★</summary>
+        <p class="muted" style="margin:8px 0">استان‌هایی که دنبال کنی، خبرهایشان در «خط خبری من» می‌آید (روی این دستگاه ذخیره می‌شود).</p>
+        <div class="pfollow-grid">${provChips}</div></details>
       <div class="imp-filter" id="iran-scopes">${scopes.map(s => `<button class="fchip" data-s="${s[0]}" onclick="setIranScope('${s[0]}')">${s[1]}${s[2] ? ` <span class="chip-n">${faN(s[2])}</span>` : ""}</button>`).join("")}</div>
       <div id="iran-body"></div>`;
     setIranScope(_iranScope);
@@ -397,7 +450,12 @@ function openProvince(slug) {
   const name = (PATHS[slug] || {}).fa || slug;
   document.getElementById("ta-title").textContent = "استان: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر در این استان";
-  document.getElementById("ta-feed").innerHTML = groupedFeed(items);
+  document.getElementById("ta-feed").innerHTML = followBar("provinces", slug, "خبرهای این استان در «خط خبری من» بیاید") + groupedFeed(items);
+}
+function hitProvFollow(slug, btn) {
+  toggleF("provinces", slug);
+  btn.classList.toggle("on", isF("provinces", slug));
+  updateMineBadge();
 }
 
 const root = document.documentElement;
@@ -462,6 +520,168 @@ async function renderWeather() {
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">آب‌وهوا بارگذاری نشد</div></div>`; }
 }
 
+/* ============================================================
+   Charts (dependency-free inline SVG), follow store, and stats
+   ============================================================ */
+
+function _pts(vals, w, h, pad) {
+  pad = pad == null ? 2 : pad;
+  const n = vals.length; if (!n) return [];
+  const mx = Math.max(...vals, 1), mn = Math.min(...vals, 0), rng = (mx - mn) || 1;
+  return vals.map((v, i) => {
+    const x = n === 1 ? w / 2 : pad + i * (w - 2 * pad) / (n - 1);
+    const y = h - pad - ((v - mn) / rng) * (h - 2 * pad);
+    return [x, y];
+  });
+}
+// sparkline (area + line), scales to container width
+function svgSpark(vals, o) {
+  o = o || {}; const w = o.w || 120, h = o.h || 30;
+  const p = _pts(vals, w, h, 2); if (!p.length) return "";
+  const line = p.map(a => a[0].toFixed(1) + "," + a[1].toFixed(1)).join(" ");
+  const area = p[0][0].toFixed(1) + "," + (h - 2) + " " + line + " " + p[p.length - 1][0].toFixed(1) + "," + (h - 2);
+  const cls = o.cls || "a";
+  return `<svg class="spark s-${cls}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true"><polygon class="sp-area" points="${area}"/><polyline class="sp-line" points="${line}"/></svg>`;
+}
+// vertical bars (activity)
+function svgBars(vals, o) {
+  o = o || {}; const w = o.w || 300, h = o.h || 64, n = vals.length, gap = o.gap || 2;
+  const mx = Math.max(...vals, 1), bw = (w - gap * (n - 1)) / n;
+  let r = "";
+  for (let i = 0; i < n; i++) {
+    const bh = Math.max(1.5, (vals[i] / mx) * (h - 2)), x = i * (bw + gap), y = h - bh;
+    const lbl = (o.labels && o.labels[i]) ? esc(o.labels[i]) + " — " : "";
+    r += `<rect class="bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5"><title>${lbl}${faN(vals[i])} خبر</title></rect>`;
+  }
+  return `<svg class="bars-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${r}</svg>`;
+}
+// two-series comparison, each normalized to its own max (shape compare, one axis)
+function svgCompare(a, b, o) {
+  o = o || {}; const w = o.w || 260, h = o.h || 64;
+  const norm = v => { const m = Math.max(...v, 1); return v.map(x => x / m * 100); };
+  const mk = (vals, cls) => {
+    const p = _pts(norm(vals), w, h, 3); if (!p.length) return "";
+    return `<polyline class="cmp-line c-${cls}" points="${p.map(a => a[0].toFixed(1) + "," + a[1].toFixed(1)).join(" ")}"/>` +
+      `<circle class="cmp-dot c-${cls}" cx="${p[p.length - 1][0].toFixed(1)}" cy="${p[p.length - 1][1].toFixed(1)}" r="2.6"/>`;
+  };
+  return `<svg class="cmp-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${mk(a, "a")}${b && b.length ? mk(b, "b") : ""}</svg>`;
+}
+function growthTag(g) {
+  if (g == null) return "";
+  if (g > 0) return `<span class="gtag up">▲ ${faN(g)}٪</span>`;
+  if (g < 0) return `<span class="gtag down">▼ ${faN(Math.abs(g))}٪</span>`;
+  return `<span class="gtag flat">—</span>`;
+}
+function trendBadge(t) {
+  if (!t) return "";
+  if (t.hot) return `<span class="tbadge hot">🔥 داغ</span>`;
+  if (t.rising) return `<span class="tbadge rise">در حال رشد</span>`;
+  return "";
+}
+
+/* ----- follow / saved store (per-device, localStorage) ----- */
+const FKEY = "jk_follow_v1";
+function loadF() { try { return JSON.parse(localStorage.getItem(FKEY)) || {}; } catch (e) { return {}; } }
+function saveF() { try { localStorage.setItem(FKEY, JSON.stringify(FOLLOW)); } catch (e) {} }
+let FOLLOW = Object.assign({ topics: [], provinces: [], sources: [], saved: [] }, loadF());
+function isF(kind, id) { return (FOLLOW[kind] || []).includes(id); }
+function toggleF(kind, id) {
+  const a = FOLLOW[kind] || (FOLLOW[kind] = []);
+  const i = a.indexOf(id); if (i >= 0) a.splice(i, 1); else a.push(id);
+  saveF();
+}
+function followCount() {
+  return (FOLLOW.topics.length + FOLLOW.provinces.length + FOLLOW.sources.length);
+}
+// a reusable follow/save button
+function followBtn(kind, id, labelOn, labelOff) {
+  const on = isF(kind, id);
+  return `<button class="follow-btn ${on ? "on" : ""}" onclick="event.stopPropagation();hitFollow('${kind}','${String(id).replace(/'/g, "\\'")}',this)">
+    <svg viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8"><path d="M12 17.3l-6.2 3.7 1.6-7L2 9.2l7.1-.6L12 2l2.9 6.6 7.1.6-5.4 4.8 1.6 7z" stroke-linejoin="round"/></svg>
+    <span class="fb-t">${on ? (labelOn || "دنبال می‌کنی") : (labelOff || "دنبال کن")}</span></button>`;
+}
+function hitFollow(kind, id, btn) {
+  toggleF(kind, id);
+  const on = isF(kind, id);
+  btn.classList.toggle("on", on);
+  const t = btn.querySelector(".fb-t"); if (t) t.textContent = on ? "دنبال می‌کنی" : "دنبال کن";
+  const svg = btn.querySelector("svg"); if (svg) svg.setAttribute("fill", on ? "currentColor" : "none");
+  updateMineBadge();
+}
+function saveBtn(id) {
+  const on = isF("saved", id);
+  return `<button class="save-btn ${on ? "on" : ""}" title="ذخیره" aria-label="ذخیره" onclick="event.stopPropagation();hitSave('${id}',this)">
+    <svg viewBox="0 0 24 24" fill="${on ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" stroke-linejoin="round"/></svg></button>`;
+}
+function hitSave(id, btn) {
+  toggleF("saved", id);
+  const on = isF("saved", id);
+  btn.classList.toggle("on", on);
+  const svg = btn.querySelector("svg"); if (svg) svg.setAttribute("fill", on ? "currentColor" : "none");
+  updateMineBadge();
+}
+function updateMineBadge() {
+  const b = document.getElementById("mine-badge");
+  if (!b) return;
+  const n = followCount() + (FOLLOW.saved ? FOLLOW.saved.length : 0);
+  b.textContent = n ? faN(n) : "";
+  b.style.display = n ? "inline-flex" : "none";
+}
+
+/* ----- personalized feed ("خط خبری من") ----- */
+function mineFeed() {
+  return ALL.filter(s =>
+    (s.topics || []).some(t => isF("topics", t.slug)) ||
+    (s.geo && (s.geo.provinces || []).some(p => isF("provinces", p.slug))) ||
+    (s.source_names || []).some(n => isF("sources", n)) ||
+    isF("saved", s.id));
+}
+
+/* ----- home stats strip ("نبض خبری") ----- */
+async function renderHomeStats() {
+  const el = document.getElementById("home-stats");
+  if (!el) return;
+  try {
+    const st = await getJSON(`${DATA}/stats.json`);
+    STATS = st;
+    const roll = liveRolling(st);
+    const daily = (st.activity_daily || []).map(x => x.n);
+    el.innerHTML = `<button class="statbar" onclick="showTrends()">
+      <span class="sb-item"><b>${faN(st.total || 0)}</b><span>کل خبرها</span></span>
+      <span class="sb-sep"></span>
+      <span class="sb-item"><b>${faN(st.calendar ? st.calendar.today : 0)}</b><span>امروز</span></span>
+      <span class="sb-item"><b>${faN(roll.h24)}</b><span>۲۴ ساعت</span></span>
+      <span class="sb-spark">${svgSpark(daily, { w: 90, h: 26 })}</span>
+      <span class="sb-go">نبض خبری ›</span></button>`;
+  } catch (e) {}
+}
+let STATS = null;
+// recompute rolling windows live from the timeline so 4h/8h/12h stay fresh
+function liveRolling(st) {
+  const tl = (st && st.timeline) || [];
+  const now = Date.now();
+  const c = h => tl.filter(ms => ms >= now - h * 3600e3).length;
+  return { h4: c(4), h8: c(8), h12: c(12), h24: c(24) };
+}
+function statsBlock(st) {
+  const roll = liveRolling(st), cal = st.calendar || {};
+  const daily = (st.activity_daily || []);
+  const tiles = [
+    ["۴ ساعت", roll.h4], ["۸ ساعت", roll.h8], ["۱۲ ساعت", roll.h12], ["۲۴ ساعت", roll.h24],
+    ["امروز", cal.today || 0], ["دیروز", cal.yesterday || 0],
+    ["این هفته", cal.this_week || 0], ["هفتهٔ پیش", cal.last_week || 0],
+  ];
+  const labels = daily.map(d => d.d.slice(5));
+  return `
+    <div class="stat-hero"><span class="val">${faN(st.total || 0)}</span><span class="lbl">کل خبرهای سیستم</span></div>
+    <div class="stat-tiles">${tiles.map(t => `<div class="stile"><b>${faN(t[1])}</b><span>${t[0]}</span></div>`).join("")}</div>
+    <div class="rule"><span>فعالیتِ ۱۴ روزِ گذشته</span><span class="l"></span></div>
+    <div class="chart-wrap">${svgBars(daily.map(d => d.n), { labels, w: 320, h: 70 })}</div>
+    <p class="muted" style="margin:6px 0 4px">شمارِ خبرهای تازه در هر روز. پنجره‌های «۴ تا ۲۴ ساعت» زنده‌اند و لحظه‌ای حساب می‌شوند.</p>`;
+}
+
 loadFeed();
+renderHomeStats();
 renderHomePrices();
 renderHomeWeather();
+updateMineBadge();

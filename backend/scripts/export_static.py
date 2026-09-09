@@ -17,6 +17,8 @@ import json
 import os
 import shutil
 
+from app.analytics import google_trends as gt_svc
+from app.analytics import service as analytics_svc
 from app.credibility import compute_credibility
 from app.db.session import SessionLocal
 from app.factcheck import service as fc_svc
@@ -60,11 +62,16 @@ def run() -> None:
 
     factchecks = fc_svc.fetch_factchecks(limit=12)
 
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+
     feed = story_svc.get_feed(db, limit=60, offset=0, category=None)
     cards = [c.model_dump(mode="json") for c in feed.items]
 
-    # Build details, enrich, and back-fill the card badges from the same data.
-    card_by_id = {c["id"]: c for c in cards}
+    # Build details + per-story trend metrics first; classify rising/hot across
+    # the whole set (thresholds are relative to the day), THEN write everything.
+    details: dict[str, dict] = {}
+    metrics: dict[str, dict] = {}
     for card in cards:
         detail = story_svc.get_detail(db, card["id"])
         story = story_repo.get(db, card["id"])
@@ -87,7 +94,8 @@ def run() -> None:
             d["iran_relevance"] = "high"
             card["iran_relevance"] = "high"
 
-        _write(os.path.join(DATA, "story", f"{card['id']}.json"), d)
+        metrics[card["id"]] = analytics_svc.momentum(story, now)
+        details[card["id"]] = d
 
         # compact copies on the feed card so the list can show badges + filter by topic
         card["credibility"] = {"level": cred["level"], "label_fa": cred["label_fa"],
@@ -100,6 +108,15 @@ def run() -> None:
         if match:
             card["factcheck"] = {"url": match["url"]}
 
+    analytics_svc.classify_rising_hot(list(metrics.values()))
+    for card in cards:
+        m = metrics[card["id"]]
+        card["trend"] = {"ratio": m["ratio"], "velocity": m["velocity"],
+                         "rising": m["rising"], "hot": m["hot"], "spark": m["spark"]}
+        d = details[card["id"]]
+        d["trend"] = m
+        _write(os.path.join(DATA, "story", f"{card['id']}.json"), d)
+
     _write(os.path.join(DATA, "stories.json"), cards)
 
     topics = topic_repo.list_all(db)
@@ -107,14 +124,26 @@ def run() -> None:
            [{"id": t.id, "slug": t.slug, "name_fa": t.name_fa, "name_en": t.name_en}
             for t in topics])
 
-    _write(os.path.join(DATA, "trends.json"), trends_svc.compute_trends(db))
+    # Trends board + growth series (+ best-effort Google Trends overlay).
+    trends = trends_svc.compute_trends(db)
+    series = analytics_svc.topic_series(db, days=14, now=now)
+    by_slug = {e["slug"]: e for e in series}
+    for t in trends.get("topics", []):
+        e = by_slug.get(t["slug"])
+        if e:
+            t["series"] = e["counts"]
+            t["growth"] = e["growth"]
+            t["last7"], t["prev7"] = e["last7"], e["prev7"]
+    trends["topic_series"] = series
+    trends["google"] = gt_svc.fetch([(e["slug"], e["name_fa"]) for e in series[:5]])
+    _write(os.path.join(DATA, "trends.json"), trends)
+
+    _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
     _write(os.path.join(DATA, "weather.json"), weather_svc.fetch_weather())
     _write(os.path.join(DATA, "geo.json"), geo_svc.stats(cards))
 
-    from datetime import datetime, timezone
-    now = datetime.now(timezone.utc)
     _write(os.path.join(DATA, "meta.json"),
            {"built": now.strftime("%Y-%m-%d %H:%M UTC"),
             "built_iso": now.isoformat(),

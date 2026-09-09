@@ -13,5 +13,9 @@ httpx>=0.28
 # Postgres driver (production). Tests run on SQLite, so this is optional locally.
 psycopg[binary]>=3.2 ; platform_system != "unknown"
 
+# Google Trends overlay (EXPERIMENTAL, best-effort — the build swallows any
+# failure and simply omits the comparison line). Unofficial, may break.
+pytrends>=4.9
+
 # Dev / test
 pytest>=8.3

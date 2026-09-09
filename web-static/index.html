@@ -37,11 +37,16 @@
         <h1>مهم‌ترین‌های امروز، در چند جمله</h1>
         <p class="muted" id="built" style="margin-top:6px"></p>
       </div>
+      <div class="home-stats" id="home-stats"></div>
       <div class="home-prices" id="home-prices"></div>
       <div class="home-prices" id="home-weather"></div>
       <div class="rule"><span>خط خبری</span><span class="l"></span></div>
       <div class="imp-filter" id="imp-filter">
         <button class="fchip on" onclick="setTier('all')">همه</button>
+        <button class="fchip" onclick="setTier('mine')">خط خبری من <span class="mine-badge" id="mine-badge" style="display:none"></span></button>
+        <button class="fchip" onclick="setTier('rising')">در حال رشد</button>
+        <button class="fchip" onclick="setTier('hot')">🔥 داغ</button>
+        <span class="fchip-sep"></span>
         <button class="fchip" onclick="setTier('high')">بسیار مهم</button>
         <button class="fchip" onclick="setTier('mid')">مهم</button>
         <button class="fchip" onclick="setTier('low')">متوسط</button>
