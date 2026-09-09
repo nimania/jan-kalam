@@ -345,41 +345,11 @@ function openSource(name) {
   document.getElementById("ta-feed").innerHTML = groupedFeed(items);
 }
 
-/* ---- ایران — province map + scope classification ---- */
-const IRAN_PROV = {
-  "west-azerbaijan": { x: 5.3, y: 18.0, fa: "آذربایجان غربی", sh: "آ.غربی" },
-  "east-azerbaijan": { x: 13.7, y: 14.0, fa: "آذربایجان شرقی", sh: "آ.شرقی" },
-  "ardabil": { x: 21.1, y: 11.3, fa: "اردبیل", sh: "اردبیل" },
-  "gilan": { x: 29.5, y: 18.7, fa: "گیلان", sh: "گیلان" },
-  "mazandaran": { x: 45.3, y: 24.0, fa: "مازندران", sh: "مازندران" },
-  "golestan": { x: 55.8, y: 20.0, fa: "گلستان", sh: "گلستان" },
-  "north-khorasan": { x: 70.5, y: 16.0, fa: "خراسان شمالی", sh: "خ.شمالی" },
-  "razavi-khorasan": { x: 80.0, y: 29.3, fa: "خراسان رضوی", sh: "خ.رضوی" },
-  "south-khorasan": { x: 78.9, y: 49.3, fa: "خراسان جنوبی", sh: "خ.جنوبی" },
-  "semnan": { x: 52.6, y: 30.7, fa: "سمنان", sh: "سمنان" },
-  "tehran": { x: 40.0, y: 30.0, fa: "تهران", sh: "تهران" },
-  "alborz": { x: 36.3, y: 27.3, fa: "البرز", sh: "البرز" },
-  "qazvin": { x: 31.1, y: 26.0, fa: "قزوین", sh: "قزوین" },
-  "zanjan": { x: 23.2, y: 22.7, fa: "زنجان", sh: "زنجان" },
-  "hamadan": { x: 24.2, y: 34.0, fa: "همدان", sh: "همدان" },
-  "kurdistan": { x: 15.8, y: 29.3, fa: "کردستان", sh: "کردستان" },
-  "kermanshah": { x: 15.3, y: 37.3, fa: "کرمانشاه", sh: "کرمانشاه" },
-  "ilam": { x: 13.2, y: 44.0, fa: "ایلام", sh: "ایلام" },
-  "lorestan": { x: 23.7, y: 44.0, fa: "لرستان", sh: "لرستان" },
-  "markazi": { x: 30.5, y: 38.0, fa: "مرکزی", sh: "مرکزی" },
-  "qom": { x: 36.3, y: 35.3, fa: "قم", sh: "قم" },
-  "isfahan": { x: 43.2, y: 47.3, fa: "اصفهان", sh: "اصفهان" },
-  "chaharmahal": { x: 36.3, y: 53.3, fa: "چهارمحال و بختیاری", sh: "چهارمحال" },
-  "khuzestan": { x: 25.8, y: 57.3, fa: "خوزستان", sh: "خوزستان" },
-  "kohgiluyeh": { x: 36.8, y: 61.3, fa: "کهگیلویه و بویراحمد", sh: "کهگیلویه" },
-  "bushehr": { x: 39.5, y: 72.0, fa: "بوشهر", sh: "بوشهر" },
-  "fars": { x: 47.4, y: 70.7, fa: "فارس", sh: "فارس" },
-  "hormozgan": { x: 63.2, y: 84.0, fa: "هرمزگان", sh: "هرمزگان" },
-  "kerman": { x: 70.0, y: 66.7, fa: "کرمان", sh: "کرمان" },
-  "yazd": { x: 55.8, y: 54.0, fa: "یزد", sh: "یزد" },
-  "sistan": { x: 86.8, y: 72.0, fa: "سیستان و بلوچستان", sh: "سیستان‌وب." },
-};
-const IRAN_BORDER = "3.2,4.7 23.2,3.3 26.8,16.0 36.8,22.7 52.1,20.7 64.7,12.7 81.1,16.0 89.5,23.3 88.4,40.0 86.3,58.0 93.7,57.3 96.8,84.0 92.1,99.3 72.6,96.0 65.3,88.7 52.6,90.0 38.4,80.7 31.6,66.7 25.8,66.0 20.5,62.7 17.9,60.0 10.0,47.3 7.4,40.7 8.9,29.3 1.1,18.0 0.0,10.7";
+/* ---- ایران — province map + scope classification ----
+   نقشهٔ واقعیِ استان‌ها (choropleth): مسیرهای دقیق در iran-provinces.js
+   (برگرفته از masoudnemati/iran-map با مجوز MIT). */
+const PATHS = (typeof window !== "undefined" && window.IRAN_PATHS) || {};
+const VIEWBOX = (typeof window !== "undefined" && window.IRAN_VIEWBOX) || "0 0 990 890";
 
 let _iranScope = "all";
 function showIran() { show("iran"); setTab("iran"); renderIran(); }
@@ -390,12 +360,13 @@ async function renderIran() {
     const geo = await getJSON(`${DATA}/geo.json`).catch(() => ({ provinces: {}, scope: {} }));
     const pc = geo.provinces || {};
     const max = Math.max(1, ...Object.values(pc));
-    const markers = Object.entries(pc).map(([slug, n]) => {
-      const p = IRAN_PROV[slug]; if (!p) return "";
-      const sz = 12 + Math.round((n / max) * 16);
-      return `<button class="pmark" style="left:${p.x}%;top:${p.y}%" onclick="openProvince('${slug}')" title="${esc(p.fa)}">
-        <span class="pdot" style="width:${sz}px;height:${sz}px"></span>
-        <span class="plabel">${esc(p.sh)} <b>${faN(n)}</b></span></button>`;
+    const paths = Object.entries(PATHS).map(([slug, p]) => {
+      const n = pc[slug] || 0;
+      const alpha = n ? (0.30 + 0.70 * (n / max)) : 0;
+      const fill = n ? ` fill="rgba(26,157,126,${alpha.toFixed(3)})"` : "";
+      const cls = "prov" + (n ? " has" : "");
+      const tip = esc(p.fa) + (n ? ` — ${faN(n)} خبر` : "");
+      return `<path d="${p.d}" class="${cls}"${fill} onclick="openProvince('${slug}')"><title>${tip}</title></path>`;
     }).join("");
     const sc = geo.scope || {};
     const total = (sc.local || 0) + (sc.national || 0) + (sc.international || 0);
@@ -403,11 +374,9 @@ async function renderIran() {
       ["national", "کشوری", sc.national || 0], ["international", "بین‌المللی", sc.international || 0]];
     el.innerHTML = `
       <div class="iran-map">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="iran-outline"><polygon points="${IRAN_BORDER}"/></svg>
-        ${markers}
-        ${Object.keys(pc).length ? "" : `<div class="map-empty">هنوز خبرِ استانی‌ای ثبت نشده</div>`}
+        <svg viewBox="${VIEWBOX}" class="iran-svg" role="img" aria-label="نقشهٔ استان‌های ایران">${paths}</svg>
       </div>
-      <p class="muted" style="text-align:center;margin:8px 0 18px">روی هر استان بزن تا خبرهایش را ببینی.</p>
+      <p class="muted" style="text-align:center;margin:2px 0 16px">روی هر استان بزن تا خبرهایش را ببینی — رنگِ پررنگ‌تر یعنی خبرِ بیشتر.</p>
       <div class="imp-filter" id="iran-scopes">${scopes.map(s => `<button class="fchip" data-s="${s[0]}" onclick="setIranScope('${s[0]}')">${s[1]}${s[2] ? ` <span class="chip-n">${faN(s[2])}</span>` : ""}</button>`).join("")}</div>
       <div id="iran-body"></div>`;
     setIranScope(_iranScope);
@@ -425,7 +394,7 @@ function openProvince(slug) {
   document.getElementById("ta-back-t").textContent = "بازگشت به ایران";
   document.getElementById("ta-back").onclick = showIran;
   const items = ALL.filter(s => s.geo && (s.geo.provinces || []).some(p => p.slug === slug));
-  const name = (IRAN_PROV[slug] || {}).fa || slug;
+  const name = (PATHS[slug] || {}).fa || slug;
   document.getElementById("ta-title").textContent = "استان: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر در این استان";
   document.getElementById("ta-feed").innerHTML = groupedFeed(items);
