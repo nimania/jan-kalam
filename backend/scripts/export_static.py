@@ -81,6 +81,11 @@ def run() -> None:
         geo = geo_svc.classify(
             " ".join(t for t in _story_match_texts(d) + [d.get("what_happened_fa")] if t))
         d["geo"] = geo
+        # Trust our geo detection over the AI's Iran-relevance guess: if a specific
+        # Iranian province or a national context is found, it IS Iran-related.
+        if geo["scope"] in ("local", "national"):
+            d["iran_relevance"] = "high"
+            card["iran_relevance"] = "high"
 
         _write(os.path.join(DATA, "story", f"{card['id']}.json"), d)
 
