@@ -49,9 +49,9 @@
     <section class="detail" id="detail-view"></section>
 
     <section class="topics-view" id="topic-archive-view">
-      <button class="back" onclick="showTopics()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به موضوعات</button>
+      <button class="back" id="ta-back" onclick="showTopics()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> <span id="ta-back-t">بازگشت به موضوعات</span></button>
       <div class="lede"><h1 id="ta-title"></h1><p class="muted" id="ta-sub"></p></div>
-      <div class="feed" id="ta-feed"></div>
+      <div id="ta-feed"></div>
     </section>
 
     <section class="trends-view" id="trends-view">
@@ -64,8 +64,8 @@
 
     <section class="trends-view" id="factchecks-view">
       <div class="lede">
-        <h1>راستی‌آزمایی‌ها</h1>
-        <p>آخرین راستی‌آزمایی‌های <b>فکت‌نامه</b> — یک نهاد مستقل و حرفه‌ایِ راستی‌آزمایی (شریکِ برنامهٔ راستی‌آزماییِ متا). خلاصه و لینک؛ برای متن کامل به فکت‌نامه مراجعه کن.</p>
+        <h1>فکت — راستی‌آزمایی</h1>
+        <p>سنجهٔ خودکارِ ما (بر پایهٔ منابعِ مستقل و توافق/اختلاف) در کنارِ راستی‌آزماییِ حرفه‌ایِ <b>فکت‌نامه</b>.</p>
       </div>
       <div id="factchecks"><div class="spinner"></div></div>
     </section>
@@ -108,7 +108,7 @@
       </button>
       <button class="tab" id="tab-factchecks" onclick="showFactchecks()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        فکت‌نامه
+        فکت
       </button>
       <button class="tab" id="tab-topics" onclick="showTopics()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10Z" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.5"/></svg>

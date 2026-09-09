@@ -81,7 +81,9 @@ def run() -> None:
 
         # compact copies on the feed card so the list can show badges + filter by topic
         card["credibility"] = {"level": cred["level"], "label_fa": cred["label_fa"],
-                               "needs_verification": cred["needs_verification"]}
+                               "needs_verification": cred["needs_verification"],
+                               "disagreements": cred["disagreements"],
+                               "independent_sources": cred["independent_sources"]}
         card["topics"] = [{"slug": t["slug"], "name_fa": t["name_fa"]}
                           for t in d.get("topics", [])]
         if match:

@@ -55,7 +55,7 @@ function fcBadge(f) {
 
 function feedCard(s) {
   const imp = impInfo(s.importance_score);
-  const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge">${esc(x)}</span>`).join("");
+  const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge clickable" data-src="${esc(x)}" onclick="event.stopPropagation();openSource(this.dataset.src)">${esc(x)}</span>`).join("");
   return `<button class="card" onclick="openStory('${s.id}')">
     <div class="meta"><span class="chip">${CAT_FA[s.category] || "خبر"}</span>
       <span class="dot"></span><span class="muted">${relTime(s.published_at)}</span>
@@ -210,26 +210,42 @@ async function renderTrends() {
   }
 }
 
-/* ---- راستی‌آزمایی‌ها (Factnameh) ---- */
+/* ---- فکت — hub of our automated signal + Factnameh ---- */
 let _fcLoaded = false;
+function factSection(title, sub, items) {
+  return `<div class="rule"><span>${title}</span><span class="l"></span></div>
+    <p class="muted" style="margin:0 0 10px">${sub}</p>
+    <div class="feed">${items.map(feedCard).join("")}</div>`;
+}
+function fcCard(f) {
+  return `<a class="card fc-card" href="${f.url}" target="_blank" rel="noopener">
+    <div class="meta"><span class="chip">فکت‌نامه</span><span class="dot"></span><span class="muted">${esc((f.published || "").slice(0, 10))}</span>
+      <span class="ext" style="margin-inline-start:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></span></div>
+    <h2>${esc(f.title)}</h2>${f.summary ? `<p class="kalam">${esc(f.summary)}</p>` : ""}</a>`;
+}
 async function renderFactchecks() {
   if (_fcLoaded) return;
   const el = document.getElementById("factchecks");
   try {
-    const items = await getJSON(`${DATA}/factchecks.json`);
-    if (!items.length) {
-      el.innerHTML = `<div class="state"><div class="big">فعلاً راستی‌آزمایی تازه‌ای در دسترس نیست</div><p class="muted">این بخش با هر به‌روزرسانی از فکت‌نامه تازه می‌شود.</p></div>`;
-      _fcLoaded = true; return;
+    if (!ALL.length) { try { ALL = await getJSON(`${DATA}/stories.json`); } catch (e) {} }
+    const factchecks = await getJSON(`${DATA}/factchecks.json`).catch(() => []);
+    const needs = ALL.filter(s => s.credibility && s.credibility.needs_verification);
+    const disp = ALL.filter(s => s.credibility && (s.credibility.disagreements || 0) > 0);
+    let html = `<div class="fact-note">این سنجه‌ها <b>خودکار</b>ند و از روی منابعِ هر خبر ساخته می‌شوند — نه حکمِ نهایی. راستی‌آزماییِ قطعی کارِ فکت‌نامه است.</div>`;
+    if (needs.length) html += factSection("نیازمندِ راستی‌آزمایی", "خبرهای تک‌منبع که هنوز منبعِ مستقلِ دیگری تأییدشان نکرده.", needs.slice(0, 12));
+    if (disp.length) html += factSection("اختلافِ میان منابع", "خبرهایی که منابع در جزئیاتشان با هم اختلاف دارند.", disp.slice(0, 12));
+    if (factchecks.length) {
+      html += `<div class="rule"><span>راستی‌آزماییِ فکت‌نامه</span><span class="l"></span></div>
+        <p class="muted" style="margin:0 0 10px">راستی‌آزماییِ مستقل و حرفه‌ای (شریکِ برنامهٔ متا). برای متن کامل روی هر مورد بزن.</p>
+        <div class="feed">${factchecks.map(fcCard).join("")}</div>`;
     }
-    el.innerHTML = `<div class="feed">` + items.map(f => `<a class="card fc-card" href="${f.url}" target="_blank" rel="noopener">
-      <div class="meta"><span class="chip">فکت‌نامه</span><span class="dot"></span><span class="muted">${esc((f.published || "").slice(0, 10))}</span>
-        <span class="ext" style="margin-inline-start:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></span></div>
-      <h2>${esc(f.title)}</h2>
-      ${f.summary ? `<p class="kalam">${esc(f.summary)}</p>` : ""}</a>`).join("") + `</div>
-      <p class="muted" style="margin-top:14px">منبع: فکت‌نامه — راستی‌آزماییِ مستقل و حرفه‌ای. برای متن کامل روی هر مورد بزن.</p>`;
+    if (!needs.length && !disp.length && !factchecks.length) {
+      html += `<div class="state"><div class="big">فعلاً موردی برای نمایش نیست</div><p class="muted">با به‌روزرسانیِ بعدی پر می‌شود.</p></div>`;
+    }
+    el.innerHTML = html;
     _fcLoaded = true;
   } catch (e) {
-    el.innerHTML = `<div class="state"><div class="big">راستی‌آزمایی‌ها بارگذاری نشد</div></div>`;
+    el.innerHTML = `<div class="state"><div class="big">بارگذاری نشد</div></div>`;
   }
 }
 
@@ -284,15 +300,40 @@ async function renderTopics() {
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">موضوعات بارگذاری نشد</div></div>`; }
 }
 
+// archive feed grouped by importance tier ("به تفکیک اهمیت")
+const TIERS = [["high", "بسیار مهم"], ["mid", "مهم"], ["low", "متوسط"]];
+function groupedFeed(items) {
+  if (!items.length) return `<div class="state"><div class="big">خبری نیست</div></div>`;
+  let html = "";
+  for (const [cls, label] of TIERS) {
+    const g = items.filter(s => tierOf(s) === cls);
+    if (!g.length) continue;
+    html += `<div class="rule"><span>${label}</span><span class="l"></span></div>
+      <div class="feed">${g.map(feedCard).join("")}</div>`;
+  }
+  return html;
+}
+
 function openTopic(slug) {
   show("topicarchive"); setTab("topics");
+  document.getElementById("ta-back-t").textContent = "بازگشت به موضوعات";
+  document.getElementById("ta-back").onclick = showTopics;
   const items = ALL.filter(s => (s.topics || []).some(t => t.slug === slug));
   const name = ((items[0] && items[0].topics.find(t => t.slug === slug)) || {}).name_fa || slug;
   document.getElementById("ta-title").textContent = "موضوع: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر در این موضوع";
-  document.getElementById("ta-feed").innerHTML = items.length
-    ? items.map(feedCard).join("")
-    : `<div class="state"><div class="big">خبری در این موضوع نیست</div></div>`;
+  document.getElementById("ta-feed").innerHTML = groupedFeed(items);
+}
+
+function openSource(name) {
+  if (!ALL.length) return;
+  show("topicarchive"); setTab("feed");
+  document.getElementById("ta-back-t").textContent = "بازگشت به خط خبری";
+  document.getElementById("ta-back").onclick = showFeed;
+  const items = ALL.filter(s => (s.source_names || []).includes(name));
+  document.getElementById("ta-title").textContent = "منبع: " + name;
+  document.getElementById("ta-sub").textContent = faN(items.length) + " خبر از این منبع";
+  document.getElementById("ta-feed").innerHTML = groupedFeed(items);
 }
 
 const root = document.documentElement;

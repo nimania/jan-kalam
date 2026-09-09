@@ -76,12 +76,14 @@ RULES: list[tuple[str, str, str, list[str]]] = [
 ]
 
 _MAX_PER_STORY = 3
+_FALLBACK = ("world", "جهان", "World")  # every story gets at least this topic
 
 
 def ensure_topics(db: Session) -> dict[str, Topic]:
     """Create any missing Topic rows and return slug -> Topic."""
     out: dict[str, Topic] = {}
-    for slug, fa, en, _ in RULES:
+    for slug, fa, en in [(_FALLBACK[0], _FALLBACK[1], _FALLBACK[2])] + \
+            [(s, f, e) for s, f, e, _ in RULES]:
         t = db.query(Topic).filter_by(slug=slug).one_or_none()
         if not t:
             t = Topic(slug=slug, name_fa=fa, name_en=en)
@@ -124,10 +126,12 @@ def tag_stories(db: Session) -> dict:
             if hits:
                 scored.append((hits, slug))
         scored.sort(reverse=True)
-        for _hits, slug in scored[:_MAX_PER_STORY]:
+        chosen = [slug for _h, slug in scored[:_MAX_PER_STORY]]
+        if not chosen:  # nothing matched → general world/جهان bucket
+            chosen = [_FALLBACK[0]]
+        for slug in chosen:
             db.add(StoryTopic(story_id=s.id, topic_id=topics[slug].id))
-        if scored:
-            tagged += 1
+        tagged += 1
     db.commit()
     logger.info("tagged %d stories", tagged)
     return {"tagged": tagged, "topics": len(topics)}
