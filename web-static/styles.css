@@ -248,7 +248,8 @@
   }
   .qchip:hover{border-color:var(--accent); color:var(--accent)}
   .qchip.on{background:var(--accent); color:#fff; border-color:var(--accent)}
-  :root[data-theme="dark"] .qchip.on,:root:not([data-theme="light"]) .qchip.on{color:#0c1614}
+  :root[data-theme="dark"] .qchip.on{color:#0c1614}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .qchip.on{color:#0c1614}}
   .answer{margin-top:16px; display:none}
   .answer.show{display:block; animation:fade .25s ease both}
   .a-bubble{
@@ -450,7 +451,9 @@
   background:var(--surface); color:var(--ink-soft); border:1px solid var(--line); transition:.15s}
 .fchip:hover{border-color:var(--accent); color:var(--accent)}
 .fchip.on{background:var(--accent); color:#fff; border-color:var(--accent)}
-:root[data-theme="dark"] .fchip.on,:root:not([data-theme="light"]) .fchip.on{color:#0c1614}
+:root[data-theme="dark"] .fchip.on{color:#0c1614}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fchip.on{color:#0c1614}}
+.chip-n{font-size:11px; opacity:.8; font-variant-numeric:tabular-nums}
 
 /* --- Topic cards clickable → archive --- */
 .topic{cursor:pointer; text-align:right; width:100%; font:inherit; color:var(--ink)}

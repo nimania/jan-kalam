@@ -210,43 +210,43 @@ async function renderTrends() {
   }
 }
 
-/* ---- فکت — hub of our automated signal + Factnameh ---- */
-let _fcLoaded = false;
-function factSection(title, sub, items) {
-  return `<div class="rule"><span>${title}</span><span class="l"></span></div>
-    <p class="muted" style="margin:0 0 10px">${sub}</p>
-    <div class="feed">${items.map(feedCard).join("")}</div>`;
-}
+/* ---- فکت — hub with sub-tabs: needs-verification / disagreement / Factnameh ---- */
 function fcCard(f) {
   return `<a class="card fc-card" href="${f.url}" target="_blank" rel="noopener">
     <div class="meta"><span class="chip">فکت‌نامه</span><span class="dot"></span><span class="muted">${esc((f.published || "").slice(0, 10))}</span>
       <span class="ext" style="margin-inline-start:auto"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></span></div>
     <h2>${esc(f.title)}</h2>${f.summary ? `<p class="kalam">${esc(f.summary)}</p>` : ""}</a>`;
 }
+let _factData = { needs: [], disp: [], fn: [] };
 async function renderFactchecks() {
-  if (_fcLoaded) return;
   const el = document.getElementById("factchecks");
   try {
     if (!ALL.length) { try { ALL = await getJSON(`${DATA}/stories.json`); } catch (e) {} }
-    const factchecks = await getJSON(`${DATA}/factchecks.json`).catch(() => []);
+    const fn = await getJSON(`${DATA}/factchecks.json`).catch(() => []);
     const needs = ALL.filter(s => s.credibility && s.credibility.needs_verification);
     const disp = ALL.filter(s => s.credibility && (s.credibility.disagreements || 0) > 0);
-    let html = `<div class="fact-note">این سنجه‌ها <b>خودکار</b>ند و از روی منابعِ هر خبر ساخته می‌شوند — نه حکمِ نهایی. راستی‌آزماییِ قطعی کارِ فکت‌نامه است.</div>`;
-    if (needs.length) html += factSection("نیازمندِ راستی‌آزمایی", "خبرهای تک‌منبع که هنوز منبعِ مستقلِ دیگری تأییدشان نکرده.", needs.slice(0, 12));
-    if (disp.length) html += factSection("اختلافِ میان منابع", "خبرهایی که منابع در جزئیاتشان با هم اختلاف دارند.", disp.slice(0, 12));
-    if (factchecks.length) {
-      html += `<div class="rule"><span>راستی‌آزماییِ فکت‌نامه</span><span class="l"></span></div>
-        <p class="muted" style="margin:0 0 10px">راستی‌آزماییِ مستقل و حرفه‌ای (شریکِ برنامهٔ متا). برای متن کامل روی هر مورد بزن.</p>
-        <div class="feed">${factchecks.map(fcCard).join("")}</div>`;
-    }
-    if (!needs.length && !disp.length && !factchecks.length) {
-      html += `<div class="state"><div class="big">فعلاً موردی برای نمایش نیست</div><p class="muted">با به‌روزرسانیِ بعدی پر می‌شود.</p></div>`;
-    }
-    el.innerHTML = html;
-    _fcLoaded = true;
-  } catch (e) {
-    el.innerHTML = `<div class="state"><div class="big">بارگذاری نشد</div></div>`;
-  }
+    _factData = { needs, disp, fn };
+    const tabs = [["needs", "نیازمندِ راستی‌آزمایی", needs.length],
+                  ["disp", "اختلافِ منابع", disp.length],
+                  ["fn", "فکت‌نامه", fn.length]];
+    const first = (tabs.find(t => t[2] > 0) || tabs[0])[0];
+    el.innerHTML = `<div class="fact-note">این سنجه‌ها <b>خودکار</b>ند و از روی منابعِ هر خبر ساخته می‌شوند — نه حکمِ نهایی. راستی‌آزماییِ قطعی کارِ فکت‌نامه است.</div>
+      <div class="imp-filter" id="fact-tabs">${tabs.map(t => `<button class="fchip" data-k="${t[0]}" onclick="setFactTab('${t[0]}')">${t[1]}${t[2] ? ` <span class="chip-n">${faN(t[2])}</span>` : ""}</button>`).join("")}</div>
+      <div id="fact-body"></div>`;
+    setFactTab(first);
+  } catch (e) { el.innerHTML = `<div class="state"><div class="big">بارگذاری نشد</div></div>`; }
+}
+function setFactTab(k) {
+  document.querySelectorAll("#fact-tabs .fchip").forEach(c => c.classList.toggle("on", c.dataset.k === k));
+  const d = _factData;
+  const b = document.getElementById("fact-body");
+  const empty = `<div class="state"><div class="big">موردی نیست</div></div>`;
+  if (k === "needs")
+    b.innerHTML = d.needs.length ? `<p class="muted" style="margin:0 0 12px">خبرهای تک‌منبع که هنوز منبعِ مستقلِ دیگری تأییدشان نکرده.</p><div class="feed">${d.needs.map(feedCard).join("")}</div>` : empty;
+  else if (k === "disp")
+    b.innerHTML = d.disp.length ? `<p class="muted" style="margin:0 0 12px">خبرهایی که منابع در جزئیاتشان با هم اختلاف دارند.</p><div class="feed">${d.disp.map(feedCard).join("")}</div>` : empty;
+  else
+    b.innerHTML = d.fn.length ? `<p class="muted" style="margin:0 0 12px">راستی‌آزماییِ مستقل و حرفه‌ای (شریکِ برنامهٔ متا). روی هر مورد بزن.</p><div class="feed">${d.fn.map(fcCard).join("")}</div>` : empty;
 }
 
 /* ---- راهنما / FAQ ---- */
