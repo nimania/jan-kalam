@@ -478,3 +478,26 @@
 .fact-note{background:var(--warn-bg); color:var(--warn); border-radius:12px; padding:12px 15px;
   font-size:13px; line-height:1.75; margin-bottom:18px}
 .fact-note b{color:var(--warn)}
+
+/* --- Iran province map --- */
+.iran-map{position:relative; width:100%; aspect-ratio:1.06; background:var(--surface);
+  border:1px solid var(--line); border-radius:16px; margin:6px 0 4px; overflow:hidden; box-shadow:var(--shadow-soft)}
+.iran-outline{position:absolute; inset:0; width:100%; height:100%}
+.iran-outline polygon{fill:var(--accent-soft); stroke:var(--accent); stroke-width:.6; opacity:.85;
+  stroke-linejoin:round; vector-effect:non-scaling-stroke}
+.pmark{position:absolute; transform:translate(-50%,-50%); background:none; border:none; cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:3px; padding:0; z-index:2}
+.pdot{display:block; border-radius:50%; background:var(--brass);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--brass) 22%, transparent)}
+.plabel{font-size:10px; font-weight:600; color:var(--ink); white-space:nowrap;
+  background:color-mix(in srgb, var(--surface) 82%, transparent); padding:1px 6px; border-radius:6px}
+.plabel b{color:var(--brass)}
+.pmark:hover .pdot{filter:brightness(1.08)}
+.pmark:hover .plabel{color:var(--accent)}
+.map-empty{position:absolute; inset:0; display:grid; place-items:center; color:var(--ink-faint); font-size:14px}
+
+/* geo scope badge on cards */
+.geo-badge{font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px}
+.geo-badge.local{background:var(--accent-soft); color:var(--accent-2)}
+.geo-badge.national{background:var(--surface-2); color:var(--ink-soft)}
+.geo-badge.international{background:var(--surface-2); color:var(--ink-faint)}

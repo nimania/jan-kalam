@@ -20,6 +20,7 @@ import shutil
 from app.credibility import compute_credibility
 from app.db.session import SessionLocal
 from app.factcheck import service as fc_svc
+from app.geo import service as geo_svc
 from app.prices import service as price_svc
 from app.repositories import stories as story_repo
 from app.repositories import topics as topic_repo
@@ -77,6 +78,10 @@ def run() -> None:
         if match:
             d["factcheck"] = match
 
+        geo = geo_svc.classify(
+            " ".join(t for t in _story_match_texts(d) + [d.get("what_happened_fa")] if t))
+        d["geo"] = geo
+
         _write(os.path.join(DATA, "story", f"{card['id']}.json"), d)
 
         # compact copies on the feed card so the list can show badges + filter by topic
@@ -86,6 +91,7 @@ def run() -> None:
                                "independent_sources": cred["independent_sources"]}
         card["topics"] = [{"slug": t["slug"], "name_fa": t["name_fa"]}
                           for t in d.get("topics", [])]
+        card["geo"] = geo
         if match:
             card["factcheck"] = {"url": match["url"]}
 
@@ -100,6 +106,7 @@ def run() -> None:
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
     _write(os.path.join(DATA, "weather.json"), weather_svc.fetch_weather())
+    _write(os.path.join(DATA, "geo.json"), geo_svc.stats(cards))
 
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
