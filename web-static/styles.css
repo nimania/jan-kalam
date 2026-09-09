@@ -499,13 +499,15 @@
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--chart-b:#c47d0d}}
 :root[data-theme="dark"]{--chart-b:#c47d0d}
 
-.chart-wrap{width:100%;overflow-x:auto}
-.bars-svg{width:100%;height:auto;display:block}
+/* fixed-height wrappers; SVGs (preserveAspectRatio=none) fill them exactly so
+   they never overflow into the text below */
+.chart-wrap{width:100%;height:72px;overflow:hidden}
+.bars-svg{width:100%;height:100%;display:block}
 .bars-svg .bar{fill:var(--chart-a)}
-.spark{width:100%;height:auto;display:block}
+.spark{width:100%;height:100%;display:block}
 .spark .sp-line{fill:none;stroke:var(--chart-a);stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
 .spark .sp-area{fill:var(--chart-a);opacity:.14;stroke:none}
-.cmp-svg{width:100%;height:auto;display:block}
+.cmp-svg{width:100%;height:100%;display:block}
 .cmp-line{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
 .cmp-line.c-a{stroke:var(--chart-a)}
 .cmp-dot.c-a{fill:var(--chart-a)}
@@ -523,7 +525,7 @@
 .sb-item b{font-size:18px;color:var(--accent)}
 .sb-item span{font-size:11px;color:var(--ink-faint)}
 .sb-sep{width:1px;height:26px;background:var(--line)}
-.sb-spark{flex:1;min-width:60px;max-width:120px}
+.sb-spark{flex:1;min-width:60px;max-width:120px;height:28px}
 .sb-go{font-size:12px;color:var(--accent);font-weight:600;white-space:nowrap;margin-inline-start:auto}
 
 .stat-hero{display:flex;align-items:baseline;gap:10px;margin:6px 0 12px}
@@ -556,7 +558,7 @@
 .tp-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .tp-name{font-weight:700;font-size:15px}
 .tp-n{margin-inline-start:auto;font-size:12px;color:var(--ink-faint)}
-.tp-chart{height:34px}
+.tp-chart{height:36px;overflow:hidden}
 .tp-chart.cmp{height:60px}
 .gtag{font-size:12px;font-weight:700;padding:1px 7px;border-radius:999px}
 .gtag.up{background:var(--fact-bg);color:var(--fact)}
@@ -575,3 +577,8 @@
 .pfollow .pf-star{color:var(--ink-faint)}
 .pfollow.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .pfollow.on .pf-star{color:var(--brass)}
+
+.sortbar{display:flex;align-items:center;gap:8px;margin:0 0 14px}
+.sortbar .sb-lbl{font-size:12px;color:var(--ink-faint)}
+.sortchip{background:none;border:1px solid var(--line);border-radius:999px;padding:4px 12px;font:inherit;font-size:12.5px;font-weight:600;color:var(--ink-soft);cursor:pointer}
+.sortchip.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}

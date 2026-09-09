@@ -29,7 +29,7 @@ async function getJSON(path) { const r = await fetch(path, { cache: "no-cache" }
 
 const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
   factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
-  weather: "weather-view", iran: "iran-view", faq: "faq-view" };
+  weather: "weather-view", iran: "iran-view", faq: "faq-view", market: "market-view" };
 const TABS = ["feed", "trends", "factchecks", "iran", "topics"];
 const SCOPE_FA = { local: "استانی", national: "کشوری", international: "بین‌المللی" };
 function setTab(w) { for (const t of TABS) document.getElementById("tab-" + t).classList.toggle("active", w === t); }
@@ -83,6 +83,7 @@ async function loadFeed() {
   try {
     ALL = await getJSON(`${DATA}/stories.json`);
     renderFeed();
+    updateFreshness();
   } catch (e) {
     el.innerHTML = `<div class="state"><div class="big">خبرها بارگذاری نشد</div></div>`;
   }
@@ -103,7 +104,8 @@ function renderFeed() {
       <p class="muted">با زدنِ ستارهٔ ★ روی موضوع‌ها (در تبِ موضوعات)، استان‌ها (در صفحهٔ ایران) و منابع، یا ذخیرهٔ خبرها، اینجا خط خبریِ شخصیِ خودت ساخته می‌شود — روی همین دستگاه.</p></div>`;
     return;
   }
-  const items = feedFilter(tier);
+  let items = feedFilter(tier);
+  if (sortMode === "new") items = items.slice().sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
   const empty = { rising: "الان خبری در حالِ رشد نیست", hot: "الان خبرِ داغی نداریم",
     mine: "هنوز خبری از دنبال‌شده‌هایت نیست" }[tier] || "خبری در این نما نیست";
   el.innerHTML = items.length ? items.map(feedCard).join("")
@@ -113,6 +115,13 @@ function setTier(t) {
   tier = t;
   document.querySelectorAll("#imp-filter .fchip").forEach(c =>
     c.classList.toggle("on", (c.getAttribute("onclick") || "").indexOf("'" + t + "'") >= 0));
+  renderFeed();
+}
+let sortMode = "imp";
+function setSort(m) {
+  sortMode = m;
+  document.getElementById("sort-imp").classList.toggle("on", m === "imp");
+  document.getElementById("sort-new").classList.toggle("on", m === "new");
   renderFeed();
 }
 
@@ -209,22 +218,10 @@ async function renderTrends() {
   const el = document.getElementById("trends");
   try {
     if (!ALL.length) { try { ALL = await getJSON(`${DATA}/stories.json`); } catch (e) {} }
-    const [t, prices, st] = await Promise.all([
+    const [t, st] = await Promise.all([
       getJSON(`${DATA}/trends.json`),
-      getJSON(`${DATA}/prices.json`).catch(() => []),
       getJSON(`${DATA}/stats.json`).catch(() => null),
     ]);
-    const priceRows = (prices || []).map(p => {
-      const cls = p.dir === "up" ? "up" : p.dir === "down" ? "down" : "flat";
-      const arrow = p.dir === "up" ? "▲" : p.dir === "down" ? "▼" : "—";
-      return `<div class="price"><div class="p-label">${esc(p.label_fa)}</div>
-        <div class="p-val">${faN(grp(p.value))} <span class="p-unit">${esc(p.unit_fa)}</span></div>
-        <div class="p-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪</div></div>`;
-    }).join("");
-    const priceBoard = (prices && prices.length) ? `
-      <div class="rule" style="margin-top:0"><span>نرخِ لحظه‌ای بازار</span><span class="l"></span></div>
-      <div class="price-grid">${priceRows}</div>
-      <p class="muted" style="margin:2px 0 8px">منبع نرخ‌ها: tgju — هر ساعت به‌روز می‌شود.</p>` : "";
     const topics = (t.topics || []);
     const g = t.google || {};
     const googleOn = Object.keys(g).length > 0;
@@ -246,7 +243,6 @@ async function renderTrends() {
       <span class="t-chg tx-up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M6 11l6-6 6 6" stroke-linecap="round" stroke-linejoin="round"/></svg>منبع</span></div>`).join("");
     const statsSection = st ? `<div class="rule" style="margin-top:2px"><span>نبض خبری</span><span class="l"></span></div>${statsBlock(st)}` : "";
     el.innerHTML = `
-      ${priceBoard}
       ${statsSection}
       <div class="tx-hero"><span class="val">${faN(t.story_total || 0)}</span><span class="lbl">خبرِ فعال روی تخته</span>
         <span class="spacer" style="flex:1"></span><span class="lbl">${faN(topics.length)} موضوع فعال</span></div>
@@ -465,11 +461,19 @@ document.getElementById("theme").addEventListener("click", () => {
 });
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 
-// build time — shown relative to now ("۲۰ دقیقه پیش")
-getJSON(`${DATA}/meta.json`).then(m => {
-  const t = m.built_iso ? relTime(m.built_iso) : m.built;
-  if (t) document.getElementById("built").textContent = "به‌روزرسانی: " + t;
-}).catch(() => {});
+// freshness line: when the SYSTEM last checked, and how old the NEWEST story is
+let META = null;
+getJSON(`${DATA}/meta.json`).then(m => { META = m; updateFreshness(); }).catch(() => {});
+function updateFreshness() {
+  const el = document.getElementById("built"); if (!el) return;
+  const parts = [];
+  if (META && (META.built_iso || META.built)) parts.push("آخرین بازبینیِ سیستم: " + (META.built_iso ? relTime(META.built_iso) : META.built));
+  if (ALL && ALL.length) {
+    const newest = ALL.map(s => s.published_at).filter(Boolean).sort().slice(-1)[0];
+    if (newest) parts.push("تازه‌ترین خبر: " + relTime(newest));
+  }
+  if (parts.length) el.textContent = parts.join(" · ");
+}
 
 // compact price strip on the home page (dollar / euro / lira / emami coin)
 async function renderHomePrices() {
@@ -487,8 +491,27 @@ async function renderHomePrices() {
       return `<div class="hp"><span class="hp-label">${esc(p.label_fa)}</span>
         <span class="hp-val">${faN(grp(p.value))}</span>
         <span class="hp-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪</span></div>`;
-    }).join("") + `<button class="hp-more" onclick="showTrends()">بورس اخبار ›</button>`;
+    }).join("") + `<button class="hp-more" onclick="showMarket()">بازار ›</button>`;
   } catch (e) {}
+}
+
+// بازار — dedicated market page (full price board)
+function showMarket() { show("market"); setTab("feed"); renderMarket(); }
+async function renderMarket() {
+  const el = document.getElementById("market");
+  try {
+    const prices = await getJSON(`${DATA}/prices.json`);
+    if (!prices || !prices.length) { el.innerHTML = `<div class="state"><div class="big">نرخ‌ها در دسترس نیست</div></div>`; return; }
+    const rows = prices.map(p => {
+      const cls = p.dir === "up" ? "up" : p.dir === "down" ? "down" : "flat";
+      const arrow = p.dir === "up" ? "▲" : p.dir === "down" ? "▼" : "—";
+      return `<div class="price"><div class="p-label">${esc(p.label_fa)}</div>
+        <div class="p-val">${faN(grp(p.value))} <span class="p-unit">${esc(p.unit_fa)}</span></div>
+        <div class="p-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪</div></div>`;
+    }).join("");
+    el.innerHTML = `<div class="price-grid">${rows}</div>
+      <p class="muted" style="margin-top:14px">منبع نرخ‌ها: tgju — هر ساعت به‌روز می‌شود. مقادیر به تومان‌اند مگر آنکه واحدِ دیگری ذکر شده باشد.</p>`;
+  } catch (e) { el.innerHTML = `<div class="state"><div class="big">بازار بارگذاری نشد</div></div>`; }
 }
 
 // weather — home strip (4 cities) + dedicated page

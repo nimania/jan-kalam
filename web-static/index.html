@@ -51,6 +51,11 @@
         <button class="fchip" onclick="setTier('mid')">مهم</button>
         <button class="fchip" onclick="setTier('low')">متوسط</button>
       </div>
+      <div class="sortbar">
+        <span class="sb-lbl">ترتیب:</span>
+        <button class="sortchip on" id="sort-imp" onclick="setSort('imp')">مهم‌ترین</button>
+        <button class="sortchip" id="sort-new" onclick="setSort('new')">تازه‌ترین</button>
+      </div>
       <div class="feed" id="feed"><div class="spinner"></div></div>
     </section>
 
@@ -84,6 +89,15 @@
         <p>موضوع‌هایی که برایت مهم‌اند را انتخاب کن (روی این دستگاه ذخیره می‌شود).</p>
       </div>
       <div class="topic-grid" id="topic-grid"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="market-view">
+      <button class="back" onclick="showFeed()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به خط خبری</button>
+      <div class="lede">
+        <h1>بازار</h1>
+        <p>نرخِ لحظه‌ایِ ارز، طلا و سکه — هر ساعت از tgju به‌روز می‌شود.</p>
+      </div>
+      <div id="market"><div class="spinner"></div></div>
     </section>
 
     <section class="trends-view" id="weather-view">
