@@ -49,6 +49,7 @@ SOURCES = [
     ("فرارو", "https://fararu.com", "https://fararu.com/fa/rss/allnews", "iran", 0.55),
     ("انتخاب", "https://www.entekhab.ir", "https://www.entekhab.ir/fa/rss/allnews", "iran", 0.55),
     ("مشرق نیوز", "https://www.mashreghnews.ir", "https://www.mashreghnews.ir/rss", "iran", 0.5),
+    ("برترین‌ها", "https://www.bartarinha.ir", "https://www.bartarinha.ir/fa/rss/allnews", "iran", 0.5),
     # --- more Persian international / diaspora ---
     ("یورونیوز فارسی", "https://parsi.euronews.com", "https://parsi.euronews.com/rss", "iran-intl", 0.7),
     ("کیهان لندن", "https://kayhan.london", "https://kayhan.london/feed/", "iran-intl", 0.55),

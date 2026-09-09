@@ -443,3 +443,28 @@
   color:var(--accent); font-family:inherit; font-size:12.5px; font-weight:600; cursor:pointer;
   padding:0 16px; white-space:nowrap}
 .hp-more:hover{background:var(--accent-soft)}
+
+/* --- Importance filter chips (خط خبری) --- */
+.imp-filter{display:flex; gap:8px; margin:0 0 16px; flex-wrap:wrap}
+.fchip{font-family:inherit; font-size:13px; padding:7px 15px; border-radius:999px; cursor:pointer;
+  background:var(--surface); color:var(--ink-soft); border:1px solid var(--line); transition:.15s}
+.fchip:hover{border-color:var(--accent); color:var(--accent)}
+.fchip.on{background:var(--accent); color:#fff; border-color:var(--accent)}
+:root[data-theme="dark"] .fchip.on,:root:not([data-theme="light"]) .fchip.on{color:#0c1614}
+
+/* --- Topic cards clickable → archive --- */
+.topic{cursor:pointer; text-align:right; width:100%; font:inherit; color:var(--ink)}
+.topic:hover{border-color:var(--line-strong); box-shadow:var(--shadow)}
+.topic .t-go{color:var(--ink-faint); flex-shrink:0}
+.topic .t-go svg{width:16px; height:16px; transform:scaleX(-1)}
+
+/* --- Weather grid (dedicated page) --- */
+.wx-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px}
+.wx{background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 14px;
+  text-align:center; box-shadow:var(--shadow-soft)}
+.wx-ic{font-size:30px; line-height:1}
+.wx-city{font-family:"Noto Naskh Arabic",serif; font-weight:600; font-size:16px; margin-top:6px}
+.wx-temp{font-size:26px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px; color:var(--ink)}
+.wx-cond{font-size:12.5px; color:var(--ink-faint); margin-top:1px}
+.wx-mm{font-size:13px; font-variant-numeric:tabular-nums; margin-top:6px; color:var(--ink-soft)}
+.wx-mm .wx-min{color:var(--agree)} .wx-mm .wx-max{color:var(--disagree); font-weight:600}

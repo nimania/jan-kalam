@@ -23,6 +23,7 @@ from app.factcheck import service as fc_svc
 from app.prices import service as price_svc
 from app.repositories import stories as story_repo
 from app.repositories import topics as topic_repo
+from app.weather import service as weather_svc
 from app.services import ask as ask_svc
 from app.services import stories as story_svc
 from app.trends import service as trends_svc
@@ -78,9 +79,11 @@ def run() -> None:
 
         _write(os.path.join(DATA, "story", f"{card['id']}.json"), d)
 
-        # compact copies on the feed card so the list can show badges
+        # compact copies on the feed card so the list can show badges + filter by topic
         card["credibility"] = {"level": cred["level"], "label_fa": cred["label_fa"],
                                "needs_verification": cred["needs_verification"]}
+        card["topics"] = [{"slug": t["slug"], "name_fa": t["name_fa"]}
+                          for t in d.get("topics", [])]
         if match:
             card["factcheck"] = {"url": match["url"]}
 
@@ -94,6 +97,7 @@ def run() -> None:
     _write(os.path.join(DATA, "trends.json"), trends_svc.compute_trends(db))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
+    _write(os.path.join(DATA, "weather.json"), weather_svc.fetch_weather())
 
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)

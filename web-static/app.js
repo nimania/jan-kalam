@@ -28,7 +28,8 @@ function relTime(iso) {
 async function getJSON(path) { const r = await fetch(path, { cache: "no-cache" }); if (!r.ok) throw new Error(r.status); return r.json(); }
 
 const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
-  factchecks: "factchecks-view", topics: "topics-view", faq: "faq-view" };
+  factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
+  weather: "weather-view", faq: "faq-view" };
 const TABS = ["feed", "trends", "factchecks", "topics", "faq"];
 function setTab(w) { for (const t of TABS) document.getElementById("tab-" + t).classList.toggle("active", w === t); }
 function show(v) {
@@ -66,15 +67,30 @@ function feedCard(s) {
   </button>`;
 }
 
+let ALL = [];
+let tier = "all";
 async function loadFeed() {
   const el = document.getElementById("feed");
   try {
-    const items = await getJSON(`${DATA}/stories.json`);
-    if (!items.length) { el.innerHTML = `<div class="state"><div class="big">هنوز خبری منتشر نشده</div></div>`; return; }
-    el.innerHTML = items.map(feedCard).join("");
+    ALL = await getJSON(`${DATA}/stories.json`);
+    renderFeed();
   } catch (e) {
     el.innerHTML = `<div class="state"><div class="big">خبرها بارگذاری نشد</div></div>`;
   }
+}
+const tierOf = s => impInfo(s.importance_score).cls;   // high | mid | low
+function renderFeed() {
+  const el = document.getElementById("feed");
+  if (!ALL.length) { el.innerHTML = `<div class="state"><div class="big">هنوز خبری منتشر نشده</div></div>`; return; }
+  const items = tier === "all" ? ALL : ALL.filter(s => tierOf(s) === tier);
+  el.innerHTML = items.length ? items.map(feedCard).join("")
+    : `<div class="state"><div class="big">خبری در این سطح نیست</div></div>`;
+}
+function setTier(t) {
+  tier = t;
+  document.querySelectorAll("#imp-filter .fchip").forEach(c =>
+    c.classList.toggle("on", (c.getAttribute("onclick") || "").indexOf("'" + t + "'") >= 0));
+  renderFeed();
 }
 
 async function openStory(id) {
@@ -249,23 +265,34 @@ function renderFaq() {
   _faqLoaded = true;
 }
 
-let followed = new Set();
-try { const s = localStorage.getItem("jk_follows"); if (s) followed = new Set(JSON.parse(s)); } catch (e) {}
 async function renderTopics() {
   const el = document.getElementById("topic-grid");
   try {
+    if (!ALL.length) { try { ALL = await getJSON(`${DATA}/stories.json`); } catch (e) {} }
     const topics = await getJSON(`${DATA}/topics.json`);
-    el.innerHTML = topics.map(t => {
-      const on = followed.has(t.id);
-      return `<div class="topic"><div class="t-body"><div class="t-fa">${esc(t.name_fa)}</div><div class="t-en">${esc(t.name_en || "")}</div></div>
-        <button class="followbtn ${on ? "on" : ""}" onclick="toggleFollow('${t.id}')">${on ? "دنبال‌شده" : "دنبال کردن"}</button></div>`;
-    }).join("");
+    const counted = topics
+      .map(t => ({ ...t, n: ALL.filter(s => (s.topics || []).some(x => x.slug === t.slug)).length }))
+      .filter(t => t.n > 0)
+      .sort((a, b) => b.n - a.n);
+    if (!counted.length) {
+      el.innerHTML = `<div class="state"><div class="big">هنوز موضوعی دسته‌بندی نشده</div><p class="muted">با به‌روزرسانیِ بعدی پر می‌شود.</p></div>`;
+      return;
+    }
+    el.innerHTML = counted.map(t => `<button class="topic" onclick="openTopic('${t.slug}')">
+      <div class="t-body"><div class="t-fa">${esc(t.name_fa)}</div><div class="t-count">${faN(t.n)} خبر</div></div>
+      <span class="t-go"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg></span></button>`).join("");
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">موضوعات بارگذاری نشد</div></div>`; }
 }
-function toggleFollow(id) {
-  followed.has(id) ? followed.delete(id) : followed.add(id);
-  try { localStorage.setItem("jk_follows", JSON.stringify([...followed])); } catch (e) {}
-  renderTopics();
+
+function openTopic(slug) {
+  show("topicarchive"); setTab("topics");
+  const items = ALL.filter(s => (s.topics || []).some(t => t.slug === slug));
+  const name = ((items[0] && items[0].topics.find(t => t.slug === slug)) || {}).name_fa || slug;
+  document.getElementById("ta-title").textContent = "موضوع: " + name;
+  document.getElementById("ta-sub").textContent = faN(items.length) + " خبر در این موضوع";
+  document.getElementById("ta-feed").innerHTML = items.length
+    ? items.map(feedCard).join("")
+    : `<div class="state"><div class="big">خبری در این موضوع نیست</div></div>`;
 }
 
 const root = document.documentElement;
@@ -301,5 +328,35 @@ async function renderHomePrices() {
   } catch (e) {}
 }
 
+// weather — home strip (4 cities) + dedicated page
+function showWeather() { show("weather"); setTab("feed"); renderWeather(); }
+async function renderHomeWeather() {
+  const el = document.getElementById("home-weather");
+  if (!el) return;
+  try {
+    const w = await getJSON(`${DATA}/weather.json`);
+    if (!w || !w.length) return;
+    el.innerHTML = w.slice(0, 4).map(c => `<div class="hp"><span class="hp-label">${c.icon || ""} ${esc(c.city_fa)}</span>
+      <span class="hp-val">${faN(c.temp)}°</span>
+      <span class="hp-chg flat">${faN(c.min)}° / ${faN(c.max)}°</span></div>`).join("")
+      + `<button class="hp-more" onclick="showWeather()">آب‌وهوا ›</button>`;
+  } catch (e) {}
+}
+async function renderWeather() {
+  const el = document.getElementById("weather");
+  try {
+    const w = await getJSON(`${DATA}/weather.json`);
+    if (!w || !w.length) { el.innerHTML = `<div class="state"><div class="big">آب‌وهوا در دسترس نیست</div></div>`; return; }
+    el.innerHTML = `<div class="wx-grid">` + w.map(c => `<div class="wx">
+      <div class="wx-ic">${c.icon || "🌡️"}</div>
+      <div class="wx-city">${esc(c.city_fa)}</div>
+      <div class="wx-temp">${faN(c.temp)}°</div>
+      <div class="wx-cond">${esc(c.cond_fa || "")}</div>
+      <div class="wx-mm"><span class="wx-min">${faN(c.min)}°</span> / <span class="wx-max">${faN(c.max)}°</span></div></div>`).join("")
+      + `</div><p class="muted" style="margin-top:14px">منبع: Open-Meteo — دمای کنونی و کمینه/بیشینهٔ امروز. هر ساعت به‌روز می‌شود.</p>`;
+  } catch (e) { el.innerHTML = `<div class="state"><div class="big">آب‌وهوا بارگذاری نشد</div></div>`; }
+}
+
 loadFeed();
 renderHomePrices();
+renderHomeWeather();

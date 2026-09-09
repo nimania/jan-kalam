@@ -35,11 +35,24 @@
         <p class="muted" id="built" style="margin-top:6px"></p>
       </div>
       <div class="home-prices" id="home-prices"></div>
+      <div class="home-prices" id="home-weather"></div>
       <div class="rule"><span>خط خبری</span><span class="l"></span></div>
+      <div class="imp-filter" id="imp-filter">
+        <button class="fchip on" onclick="setTier('all')">همه</button>
+        <button class="fchip" onclick="setTier('high')">بسیار مهم</button>
+        <button class="fchip" onclick="setTier('mid')">مهم</button>
+        <button class="fchip" onclick="setTier('low')">متوسط</button>
+      </div>
       <div class="feed" id="feed"><div class="spinner"></div></div>
     </section>
 
     <section class="detail" id="detail-view"></section>
+
+    <section class="topics-view" id="topic-archive-view">
+      <button class="back" onclick="showTopics()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به موضوعات</button>
+      <div class="lede"><h1 id="ta-title"></h1><p class="muted" id="ta-sub"></p></div>
+      <div class="feed" id="ta-feed"></div>
+    </section>
 
     <section class="trends-view" id="trends-view">
       <div class="lede">
@@ -63,6 +76,15 @@
         <p>موضوع‌هایی که برایت مهم‌اند را انتخاب کن (روی این دستگاه ذخیره می‌شود).</p>
       </div>
       <div class="topic-grid" id="topic-grid"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="weather-view">
+      <button class="back" onclick="showFeed()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به خط خبری</button>
+      <div class="lede">
+        <h1>آب‌وهوای ایران</h1>
+        <p>دمای کنونی و کمینه/بیشینهٔ امروزِ شهرهای ایران — هر ساعت به‌روز می‌شود.</p>
+      </div>
+      <div id="weather"><div class="spinner"></div></div>
     </section>
 
     <section class="trends-view" id="faq-view">
