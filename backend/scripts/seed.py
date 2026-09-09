@@ -55,6 +55,26 @@ SOURCES = [
     ("یورونیوز فارسی", "https://parsi.euronews.com", "https://parsi.euronews.com/rss", "iran-intl", 0.7),
     ("کیهان لندن", "https://kayhan.london", "https://kayhan.london/feed/", "iran-intl", 0.55),
     ("صدای آمریکا فارسی (VOA)", "https://ir.voanews.com", "https://ir.voanews.com/rss", "iran-intl", 0.6),
+    # --- expanded Persian domestic (major agencies, portals, economic, sport) ---
+    # Feed URLs follow each outlet's standard pattern; any that don't return items
+    # are simply skipped by the ingester (check the Actions log to prune/fix).
+    ("خبرگزاری مهر (Mehr)", "https://www.mehrnews.com", "https://www.mehrnews.com/rss", "iran", 0.6),
+    ("خبرگزاری فارس (Fars)", "https://www.farsnews.ir", "https://www.farsnews.ir/rss", "iran", 0.55),
+    ("خبرگزاری ایلنا (ILNA)", "https://www.ilna.ir", "https://www.ilna.ir/fa/rss/allnews", "iran", 0.55),
+    ("باشگاه خبرنگاران جوان", "https://www.yjc.ir", "https://www.yjc.ir/fa/rss/allnews", "iran", 0.5),
+    ("خبرگزاری صداوسیما", "https://www.iribnews.ir", "https://www.iribnews.ir/fa/rss/allnews", "iran", 0.5),
+    ("همشهری آنلاین", "https://www.hamshahrionline.ir", "https://www.hamshahrionline.ir/rss", "iran", 0.55),
+    ("عصر ایران", "https://www.asriran.com", "https://www.asriran.com/fa/rss/allnews", "iran", 0.5),
+    ("فردانیوز", "https://www.fardanews.com", "https://www.fardanews.com/fa/rss/allnews", "iran", 0.5),
+    ("رویداد۲۴", "https://www.rouydad24.ir", "https://www.rouydad24.ir/fa/rss/allnews", "iran", 0.5),
+    ("آفتاب‌نیوز", "https://aftabnews.ir", "https://aftabnews.ir/fa/rss/allnews", "iran", 0.5),
+    ("اقتصادنیوز", "https://www.eghtesadnews.com", "https://www.eghtesadnews.com/fa/rss/allnews", "iran", 0.55),
+    ("انصاف نیوز", "https://www.ensafnews.com", "https://www.ensafnews.com/feed", "iran", 0.5),
+    ("ورزش سه", "https://www.varzesh3.com", "https://www.varzesh3.com/rss/all", "iran", 0.45),
+    # --- expanded Persian international / diaspora ---
+    ("ایندیپندنت فارسی", "https://www.independentpersian.com", "https://www.independentpersian.com/rss", "iran-intl", 0.55),
+    ("ایران‌وایر (IranWire)", "https://iranwire.com", "https://iranwire.com/fa/rss/", "iran-intl", 0.55),
+    ("زیتون", "https://www.zeitoons.com", "https://www.zeitoons.com/feed", "iran-intl", 0.5),
 ]
 
 TOPICS = [
