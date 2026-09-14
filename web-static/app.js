@@ -17,6 +17,10 @@ function impInfo(v) {
 }
 function relTime(iso) {
   if (!iso) return "";
+  // Build timestamps are UTC but may omit the timezone suffix. Without one,
+  // new Date() parses them as the viewer's LOCAL time (e.g. +3:30 in Tehran),
+  // so every item looked ~3.5h old. Force UTC when no offset is present.
+  if (typeof iso === "string" && !/(Z|[+-]\d\d:?\d\d)$/.test(iso)) iso += "Z";
   const mins = Math.floor((Date.now() - new Date(iso)) / 6e4);
   if (mins < 1) return "همین حالا";
   if (mins < 60) return faN(mins) + " دقیقه پیش";
