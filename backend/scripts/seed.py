@@ -86,10 +86,25 @@ def run() -> None:
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
+        # Reconcile the sources table to match SOURCES on EVERY run. The build DB
+        # is cached between runs, so a plain "skip if exists" would freeze the old
+        # rows: edited feed URLs would never update and removed feeds would keep
+        # being fetched. So we upsert every listed source (updating its feed_url
+        # etc.) and DISABLE any source no longer in the list (we disable, never
+        # delete, because articles reference sources via a FK).
         by_name: dict[str, Source] = {}
+        wanted: set[str] = set()
         for name, home, feed, region, rel in SOURCES:
+            wanted.add(name)
+            lang = "fa" if region in ("iran", "iran-intl") else "en"
             existing = db.query(Source).filter_by(name=name).one_or_none()
             if existing:
+                existing.homepage_url = home
+                existing.feed_url = feed
+                existing.region = region
+                existing.language = lang
+                existing.reliability_score = rel
+                existing.enabled = True
                 by_name[name] = existing
                 continue
             s = Source(
@@ -98,12 +113,17 @@ def run() -> None:
                 feed_url=feed,
                 feed_type=FeedType.rss,
                 region=region,
-                language="fa" if region in ("iran", "iran-intl") else "en",
+                language=lang,
                 reliability_score=rel,
                 attribution_required=True,
             )
             db.add(s)
             by_name[name] = s
+        # Disable feeds that were pruned from SOURCES but still linger in the
+        # cached DB (dead/blocked feeds — Reuters, AP, Tasnim, VOA, …).
+        for s in db.query(Source).all():
+            if s.name not in wanted and s.enabled:
+                s.enabled = False
         db.commit()
 
         topics: dict[str, Topic] = {}
@@ -147,14 +167,14 @@ def _create_demo_story(db, by_name, topics) -> None:
     db.add(story)
     db.flush()
 
-    reuters, bbc = by_name["Reuters"], by_name["BBC"]
+    guardian, bbc = by_name["The Guardian"], by_name["BBC"]
     a1 = Article(
-        source_id=reuters.id, source_name=reuters.name, source_url=reuters.homepage_url,
-        article_url="https://example-reuters.test/energy-summit-1",
+        source_id=guardian.id, source_name=guardian.name, source_url=guardian.homepage_url,
+        article_url="https://example-guardian.test/energy-summit-1",
         title="Nations meet to discuss global energy prices",
         description="Synthetic excerpt for development only.",
         published_at=now - timedelta(hours=5), language="en",
-        category=Category.economy, hash="demo-hash-reuters-1",
+        category=Category.economy, hash="demo-hash-guardian-1",
     )
     a2 = Article(
         source_id=bbc.id, source_name=bbc.name, source_url=bbc.homepage_url,
@@ -172,10 +192,10 @@ def _create_demo_story(db, by_name, topics) -> None:
     ])
     db.add_all([
         SourceView(
-            story_id=story.id, source_id=reuters.id, source_name="Reuters",
+            story_id=story.id, source_id=guardian.id, source_name="The Guardian",
             original_headline="Nations meet to discuss global energy prices",
             article_url=a1.article_url, published_at=a1.published_at,
-            viewpoint_fa="رویترز بر برگزاری نشست و شمار کشورهای شرکت‌کننده تأکید کرده است.",
+            viewpoint_fa="گاردین بر برگزاری نشست و شمار کشورهای شرکت‌کننده تأکید کرده است.",
         ),
         SourceView(
             story_id=story.id, source_id=bbc.id, source_name="BBC",
