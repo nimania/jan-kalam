@@ -53,10 +53,10 @@ function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); 
    _navLock stops our own setHash() from re-triggering the router. */
 let _navLock = false;
 function setHash(h) {
-  const cur = location.hash || "";
-  if (cur === h || (h === "" && cur === "#/")) return;      // no change → no loop
+  h = h || "#/";                              // home sentinel
+  if ((location.hash || "#/") === h) return;  // no change (also no-op on first load)
   _navLock = true;
-  if (h) location.hash = h; else history.replaceState(null, "", location.pathname + location.search);
+  location.hash = h;
   setTimeout(() => { _navLock = false; }, 0);
 }
 async function route() {
@@ -65,6 +65,7 @@ async function route() {
   const kind = i < 0 ? raw : raw.slice(0, i);
   const arg = i < 0 ? "" : decodeURIComponent(raw.slice(i + 1));
   if (kind === "story" && arg) return openStory(arg);
+  if (kind === "person" && arg) return openEntity(arg);
   if (kind === "topic" && arg) return openTopic(arg);
   if (kind === "source" && arg) return openSource(arg);
   if (kind === "province" && arg) return openProvince(arg);
@@ -97,6 +98,25 @@ function geoBadge(g) {
   return `<span class="geo-badge ${g.scope}">${SCOPE_FA[g.scope] || ""}</span>`;
 }
 
+// clickable chips for the named figures in a story → their own page
+function peopleRow(ents) {
+  if (!ents || !ents.length) return "";
+  const chips = ents.slice(0, 6).map(e =>
+    `<span class="person-chip" data-slug="${esc(e.slug)}" onclick="event.stopPropagation();openEntity(this.dataset.slug)">${esc(e.name_fa)}</span>`).join("");
+  return `<div class="people">${chips}</div>`;
+}
+// self-contained styling (theme-aware) so no separate CSS file is needed
+(function () {
+  const css = `.people{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 2px}
+.person-chip{font-size:12.5px;padding:3px 10px;border-radius:999px;cursor:pointer;
+  background:rgba(26,157,126,.12);color:#1a9d7e;border:1px solid rgba(26,157,126,.32);white-space:nowrap}
+.person-chip:hover{background:rgba(26,157,126,.22)}
+.people-strip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}`;
+  const st = document.createElement("style");
+  st.textContent = css;
+  document.head.appendChild(st);
+})();
+
 function feedCard(s) {
   const imp = impInfo(s.importance_score);
   const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge clickable" data-src="${esc(x)}" onclick="event.stopPropagation();openSource(this.dataset.src)">${esc(x)}</span>`).join("");
@@ -106,6 +126,7 @@ function feedCard(s) {
       <span class="imp ${imp.cls}"><span class="bars"><i></i><i></i><i></i></span><span class="lbl">${imp.lbl}</span></span></div>
     <h2>${esc(s.headline_fa || "")}</h2>
     <p class="kalam">${esc(s.summary_fa || "")}</p>
+    ${peopleRow(s.entities)}
     <div class="foot"><span class="sources-mini">${faN(s.source_count || 0)} منبع:</span>${badges}
       <span class="cred-row">${credBadge(s.credibility)}${fcBadge(s.factcheck)}${saveBtn(s.id)}</span></div>
   </button>`;
@@ -226,6 +247,7 @@ async function openStory(id) {
         <span class="dot"></span><span class="muted">${faN(s.source_count || 0)} منبع</span>
         <span class="dot"></span><span class="muted">${IRAN_FA[s.iran_relevance] || ""}</span></div></div>
     <div class="kalam-box"><span class="eyebrow">جان‌کلام <span class="ai">ترکیب هوش مصنوعی</span></span><p>${esc(s.summary_fa || "")}</p></div>
+    ${peopleRow(s.entities)}
     <div class="twocol"><div class="qa"><h3>چه اتفاقی افتاد؟</h3><p>${esc(s.what_happened_fa || "—")}</p></div>
       <div class="qa"><h3>چرا اهمیت دارد؟</h3><p>${esc(s.why_it_matters_fa || "—")}</p></div></div>
     ${known}
@@ -254,10 +276,16 @@ async function renderTrends() {
   const el = document.getElementById("trends");
   try {
     if (!ALL.length) { try { ALL = await getJSON(`${DATA}/stories.json`); } catch (e) {} }
-    const [t, st] = await Promise.all([
+    const [t, st, ents] = await Promise.all([
       getJSON(`${DATA}/trends.json`),
       getJSON(`${DATA}/stats.json`).catch(() => null),
+      getJSON(`${DATA}/entities.json`).catch(() => []),
     ]);
+    const peopleChips = (ents || []).slice(0, 24).map(x =>
+      `<span class="person-chip" data-slug="${esc(x.slug)}" onclick="openEntity(this.dataset.slug)">${esc(x.name_fa)} <span class="chip-n">${faN(x.count)}</span></span>`).join("");
+    const peopleSection = peopleChips
+      ? `<div class="rule" style="margin-top:22px"><span>چهره‌ها در خبرها</span><span class="l"></span></div>
+         <div class="people-strip">${peopleChips}</div>` : "";
     const topics = (t.topics || []);
     const g = t.google || {};
     const googleOn = Object.keys(g).length > 0;
@@ -282,6 +310,7 @@ async function renderTrends() {
       ${statsSection}
       <div class="tx-hero"><span class="val">${faN(t.story_total || 0)}</span><span class="lbl">خبرِ فعال روی تخته</span>
         <span class="spacer" style="flex:1"></span><span class="lbl">${faN(topics.length)} موضوع فعال</span></div>
+      ${peopleSection}
       <div class="rule"><span>رشدِ موضوع‌ها <span class="n">۱۴ روزِ اخیر</span></span><span class="l"></span></div>
       <div class="tp-board">${rows || '<p class="muted">—</p>'}</div>
       ${googleOn ? '' : '<p class="muted" style="margin:8px 0 0">مقایسه با گوگل ترندز فعلاً در دسترس نیست (آزمایشی).</p>'}
@@ -408,6 +437,22 @@ function openTopic(slug) {
   document.getElementById("ta-title").textContent = "موضوع: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر در این موضوع";
   document.getElementById("ta-feed").innerHTML = groupedFeed(items);
+}
+
+// a figure's page: all their stories in one place (+ follow into "my feed")
+function openEntity(slug) {
+  if (!ALL.length) return;
+  setHash("#/person/" + slug);
+  show("topicarchive"); setTab("feed");
+  document.getElementById("ta-back-t").textContent = "بازگشت به خط خبری";
+  document.getElementById("ta-back").onclick = showFeed;
+  const items = ALL.filter(s => (s.entities || []).some(e => e.slug === slug));
+  const meta = items.flatMap(s => s.entities || []).find(e => e.slug === slug) || {};
+  const name = meta.name_fa || slug;
+  document.getElementById("ta-title").textContent = (meta.kind === "body" ? "نهاد: " : "چهره: ") + name;
+  document.getElementById("ta-sub").textContent = faN(items.length) + " خبر مرتبط";
+  document.getElementById("ta-feed").innerHTML =
+    followBar("entities", slug, "خبرهای این چهره در «خط خبری من» بیاید") + groupedFeed(items);
 }
 
 function followBar(kind, id, note) {
@@ -645,7 +690,7 @@ function trendBadge(t) {
 const FKEY = "jk_follow_v1";
 function loadF() { try { return JSON.parse(localStorage.getItem(FKEY)) || {}; } catch (e) { return {}; } }
 function saveF() { try { localStorage.setItem(FKEY, JSON.stringify(FOLLOW)); } catch (e) {} }
-let FOLLOW = Object.assign({ topics: [], provinces: [], sources: [], saved: [] }, loadF());
+let FOLLOW = Object.assign({ topics: [], provinces: [], sources: [], entities: [], saved: [] }, loadF());
 function isF(kind, id) { return (FOLLOW[kind] || []).includes(id); }
 function toggleF(kind, id) {
   const a = FOLLOW[kind] || (FOLLOW[kind] = []);
@@ -653,7 +698,8 @@ function toggleF(kind, id) {
   saveF();
 }
 function followCount() {
-  return (FOLLOW.topics.length + FOLLOW.provinces.length + FOLLOW.sources.length);
+  return (FOLLOW.topics.length + FOLLOW.provinces.length + FOLLOW.sources.length
+    + (FOLLOW.entities ? FOLLOW.entities.length : 0));
 }
 // a reusable follow/save button
 function followBtn(kind, id, labelOn, labelOff) {
@@ -696,6 +742,7 @@ function mineFeed() {
     (s.topics || []).some(t => isF("topics", t.slug)) ||
     (s.geo && (s.geo.provinces || []).some(p => isF("provinces", p.slug))) ||
     (s.source_names || []).some(n => isF("sources", n)) ||
+    (s.entities || []).some(e => isF("entities", e.slug)) ||
     isF("saved", s.id));
 }
 

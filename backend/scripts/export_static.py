@@ -24,6 +24,7 @@ from app.analytics import google_trends as gt_svc
 from app.analytics import service as analytics_svc
 from app.credibility import compute_credibility
 from app.db.session import SessionLocal
+from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
 from app.geo import service as geo_svc
 from app.prices import service as price_svc
@@ -171,6 +172,63 @@ section p{{margin:0;color:#dce8e1}}
 """
 
 
+def _entity_page(ent: dict, cards: list[dict]) -> str:
+    """A crawlable, shareable page per figure: their recent stories in one place,
+    with proper meta/OG tags and a link into the interactive جان‌کلام feed."""
+    slug, name = ent["slug"], ent["name_fa"]
+    e = html.escape
+    url = f"{SITE}/e/{slug}/"
+    app_url = f"{SITE}/#/person/{slug}"
+    kind_fa = "نهاد" if ent.get("kind") == "body" else "چهره"
+    desc = _clip(f"همهٔ خبرهای مرتبط با {name} در جان‌کلام — از چند منبع، با تفکیکِ "
+                 f"واقعیت از دیدگاه. {ent.get('count', 0)} خبر.", 200)
+    items = "".join(
+        f'<li><a href="{SITE}/s/{c["id"]}/">{e(c.get("headline_fa") or "")}</a></li>'
+        for c in cards)
+    return f"""<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{e(name)} — خبرها در جان‌کلام</title>
+<meta name="description" content="{e(desc)}">
+<link rel="canonical" href="{e(url)}">
+<meta property="og:type" content="profile">
+<meta property="og:site_name" content="جان‌کلام">
+<meta property="og:title" content="{e(name)} — خبرها">
+<meta property="og:description" content="{e(desc)}">
+<meta property="og:url" content="{e(url)}">
+<meta name="theme-color" content="#155a4f">
+<link rel="icon" href="{SITE}/icons/icon.svg" type="image/svg+xml">
+<style>
+:root{{color-scheme:light dark}}
+body{{margin:0;background:#0f1512;color:#e8efe9;font-family:Vazirmatn,'Noto Naskh Arabic',system-ui,sans-serif;line-height:1.9}}
+.wrap{{max-width:680px;margin:0 auto;padding:26px 20px 60px}}
+a{{color:#3ec99f;text-decoration:none}}
+.brand{{font-weight:700;color:#3ec99f;font-size:20px}}
+.meta{{color:#8fa89b;font-size:14px;margin:4px 0}}
+h1{{font-size:26px;margin:16px 0 2px}}
+ul{{list-style:none;padding:0;margin:16px 0}}
+li{{border-bottom:1px solid #24352d;padding:12px 0}}
+li a{{color:#dce8e1;font-size:17px}}
+.cta{{display:inline-block;margin-top:20px;background:#1a9d7e;color:#04120d;font-weight:700;padding:12px 20px;border-radius:12px}}
+@media(prefers-color-scheme:light){{body{{background:#f6f8f7;color:#16201b}}li{{border-color:#e2e9e5}}li a{{color:#26332c}}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="brand" href="{SITE}/">جان‌کلام</a>
+<div class="meta">{kind_fa} · هوش خبری فارسی</div>
+<h1>خبرهای {e(name)}</h1>
+<div class="meta">{e(str(ent.get("count", 0)))} خبر مرتبط</div>
+<ul>{items}</ul>
+<a class="cta" href="{e(app_url)}">دنبال‌کردن در جان‌کلام</a>
+</div>
+</body>
+</html>
+"""
+
+
 def _story_match_texts(detail: dict) -> list[str | None]:
     texts: list[str | None] = [detail.get("headline_fa"), detail.get("summary_fa")]
     for sv in detail.get("source_views", []):
@@ -216,6 +274,12 @@ def run() -> None:
             d["iran_relevance"] = "high"
             card["iran_relevance"] = "high"
 
+        # Named figures mentioned in the story (curated gazetteer) — powers the
+        # clickable name chips and the per-person pages.
+        d["entities"] = entity_svc.detect(" ".join(
+            t for t in _story_match_texts(d)
+            + [d.get("what_happened_fa"), d.get("why_it_matters_fa")] if t))
+
         metrics[card["id"]] = analytics_svc.momentum(story, now)
         details[card["id"]] = d
 
@@ -226,6 +290,7 @@ def run() -> None:
                                "independent_sources": cred["independent_sources"]}
         card["topics"] = [{"slug": t["slug"], "name_fa": t["name_fa"]}
                           for t in d.get("topics", [])]
+        card["entities"] = d["entities"]
         card["geo"] = geo
         if match:
             card["factcheck"] = {"url": match["url"]}
@@ -245,6 +310,19 @@ def run() -> None:
     _write(os.path.join(DATA, "topics.json"),
            [{"id": t.id, "slug": t.slug, "name_fa": t.name_fa, "name_en": t.name_en}
             for t in topics])
+
+    # People / bodies index: which figures appear and in how many stories.
+    ent_counts: dict[str, int] = {}
+    ent_meta: dict[str, dict] = {}
+    for card in cards:
+        for e in card.get("entities", []):
+            ent_counts[e["slug"]] = ent_counts.get(e["slug"], 0) + 1
+            ent_meta[e["slug"]] = e
+    entities_list = sorted(
+        [{"slug": s, "name_fa": ent_meta[s]["name_fa"], "kind": ent_meta[s]["kind"],
+          "count": n} for s, n in ent_counts.items()],
+        key=lambda x: -x["count"])
+    _write(os.path.join(DATA, "entities.json"), entities_list)
 
     # Trends board + growth series (+ best-effort Google Trends overlay).
     trends = trends_svc.compute_trends(db)
@@ -294,6 +372,12 @@ def run() -> None:
             continue
         _write_text(os.path.join(OUT, "s", card["id"], "index.html"), _story_page(d, app_v))
         urls.append(f"{SITE}/s/{card['id']}/")
+    # A page per figure (their stories in one place) + include in the sitemap.
+    for ent in entities_list:
+        ecards = [c for c in cards
+                  if any(x["slug"] == ent["slug"] for x in c.get("entities", []))]
+        _write_text(os.path.join(OUT, "e", ent["slug"], "index.html"), _entity_page(ent, ecards))
+        urls.append(f"{SITE}/e/{ent['slug']}/")
     sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                + "".join(f"  <url><loc>{u}</loc></url>\n" for u in urls)
