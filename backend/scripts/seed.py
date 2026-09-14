@@ -24,56 +24,51 @@ from app.models.story import SourceView, Statement, Story, StoryArticle
 from app.models.taxonomy import StoryTopic, Topic
 
 SOURCES = [
+    # NOTE: this list is pruned to feeds VERIFIED working from the GitHub Actions
+    # runner (see the ingestion log). reliability_score is a starting internal
+    # ranking input to be tuned — NOT a political label. Domestic and diaspora
+    # outlets are BOTH included so the source-comparison layer can show where they
+    # agree and differ.
+    #
+    # Removed because their feed did not work from GitHub's servers (DNS-blocked,
+    # 403/404, or returned zero items). If you have a working RSS URL for any of
+    # these, add it back: تسنیم, ایلنا, اقتصادنیوز, برترین‌ها, رادیو فردا,
+    # صدای آمریکا (VOA), ایندیپندنت فارسی, ایران‌وایر, Reuters, Associated Press.
+
     # --- Global / international ---
-    ("Reuters", "https://www.reuters.com", "https://feeds.reuters.com/reuters/worldNews", "global", 0.9),
-    ("Associated Press", "https://apnews.com", "https://apnews.com/hub/ap-top-news?output=rss", "global", 0.9),
     ("BBC", "https://www.bbc.com/news", "http://feeds.bbci.co.uk/news/world/rss.xml", "global", 0.85),
     ("The Guardian", "https://www.theguardian.com", "https://www.theguardian.com/world/rss", "global", 0.8),
     ("Al Jazeera", "https://www.aljazeera.com", "https://www.aljazeera.com/xml/rss/all.xml", "mena", 0.75),
     ("The Verge", "https://www.theverge.com", "https://www.theverge.com/rss/index.xml", "tech", 0.7),
-    # --- Persian-language: domestic (state / semi-state) ---
-    # reliability_score is a starting internal ranking input to be tuned — NOT a
-    # political label. Domestic and diaspora outlets are BOTH included so the
-    # source-comparison layer can show where they agree and differ.
+
+    # --- Persian-language: domestic (agencies, portals, economic, sport) ---
     ("خبرگزاری ایرنا (IRNA)", "https://www.irna.ir", "https://www.irna.ir/rss", "iran", 0.6),
     ("خبرگزاری ایسنا (ISNA)", "https://www.isna.ir", "https://www.isna.ir/rss", "iran", 0.6),
-    ("خبرگزاری تسنیم (Tasnim)", "https://www.tasnimnews.com", "https://www.tasnimnews.com/fa/rss/feed/0/7/0", "iran", 0.55),
-    # --- Persian-language: international / diaspora ---
-    ("بی‌بی‌سی فارسی (BBC Persian)", "https://www.bbc.com/persian", "https://feeds.bbci.co.uk/persian/rss.xml", "iran-intl", 0.75),
-    ("ایران اینترنشنال (Iran International)", "https://www.iranintl.com", "https://www.iranintl.com/en/rss", "iran-intl", 0.6),
-    ("رادیو فردا (Radio Farda)", "https://www.radiofarda.com", "https://www.radiofarda.com/api/zrqiteuuir", "iran-intl", 0.65),
-    ("دویچه‌وله فارسی (DW Persian)", "https://www.dw.com/fa-ir", "https://rss.dw.com/rdf/rss-per-all", "iran-intl", 0.75),
-    # --- more Persian domestic ---
+    ("خبرگزاری مهر (Mehr)", "https://www.mehrnews.com", "https://www.mehrnews.com/rss", "iran", 0.6),
+    # Fars: use the no-www host directly (www.farsnews.ir/rss 301-redirects to a 404).
+    ("خبرگزاری فارس (Fars)", "https://farsnews.ir", "https://farsnews.ir/rss", "iran", 0.55),
     ("خبرآنلاین", "https://www.khabaronline.ir", "https://www.khabaronline.ir/rss", "iran", 0.6),
+    ("همشهری آنلاین", "https://www.hamshahrionline.ir", "https://www.hamshahrionline.ir/rss", "iran", 0.55),
+    ("خبرگزاری صداوسیما", "https://www.iribnews.ir", "https://www.iribnews.ir/fa/rss/allnews", "iran", 0.5),
+    ("باشگاه خبرنگاران جوان", "https://www.yjc.ir", "https://www.yjc.ir/fa/rss/allnews", "iran", 0.5),
     ("تابناک", "https://www.tabnak.ir", "https://www.tabnak.ir/fa/rss/allnews", "iran", 0.55),
     ("فرارو", "https://fararu.com", "https://fararu.com/fa/rss/allnews", "iran", 0.55),
     ("انتخاب", "https://www.entekhab.ir", "https://www.entekhab.ir/fa/rss/allnews", "iran", 0.55),
-    ("مشرق نیوز", "https://www.mashreghnews.ir", "https://www.mashreghnews.ir/rss", "iran", 0.5),
-    ("برترین‌ها", "https://www.bartarinha.ir", "https://www.bartarinha.ir/fa/rss/allnews", "iran", 0.5),
-    ("روزنامه پیام‌ما", "https://payamema.ir", "https://payamema.ir/feed", "iran", 0.55),
-    # --- more Persian international / diaspora ---
-    ("یورونیوز فارسی", "https://parsi.euronews.com", "https://parsi.euronews.com/rss", "iran-intl", 0.7),
-    ("کیهان لندن", "https://kayhan.london", "https://kayhan.london/feed/", "iran-intl", 0.55),
-    ("صدای آمریکا فارسی (VOA)", "https://ir.voanews.com", "https://ir.voanews.com/rss", "iran-intl", 0.6),
-    # --- expanded Persian domestic (major agencies, portals, economic, sport) ---
-    # Feed URLs follow each outlet's standard pattern; any that don't return items
-    # are simply skipped by the ingester (check the Actions log to prune/fix).
-    ("خبرگزاری مهر (Mehr)", "https://www.mehrnews.com", "https://www.mehrnews.com/rss", "iran", 0.6),
-    ("خبرگزاری فارس (Fars)", "https://www.farsnews.ir", "https://www.farsnews.ir/rss", "iran", 0.55),
-    ("خبرگزاری ایلنا (ILNA)", "https://www.ilna.ir", "https://www.ilna.ir/fa/rss/allnews", "iran", 0.55),
-    ("باشگاه خبرنگاران جوان", "https://www.yjc.ir", "https://www.yjc.ir/fa/rss/allnews", "iran", 0.5),
-    ("خبرگزاری صداوسیما", "https://www.iribnews.ir", "https://www.iribnews.ir/fa/rss/allnews", "iran", 0.5),
-    ("همشهری آنلاین", "https://www.hamshahrionline.ir", "https://www.hamshahrionline.ir/rss", "iran", 0.55),
     ("عصر ایران", "https://www.asriran.com", "https://www.asriran.com/fa/rss/allnews", "iran", 0.5),
     ("فردانیوز", "https://www.fardanews.com", "https://www.fardanews.com/fa/rss/allnews", "iran", 0.5),
     ("رویداد۲۴", "https://www.rouydad24.ir", "https://www.rouydad24.ir/fa/rss/allnews", "iran", 0.5),
     ("آفتاب‌نیوز", "https://aftabnews.ir", "https://aftabnews.ir/fa/rss/allnews", "iran", 0.5),
-    ("اقتصادنیوز", "https://www.eghtesadnews.com", "https://www.eghtesadnews.com/fa/rss/allnews", "iran", 0.55),
+    ("مشرق نیوز", "https://www.mashreghnews.ir", "https://www.mashreghnews.ir/rss", "iran", 0.5),
     ("انصاف نیوز", "https://www.ensafnews.com", "https://www.ensafnews.com/feed", "iran", 0.5),
+    ("روزنامه پیام‌ما", "https://payamema.ir", "https://payamema.ir/feed", "iran", 0.55),
     ("ورزش سه", "https://www.varzesh3.com", "https://www.varzesh3.com/rss/all", "iran", 0.45),
-    # --- expanded Persian international / diaspora ---
-    ("ایندیپندنت فارسی", "https://www.independentpersian.com", "https://www.independentpersian.com/rss", "iran-intl", 0.55),
-    ("ایران‌وایر (IranWire)", "https://iranwire.com", "https://iranwire.com/fa/rss/", "iran-intl", 0.55),
+
+    # --- Persian-language: international / diaspora ---
+    ("بی‌بی‌سی فارسی (BBC Persian)", "https://www.bbc.com/persian", "https://feeds.bbci.co.uk/persian/rss.xml", "iran-intl", 0.75),
+    ("ایران اینترنشنال (Iran International)", "https://www.iranintl.com", "https://www.iranintl.com/feed", "iran-intl", 0.6),
+    ("دویچه‌وله فارسی (DW Persian)", "https://www.dw.com/fa-ir", "https://rss.dw.com/rdf/rss-per-all", "iran-intl", 0.75),
+    ("یورونیوز فارسی", "https://parsi.euronews.com", "https://parsi.euronews.com/rss", "iran-intl", 0.7),
+    ("کیهان لندن", "https://kayhan.london", "https://kayhan.london/feed/", "iran-intl", 0.55),
     ("زیتون", "https://www.zeitoons.com", "https://www.zeitoons.com/feed", "iran-intl", 0.5),
 ]
 
