@@ -13,8 +13,11 @@ and writes the trends board (بورس اخبار) and the Factnameh section.
 """
 from __future__ import annotations
 
+import hashlib
+import html
 import json
 import os
+import re
 import shutil
 
 from app.analytics import google_trends as gt_svc
@@ -34,6 +37,9 @@ from app.trends import service as trends_svc
 OUT = os.environ.get("STATIC_OUT", "public")
 DATA = os.path.join(OUT, "data")
 WEB_STATIC = os.path.join(os.path.dirname(__file__), "..", "..", "web-static")
+# Public base URL (no trailing slash) — used for canonical links, Open Graph and
+# the sitemap. Override with SITE_URL for a custom domain.
+SITE = os.environ.get("SITE_URL", "https://nimania.github.io/jan-kalam").rstrip("/")
 
 # Answers are pre-baked at build time (static host can't run the AI live).
 QUESTIONS = [
@@ -47,6 +53,122 @@ QUESTIONS = [
 def _write(path: str, obj) -> None:
     with open(path, "w", encoding="utf-8") as f:
         json.dump(obj, f, ensure_ascii=False, separators=(",", ":"))
+
+
+def _write_text(path: str, text: str) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def _digest(path: str) -> str:
+    """Short content hash of a file (empty string if missing)."""
+    try:
+        with open(path, "rb") as f:
+            return hashlib.md5(f.read()).hexdigest()[:8]
+    except OSError:
+        return ""
+
+
+def _cache_bust() -> str:
+    """Stamp app.js / styles.css / iran-provinces.js in index.html with a
+    content hash (?v=…) so a new deploy is fetched immediately instead of being
+    served stale from the browser/CDN cache. Also bumps the service-worker
+    cache name so it re-installs when the code changes. Returns the app hash."""
+    idx = os.path.join(OUT, "index.html")
+    assets = ["app.js", "styles.css", "iran-provinces.js"]
+    vers = {a: _digest(os.path.join(OUT, a)) for a in assets}
+    try:
+        with open(idx, encoding="utf-8") as f:
+            page = f.read()
+    except OSError:
+        return vers.get("app.js", "")
+    for a, v in vers.items():
+        if v:
+            # add/refresh ?v=… on the src="a"/href="a" reference
+            page = re.sub(r'((?:src|href)="' + re.escape(a) + r')(?:\?v=[0-9a-f]+)?(")',
+                          r"\1?v=" + v + r"\2", page)
+    _write_text(idx, page)
+
+    app_v = vers.get("app.js", "")
+    sw = os.path.join(OUT, "sw.js")
+    if app_v and os.path.exists(sw):
+        with open(sw, encoding="utf-8") as f:
+            swtext = f.read()
+        swtext = re.sub(r'const V = "[^"]*";',
+                        'const V = "jankalam-' + app_v + '";', swtext, count=1)
+        _write_text(sw, swtext)
+    return app_v
+
+
+def _clip(text: str, n: int = 180) -> str:
+    text = " ".join((text or "").split())
+    return text if len(text) <= n else text[: n - 1].rstrip() + "…"
+
+
+def _story_page(d: dict, app_v: str) -> str:
+    """A crawlable, shareable static page per story: real <title>, meta
+    description and Open Graph tags (so shared links unfurl with a preview and
+    search engines can index each story), plus the جان‌کلام summary and a link
+    into the interactive app. No auto-redirect — the page is real content."""
+    sid = d["id"]
+    title = _clip(d.get("headline_fa") or "خبر", 90)
+    summary = _clip(d.get("summary_fa") or "", 200)
+    url = f"{SITE}/s/{sid}/"
+    app_url = f"{SITE}/#/story/{sid}"
+    e = html.escape
+    srcs = "، ".join((d.get("source_names") or [])[:6])
+    what = d.get("what_happened_fa") or ""
+    why = d.get("why_it_matters_fa") or ""
+    blocks = "".join(
+        f'<section><h2>{e(t)}</h2><p>{e(b)}</p></section>'
+        for t, b in [("چه اتفاقی افتاد؟", what), ("چرا اهمیت دارد؟", why)] if b)
+    return f"""<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{e(title)} — جان‌کلام</title>
+<meta name="description" content="{e(summary)}">
+<link rel="canonical" href="{e(url)}">
+<meta property="og:type" content="article">
+<meta property="og:site_name" content="جان‌کلام">
+<meta property="og:title" content="{e(title)}">
+<meta property="og:description" content="{e(summary)}">
+<meta property="og:url" content="{e(url)}">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#155a4f">
+<link rel="icon" href="{SITE}/icons/icon.svg" type="image/svg+xml">
+<style>
+:root{{color-scheme:light dark}}
+body{{margin:0;background:#0f1512;color:#e8efe9;font-family:Vazirmatn,'Noto Naskh Arabic',system-ui,sans-serif;line-height:1.9}}
+.wrap{{max-width:680px;margin:0 auto;padding:26px 20px 60px}}
+a{{color:#3ec99f}}
+.brand{{font-weight:700;color:#3ec99f;font-size:20px;text-decoration:none}}
+h1{{font-size:26px;line-height:1.5;margin:18px 0 6px}}
+.sum{{font-size:17px;color:#cfe0d6;background:#16201b;border:1px solid #24352d;border-radius:14px;padding:16px 18px;margin:14px 0}}
+.meta{{color:#8fa89b;font-size:14px;margin:4px 0 10px}}
+h2{{font-size:16px;color:#a9c4b7;margin:22px 0 4px}}
+section p{{margin:0;color:#dce8e1}}
+.cta{{display:inline-block;margin-top:26px;background:#1a9d7e;color:#04120d;font-weight:700;text-decoration:none;padding:12px 20px;border-radius:12px}}
+.home{{display:block;margin-top:18px;color:#8fa89b}}
+@media(prefers-color-scheme:light){{body{{background:#f6f8f7;color:#16201b}}.sum{{background:#fff;border-color:#e2e9e5;color:#2a3a32}}section p{{color:#2a3a32}}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<a class="brand" href="{SITE}/">جان‌کلام</a>
+<div class="meta">هوش خبری فارسی — واقعیت جدا از تحلیل، هر منبع به‌تفکیک</div>
+<h1>{e(d.get("headline_fa") or "")}</h1>
+<div class="meta">{e(str(d.get("source_count") or 0))} منبع{(' · ' + e(srcs)) if srcs else ''}</div>
+<p class="sum">{e(d.get("summary_fa") or "")}</p>
+{blocks}
+<a class="cta" href="{e(app_url)}">باز کردن در جان‌کلام — منابع، واقعیت و ابهام</a>
+<a class="home" href="{SITE}/">← همهٔ خبرها</a>
+</div>
+</body>
+</html>
+"""
 
 
 def _story_match_texts(detail: dict) -> list[str | None]:
@@ -161,7 +283,27 @@ def run() -> None:
             else:
                 shutil.copy2(src, dst)
 
-    print(f"exported {len(cards)} stories, {len(factchecks)} fact-checks to ./{OUT}")
+    # Version the shell so a new deploy is fetched immediately (not stale-cached).
+    app_v = _cache_bust()
+
+    # A crawlable, shareable static page per story + sitemap + robots.
+    urls = [f"{SITE}/"]
+    for card in cards:
+        d = details.get(card["id"])
+        if not d:
+            continue
+        _write_text(os.path.join(OUT, "s", card["id"], "index.html"), _story_page(d, app_v))
+        urls.append(f"{SITE}/s/{card['id']}/")
+    sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+               '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+               + "".join(f"  <url><loc>{u}</loc></url>\n" for u in urls)
+               + "</urlset>\n")
+    _write_text(os.path.join(OUT, "sitemap.xml"), sitemap)
+    _write_text(os.path.join(OUT, "robots.txt"),
+                f"User-agent: *\nAllow: /\nSitemap: {SITE}/sitemap.xml\n")
+
+    print(f"exported {len(cards)} stories, {len(factchecks)} fact-checks, "
+          f"{len(urls) - 1} story pages to ./{OUT}")
 
 
 if __name__ == "__main__":

@@ -42,11 +42,42 @@ function show(v) {
     document.getElementById(id).style.display = key === v ? "block" : "none";
   window.scrollTo({ top: 0, behavior: "instant" });
 }
-function showFeed() { show("feed"); setTab("feed"); }
-function showTopics() { show("topics"); setTab("topics"); renderTopics(); }
-function showTrends() { show("trends"); setTab("trends"); renderTrends(); }
-function showFactchecks() { show("factchecks"); setTab("factchecks"); renderFactchecks(); }
-function showFaq() { show("faq"); setTab("faq"); renderFaq(); }
+function showFeed() { show("feed"); setTab("feed"); setHash(""); }
+function showTopics() { show("topics"); setTab("topics"); renderTopics(); setHash("#/topics"); }
+function showTrends() { show("trends"); setTab("trends"); renderTrends(); setHash("#/trends"); }
+function showFactchecks() { show("factchecks"); setTab("factchecks"); renderFactchecks(); setHash("#/fact"); }
+function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); }
+
+/* ---- hash routing: shareable URLs + working Back button ----
+   Each view/story gets its own #/… URL. Deep links and Back/Forward work.
+   _navLock stops our own setHash() from re-triggering the router. */
+let _navLock = false;
+function setHash(h) {
+  const cur = location.hash || "";
+  if (cur === h || (h === "" && cur === "#/")) return;      // no change → no loop
+  _navLock = true;
+  if (h) location.hash = h; else history.replaceState(null, "", location.pathname + location.search);
+  setTimeout(() => { _navLock = false; }, 0);
+}
+async function route() {
+  const raw = (location.hash || "").replace(/^#\/?/, "");
+  const i = raw.indexOf("/");
+  const kind = i < 0 ? raw : raw.slice(0, i);
+  const arg = i < 0 ? "" : decodeURIComponent(raw.slice(i + 1));
+  if (kind === "story" && arg) return openStory(arg);
+  if (kind === "topic" && arg) return openTopic(arg);
+  if (kind === "source" && arg) return openSource(arg);
+  if (kind === "province" && arg) return openProvince(arg);
+  if (kind === "trends") return showTrends();
+  if (kind === "fact") return showFactchecks();
+  if (kind === "iran") return showIran();
+  if (kind === "topics") return showTopics();
+  if (kind === "market") return showMarket();
+  if (kind === "weather") return showWeather();
+  if (kind === "faq") return showFaq();
+  return showFeed();
+}
+window.addEventListener("hashchange", () => { if (!_navLock) route(); });
 
 function credBadge(c) {
   if (!c) return "";
@@ -130,6 +161,7 @@ function setSort(m) {
 }
 
 async function openStory(id) {
+  setHash("#/story/" + id);
   show("detail"); setTab("feed");
   const v = document.getElementById("detail-view");
   v.innerHTML = `<div class="spinner"></div>`;
@@ -367,6 +399,7 @@ function groupedFeed(items) {
 }
 
 function openTopic(slug) {
+  setHash("#/topic/" + slug);
   show("topicarchive"); setTab("topics");
   document.getElementById("ta-back-t").textContent = "بازگشت به موضوعات";
   document.getElementById("ta-back").onclick = showTopics;
@@ -382,6 +415,7 @@ function followBar(kind, id, note) {
 }
 function openSource(name) {
   if (!ALL.length) return;
+  setHash("#/source/" + encodeURIComponent(name));
   show("topicarchive"); setTab("feed");
   document.getElementById("ta-back-t").textContent = "بازگشت به خط خبری";
   document.getElementById("ta-back").onclick = showFeed;
@@ -398,7 +432,7 @@ const PATHS = (typeof window !== "undefined" && window.IRAN_PATHS) || {};
 const VIEWBOX = (typeof window !== "undefined" && window.IRAN_VIEWBOX) || "0 0 990 890";
 
 let _iranScope = "all";
-function showIran() { show("iran"); setTab("iran"); renderIran(); }
+function showIran() { show("iran"); setTab("iran"); renderIran(); setHash("#/iran"); }
 async function renderIran() {
   const el = document.getElementById("iran");
   try {
@@ -443,6 +477,7 @@ function setIranScope(s) {
 }
 function openProvince(slug) {
   if (!ALL.length) return;
+  setHash("#/province/" + slug);
   show("topicarchive"); setTab("iran");
   document.getElementById("ta-back-t").textContent = "بازگشت به ایران";
   document.getElementById("ta-back").onclick = showIran;
@@ -500,7 +535,7 @@ async function renderHomePrices() {
 }
 
 // بازار — dedicated market page (full price board)
-function showMarket() { show("market"); setTab("feed"); renderMarket(); }
+function showMarket() { show("market"); setTab("feed"); renderMarket(); setHash("#/market"); }
 async function renderMarket() {
   const el = document.getElementById("market");
   try {
@@ -519,7 +554,7 @@ async function renderMarket() {
 }
 
 // weather — home strip (4 cities) + dedicated page
-function showWeather() { show("weather"); setTab("feed"); renderWeather(); }
+function showWeather() { show("weather"); setTab("feed"); renderWeather(); setHash("#/weather"); }
 async function renderHomeWeather() {
   const el = document.getElementById("home-weather");
   if (!el) return;
@@ -707,7 +742,7 @@ function statsBlock(st) {
     <p class="muted" style="margin:6px 0 4px">شمارِ خبرهای تازه در هر روز. پنجره‌های «۴ تا ۲۴ ساعت» زنده‌اند و لحظه‌ای حساب می‌شوند.</p>`;
 }
 
-loadFeed();
+loadFeed().then(route);   // load the feed, then honor any deep link in the URL
 renderHomeStats();
 renderHomePrices();
 renderHomeWeather();
