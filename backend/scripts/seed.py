@@ -105,6 +105,10 @@ def run() -> None:
                 existing.language = lang
                 existing.reliability_score = rel
                 existing.enabled = True
+                # RSS thumbnails (media:thumbnail / media:content) are published by
+                # the outlet FOR redistribution — safe to keep. We still never
+                # store full article body or scraped page images.
+                existing.allow_image = True
                 by_name[name] = existing
                 continue
             s = Source(
@@ -116,6 +120,7 @@ def run() -> None:
                 language=lang,
                 reliability_score=rel,
                 attribution_required=True,
+                allow_image=True,
             )
             db.add(s)
             by_name[name] = s

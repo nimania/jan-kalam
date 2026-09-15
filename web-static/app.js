@@ -193,7 +193,10 @@ button.tl-item:hover .tl-h{color:#1a9d7e}
   border:1px solid rgba(143,168,155,.35);color:#a9c4b7;background:transparent;cursor:pointer;white-space:nowrap;font-family:inherit}
 .day-chip .d-n{font-size:11px;color:#8fa89b;margin-inline-start:4px}
 .day-chip:hover{border-color:#1a9d7e;color:#1a9d7e}
-.day-chip.on{background:rgba(26,157,126,.15);border-color:#1a9d7e;color:#1a9d7e}`;
+.day-chip.on{background:rgba(26,157,126,.15);border-color:#1a9d7e;color:#1a9d7e}
+.card-thumb{flex:0 0 84px;width:84px;height:84px;border-radius:8px;object-fit:cover;background:rgba(143,168,155,.10);border:1px solid rgba(143,168,155,.18)}
+.hero-img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;background:rgba(143,168,155,.10);margin:6px 0 12px;display:block}
+.hero-credit{font-size:12px;color:#8fa89b;margin:-6px 0 12px;text-align:end}`;
   const st = document.createElement("style");
   st.textContent = css;
   document.head.appendChild(st);
@@ -202,7 +205,11 @@ button.tl-item:hover .tl-h{color:#1a9d7e}
 function feedCard(s) {
   const imp = impInfo(s.importance_score);
   const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge clickable" data-src="${esc(x)}" onclick="event.stopPropagation();openSource(this.dataset.src)">${esc(x)}</span>`).join("");
-  const mm = miniMap(s);
+  // Show the article's image when the outlet's RSS provided one; otherwise
+  // fall back to the mini-map (so every card has a visual anchor).
+  const thumb = s.image_url
+    ? `<img class="card-thumb" loading="lazy" src="${esc(s.image_url)}" alt="" onerror="this.remove()">`
+    : miniMap(s);
   return `<button class="card" onclick="openStory('${s.id}')">
     <div class="meta"><span class="chip">${CAT_FA[s.category] || "خبر"}</span>
       <span class="dot"></span><span class="muted">${relTime(s.published_at)}</span>${geoBadge(s.geo)}${trendBadge(s.trend)}
@@ -212,7 +219,7 @@ function feedCard(s) {
         <h2>${esc(s.headline_fa || "")}</h2>
         <p class="kalam">${esc(s.summary_fa || "")}</p>
       </div>
-      ${mm}
+      ${thumb}
     </div>
     ${peopleRow(s.entities)}
     <div class="foot"><span class="sources-mini">${faN(s.source_count || 0)} منبع:</span>${badges}
@@ -383,6 +390,8 @@ async function openStory(id) {
       <div class="d-meta"><span class="imp ${imp.cls}"><span class="bars"><i></i><i></i><i></i></span><span class="lbl">${imp.lbl}</span></span>
         <span class="dot"></span><span class="muted">${faN(s.source_count || 0)} منبع</span>
         <span class="dot"></span><span class="muted">${IRAN_FA[s.iran_relevance] || ""}</span></div></div>
+    ${s.image_url ? `<img class="hero-img" src="${esc(s.image_url)}" alt="" loading="lazy" onerror="this.parentElement.querySelector('.hero-credit')?.remove();this.remove()">` : ''}
+    ${s.image_url && s.image_credit ? `<div class="hero-credit">عکس از: ${esc(s.image_credit)}</div>` : ''}
     <div class="kalam-box"><span class="eyebrow">جان‌کلام <span class="ai">ترکیب هوش مصنوعی</span></span><p>${esc(s.summary_fa || "")}</p></div>
     ${detailGeoStrip(s)}
     ${peopleRow(s.entities)}

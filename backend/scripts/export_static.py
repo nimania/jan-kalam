@@ -138,12 +138,13 @@ def _story_page(d: dict, app_v: str) -> str:
 <meta property="og:title" content="{e(title)}">
 <meta property="og:description" content="{e(summary)}">
 <meta property="og:url" content="{e(url)}">
-<meta name="twitter:card" content="summary">
+{('<meta property="og:image" content="' + e(d["image_url"]) + '"><meta name="twitter:card" content="summary_large_image">') if d.get("image_url") else '<meta name="twitter:card" content="summary">'}
 <meta name="theme-color" content="#155a4f">
 <link rel="icon" href="{SITE}/icons/icon.svg" type="image/svg+xml">
 <style>
 :root{{color-scheme:light dark}}
 body{{margin:0;background:#0f1512;color:#e8efe9;font-family:Vazirmatn,'Noto Naskh Arabic',system-ui,sans-serif;line-height:1.9}}
+.hero{{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;margin:14px 0;background:#16201b}}
 .wrap{{max-width:680px;margin:0 auto;padding:26px 20px 60px}}
 a{{color:#3ec99f}}
 .brand{{font-weight:700;color:#3ec99f;font-size:20px;text-decoration:none}}
@@ -163,6 +164,7 @@ section p{{margin:0;color:#dce8e1}}
 <div class="meta">هوش خبری فارسی — واقعیت جدا از تحلیل، هر منبع به‌تفکیک</div>
 <h1>{e(d.get("headline_fa") or "")}</h1>
 <div class="meta">{e(str(d.get("source_count") or 0))} منبع{(' · ' + e(srcs)) if srcs else ''}</div>
+{('<img class="hero" src="' + e(d["image_url"]) + '" alt="" loading="lazy" onerror="this.remove()">') if d.get("image_url") else ''}
 <p class="sum">{e(d.get("summary_fa") or "")}</p>
 {blocks}
 <a class="cta" href="{e(app_url)}">باز کردن در جان‌کلام — منابع، واقعیت و ابهام</a>
@@ -283,6 +285,22 @@ def run() -> None:
         # Countries mentioned — powers the mini world-map badge on each story.
         d["countries"] = countries_svc.detect(_text)
 
+        # Best image from the story's linked articles: use whatever the outlet's
+        # RSS feed explicitly published in media:thumbnail / media:content, and
+        # only when that outlet's policy allows it. We hotlink to the outlet —
+        # we never rehost, and the source link stays right on the card.
+        img_url = None
+        img_credit = None
+        for link in (story.article_links or []):
+            a = link.article
+            if a and a.image_url_if_permitted and a.source and a.source.allow_image:
+                img_url = a.image_url_if_permitted
+                img_credit = a.source_name
+                break
+        if img_url:
+            d["image_url"] = img_url
+            d["image_credit"] = img_credit
+
         metrics[card["id"]] = analytics_svc.momentum(story, now)
         details[card["id"]] = d
 
@@ -296,6 +314,9 @@ def run() -> None:
         card["entities"] = d["entities"]
         card["countries"] = d["countries"]
         card["geo"] = geo
+        if d.get("image_url"):
+            card["image_url"] = d["image_url"]
+            card["image_credit"] = d.get("image_credit")
         if match:
             card["factcheck"] = {"url": match["url"]}
 
