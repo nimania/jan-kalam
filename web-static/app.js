@@ -98,6 +98,53 @@ function geoBadge(g) {
   return `<span class="geo-badge ${g.scope}">${SCOPE_FA[g.scope] || ""}</span>`;
 }
 
+// Detail-view geo strip: bigger mini-map + a caption listing the highlighted places.
+function detailGeoStrip(s) {
+  const mm = miniMap(s, { detail: true });
+  if (!mm) return "";
+  const provs = (s.geo && s.geo.provinces || []).map(p => p.name_fa);
+  const countries = (s.countries || []).map(c => c.name_fa);
+  const parts = [];
+  if (provs.length) parts.push("استان‌ها: " + provs.join("، "));
+  if (countries.length) parts.push("کشورها: " + countries.join("، "));
+  if (!parts.length && s.geo && s.geo.scope) {
+    parts.push({ international: "بین‌المللی", national: "سراسر ایران",
+                 local: "استانی" }[s.geo.scope] || "");
+  }
+  return `<div class="geo-strip">${mm}<span class="g-lbl">${esc(parts.join(" · "))}</span></div>`;
+}
+
+// A tiny "where is this story" map — Iran mini-map with highlighted provinces
+// for local/national stories, world mini-map with highlighted countries otherwise.
+// Purely for at-a-glance orientation; falls back to nothing when nothing to show.
+function miniMap(s, opts) {
+  opts = opts || {};
+  const cls = opts.detail ? "mini-map mm-detail" : "mini-map";
+  const provs = (s.geo && s.geo.provinces || []).map(p => p.slug);
+  const scope = s.geo && s.geo.scope;
+  const isIranMap = provs.length > 0 || scope === "local"
+    || (scope === "national" && (!s.countries || s.countries.length === 0));
+
+  if (isIranMap && window.IRAN_PATHS) {
+    const hit = new Set(provs);
+    const paths = Object.entries(window.IRAN_PATHS).map(([slug, p]) =>
+      `<path d="${p.d}" class="${hit.has(slug) ? "mm-hit" : "mm-bg"}"/>`).join("");
+    return `<span class="${cls}" title="${esc((s.geo && s.geo.provinces || []).map(p=>p.name_fa).join("، ") || "ایران")}">
+      <svg viewBox="${window.IRAN_VIEWBOX}" preserveAspectRatio="xMidYMid meet">${paths}</svg></span>`;
+  }
+  if (!window.WORLD_PATHS) return "";
+  const codes = new Set((s.countries || []).map(c => c.code));
+  // If nothing detected but story is international, still show a world background.
+  if (!codes.size && scope !== "international" && !opts.detail) return "";
+  const paths = Object.entries(window.WORLD_PATHS).map(([code, d]) => {
+    if (code === "_bg") return `<path d="${d}" class="mm-bg"/>`;
+    return `<path d="${d}" class="${codes.has(code) ? "mm-hit" : "mm-bg"}"/>`;
+  }).join("");
+  const names = (s.countries || []).map(c => c.name_fa).join("، ");
+  return `<span class="${cls}" title="${esc(names || "بین‌المللی")}">
+    <svg viewBox="${window.WORLD_VIEWBOX}" preserveAspectRatio="xMidYMid meet">${paths}</svg></span>`;
+}
+
 // clickable chips for the named figures in a story → their own page
 function peopleRow(ents) {
   if (!ents || !ents.length) return "";
@@ -123,7 +170,16 @@ function peopleRow(ents) {
 .tl-cur .tl-dot{background:#e0b341;box-shadow:0 0 0 3px rgba(224,179,65,.2)}
 .tl-cur .tl-h{font-weight:700}
 .tl-now{font-size:11px;color:#e0b341}
-button.tl-item:hover .tl-h{color:#1a9d7e}`;
+button.tl-item:hover .tl-h{color:#1a9d7e}
+.mini-map{flex:0 0 auto;width:78px;height:52px;border-radius:6px;background:rgba(26,157,126,.06);
+  border:1px solid rgba(26,157,126,.22);padding:2px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center}
+.mini-map svg{width:100%;height:100%;display:block}
+.mini-map .mm-bg{fill:rgba(143,168,155,.20);stroke:rgba(143,168,155,.35);stroke-width:.5;vector-effect:non-scaling-stroke}
+.mini-map .mm-hit{fill:#1a9d7e;stroke:#0d5b48;stroke-width:.5;vector-effect:non-scaling-stroke}
+.mm-detail{width:180px;height:120px}
+.mm-caption{font-size:11.5px;color:#8fa89b;text-align:center;margin-top:4px}
+.geo-strip{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 6px}
+.geo-strip .g-lbl{font-size:13px;color:#8fa89b}`;
   const st = document.createElement("style");
   st.textContent = css;
   document.head.appendChild(st);
@@ -132,12 +188,18 @@ button.tl-item:hover .tl-h{color:#1a9d7e}`;
 function feedCard(s) {
   const imp = impInfo(s.importance_score);
   const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge clickable" data-src="${esc(x)}" onclick="event.stopPropagation();openSource(this.dataset.src)">${esc(x)}</span>`).join("");
+  const mm = miniMap(s);
   return `<button class="card" onclick="openStory('${s.id}')">
     <div class="meta"><span class="chip">${CAT_FA[s.category] || "خبر"}</span>
       <span class="dot"></span><span class="muted">${relTime(s.published_at)}</span>${geoBadge(s.geo)}${trendBadge(s.trend)}
       <span class="imp ${imp.cls}"><span class="bars"><i></i><i></i><i></i></span><span class="lbl">${imp.lbl}</span></span></div>
-    <h2>${esc(s.headline_fa || "")}</h2>
-    <p class="kalam">${esc(s.summary_fa || "")}</p>
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="flex:1;min-width:0">
+        <h2>${esc(s.headline_fa || "")}</h2>
+        <p class="kalam">${esc(s.summary_fa || "")}</p>
+      </div>
+      ${mm}
+    </div>
     ${peopleRow(s.entities)}
     <div class="foot"><span class="sources-mini">${faN(s.source_count || 0)} منبع:</span>${badges}
       <span class="cred-row">${credBadge(s.credibility)}${fcBadge(s.factcheck)}${saveBtn(s.id)}</span></div>
@@ -291,6 +353,7 @@ async function openStory(id) {
         <span class="dot"></span><span class="muted">${faN(s.source_count || 0)} منبع</span>
         <span class="dot"></span><span class="muted">${IRAN_FA[s.iran_relevance] || ""}</span></div></div>
     <div class="kalam-box"><span class="eyebrow">جان‌کلام <span class="ai">ترکیب هوش مصنوعی</span></span><p>${esc(s.summary_fa || "")}</p></div>
+    ${detailGeoStrip(s)}
     ${peopleRow(s.entities)}
     <div class="twocol"><div class="qa"><h3>چه اتفاقی افتاد؟</h3><p>${esc(s.what_happened_fa || "—")}</p></div>
       <div class="qa"><h3>چرا اهمیت دارد؟</h3><p>${esc(s.why_it_matters_fa || "—")}</p></div></div>

@@ -26,6 +26,7 @@ from app.credibility import compute_credibility
 from app.db.session import SessionLocal
 from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
+from app.geo import countries as countries_svc
 from app.geo import service as geo_svc
 from app.prices import service as price_svc
 from app.repositories import stories as story_repo
@@ -276,9 +277,11 @@ def run() -> None:
 
         # Named figures mentioned in the story (curated gazetteer) — powers the
         # clickable name chips and the per-person pages.
-        d["entities"] = entity_svc.detect(" ".join(
-            t for t in _story_match_texts(d)
-            + [d.get("what_happened_fa"), d.get("why_it_matters_fa")] if t))
+        _text = " ".join(t for t in _story_match_texts(d)
+            + [d.get("what_happened_fa"), d.get("why_it_matters_fa")] if t)
+        d["entities"] = entity_svc.detect(_text)
+        # Countries mentioned — powers the mini world-map badge on each story.
+        d["countries"] = countries_svc.detect(_text)
 
         metrics[card["id"]] = analytics_svc.momentum(story, now)
         details[card["id"]] = d
@@ -291,6 +294,7 @@ def run() -> None:
         card["topics"] = [{"slug": t["slug"], "name_fa": t["name_fa"]}
                           for t in d.get("topics", [])]
         card["entities"] = d["entities"]
+        card["countries"] = d["countries"]
         card["geo"] = geo
         if match:
             card["factcheck"] = {"url": match["url"]}
