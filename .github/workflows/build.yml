@@ -16,8 +16,13 @@ permissions:
   id-token: write
 
 concurrency:
+  # The site always regenerates from the latest main + cached DB, so cancelling
+  # a pending older run in favor of a newer one loses NOTHING — the newer run
+  # will include every commit the old one had. Without this, GitHub Pages'
+  # environment concurrency was silently marking mid-flight runs "cancelled"
+  # when a newer scheduled/pushed run took over the pages deploy slot.
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
