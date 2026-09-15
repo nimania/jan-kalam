@@ -111,7 +111,19 @@ function peopleRow(ents) {
 .person-chip{font-size:12.5px;padding:3px 10px;border-radius:999px;cursor:pointer;
   background:rgba(26,157,126,.12);color:#1a9d7e;border:1px solid rgba(26,157,126,.32);white-space:nowrap}
 .person-chip:hover{background:rgba(26,157,126,.22)}
-.people-strip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}`;
+.people-strip{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 4px}
+.timeline{margin:6px 0 0}
+.tl-item{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:start;background:none;border:none;padding:9px 0;cursor:pointer;color:inherit;position:relative;font-family:inherit}
+.tl-item:not(:last-child)::after{content:"";position:absolute;inset-inline-start:5px;top:20px;bottom:-9px;width:2px;background:rgba(26,157,126,.25)}
+.tl-dot{flex:0 0 12px;width:12px;height:12px;border-radius:50%;background:#1a9d7e;margin-top:5px}
+.tl-body{display:flex;flex-direction:column;gap:2px}
+.tl-time{font-size:12px;color:#8fa89b}
+.tl-h{font-size:15px;line-height:1.6}
+.tl-cur{cursor:default}
+.tl-cur .tl-dot{background:#e0b341;box-shadow:0 0 0 3px rgba(224,179,65,.2)}
+.tl-cur .tl-h{font-weight:700}
+.tl-now{font-size:11px;color:#e0b341}
+button.tl-item:hover .tl-h{color:#1a9d7e}`;
   const st = document.createElement("style");
   st.textContent = css;
   document.head.appendChild(st);
@@ -181,6 +193,37 @@ function setSort(m) {
   renderFeed();
 }
 
+// stories that share figures / topics with this one — the thread around it
+function relatedStories(s) {
+  const ents = new Set((s.entities || []).map(e => e.slug));
+  const tops = new Set((s.topics || []).map(t => t.slug));
+  return ALL.filter(c => c.id !== s.id).map(c => {
+    let sc = 0;
+    (c.entities || []).forEach(e => { if (ents.has(e.slug)) sc += 3; });
+    (c.topics || []).forEach(t => { if (tops.has(t.slug)) sc += 1; });
+    return { c, sc };
+  }).filter(x => x.sc > 0)
+    .sort((a, b) => b.sc - a.sc
+      || String(b.c.published_at || "").localeCompare(String(a.c.published_at || "")))
+    .slice(0, 8).map(x => x.c);
+}
+// a vertical timeline of this story + its related coverage (newest first)
+function timelineSection(s, related) {
+  if (!related.length) return "";
+  const all = related.concat([{ __cur: true, id: s.id, headline_fa: s.headline_fa,
+    published_at: s.published_at, source_count: s.source_count }]);
+  all.sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
+  const rows = all.map(c => c.__cur
+    ? `<div class="tl-item tl-cur"><span class="tl-dot"></span><div class="tl-body">
+        <span class="tl-time">${relTime(c.published_at)}</span>
+        <span class="tl-h">${esc(c.headline_fa || "")}</span><span class="tl-now">همین خبر</span></div></div>`
+    : `<button class="tl-item" onclick="openStory('${c.id}')"><span class="tl-dot"></span><div class="tl-body">
+        <span class="tl-time">${relTime(c.published_at)} · ${faN(c.source_count || 0)} منبع</span>
+        <span class="tl-h">${esc(c.headline_fa || "")}</span></div></button>`).join("");
+  return `<div class="layers"><h3 class="section-h">روندِ ماجرا <span class="n">خبرهای مرتبط، به‌ترتیبِ زمان</span></h3>
+    <div class="timeline">${rows}</div></div>`;
+}
+
 async function openStory(id) {
   setHash("#/story/" + id);
   show("detail"); setTab("feed");
@@ -238,6 +281,7 @@ async function openStory(id) {
 
   const chips = (s.asks || []).map((a, i) => `<button class="qchip" onclick="showAsk(${i})">${esc(a.q)}</button>`).join("");
   window._asks = s.asks || [];
+  const relSection = timelineSection(s, relatedStories(s));
 
   v.innerHTML = `
     <button class="back" onclick="showFeed()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به خط خبری</button>
@@ -253,6 +297,7 @@ async function openStory(id) {
     ${known}
     ${cred}
     ${trendSec}
+    ${relSection}
     <div class="layers"><h3 class="section-h">منابع چه می‌گویند <span class="n">دیدگاه هر منبع، جدا از واقعیت</span></h3><div class="views">${views || '<p class="muted">—</p>'}</div>${consensus}</div>
     <div class="layers"><h3 class="section-h">منابع</h3><div class="cites">${cites}</div></div>
     <div class="ask"><div class="a-h"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="color:var(--accent)"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z" stroke-linejoin="round"/></svg> دربارهٔ این خبر بپرس</div>
