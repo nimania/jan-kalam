@@ -69,6 +69,7 @@ async function route() {
   if (kind === "topic" && arg) return openTopic(arg);
   if (kind === "source" && arg) return openSource(arg);
   if (kind === "province" && arg) return openProvince(arg);
+  if (kind === "day" && arg) return openDay(arg);
   if (kind === "trends") return showTrends();
   if (kind === "fact") return showFactchecks();
   if (kind === "iran") return showIran();
@@ -179,7 +180,20 @@ button.tl-item:hover .tl-h{color:#1a9d7e}
 .mm-detail{width:180px;height:120px}
 .mm-caption{font-size:11.5px;color:#8fa89b;text-align:center;margin-top:4px}
 .geo-strip{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:8px 0 6px}
-.geo-strip .g-lbl{font-size:13px;color:#8fa89b}`;
+.geo-strip .g-lbl{font-size:13px;color:#8fa89b}
+.sb-click{cursor:pointer;transition:background .15s ease,color .15s ease;border-radius:8px;padding-inline:6px;margin-inline:-6px}
+.sb-click:hover{background:rgba(26,157,126,.10);color:#1a9d7e}
+.stile-click{cursor:pointer;transition:transform .12s ease,border-color .15s ease}
+.stile-click:hover{transform:translateY(-1px);border-color:#1a9d7e;color:#1a9d7e}
+.bars-svg .bar-click{cursor:pointer;transition:opacity .15s ease}
+.bars-svg .bar-click:hover{opacity:.7}
+.day-chips{display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;margin:0 -4px 6px;scrollbar-width:none}
+.day-chips::-webkit-scrollbar{display:none}
+.day-chip{flex:0 0 auto;padding:5px 12px;font-size:12.5px;border-radius:999px;
+  border:1px solid rgba(143,168,155,.35);color:#a9c4b7;background:transparent;cursor:pointer;white-space:nowrap;font-family:inherit}
+.day-chip .d-n{font-size:11px;color:#8fa89b;margin-inline-start:4px}
+.day-chip:hover{border-color:#1a9d7e;color:#1a9d7e}
+.day-chip.on{background:rgba(26,157,126,.15);border-color:#1a9d7e;color:#1a9d7e}`;
   const st = document.createElement("style");
   st.textContent = css;
   document.head.appendChild(st);
@@ -213,10 +227,27 @@ async function loadFeed() {
   try {
     ALL = await getJSON(`${DATA}/stories.json`);
     renderFeed();
+    renderDayChips();
     updateFreshness();
   } catch (e) {
     el.innerHTML = `<div class="state"><div class="big">خبرها بارگذاری نشد</div></div>`;
   }
+}
+// A small horizontally-scrolling strip above the feed: today, yesterday, and
+// the last few days that actually have stories. Fast browse "back in time".
+function renderDayChips() {
+  const holder = document.getElementById("day-chips");
+  if (!holder) return;
+  const counts = {};
+  ALL.forEach(s => {
+    const d = (s.published_at || "").slice(0, 10);
+    if (d) counts[d] = (counts[d] || 0) + 1;
+  });
+  const days = Object.keys(counts).sort().reverse().slice(0, 10);
+  if (!days.length) { holder.innerHTML = ""; return; }
+  holder.innerHTML = days.map(d =>
+    `<button class="day-chip" onclick="openDay('${d}')">${esc(dayLabel(d))}
+      <span class="d-n">${faN(counts[d])}</span></button>`).join("");
 }
 const tierOf = s => impInfo(s.importance_score).cls;   // high | mid | low
 function feedFilter(mode) {
@@ -535,6 +566,49 @@ function groupedFeed(items) {
   return html;
 }
 
+/* ---- Day archive: خبرهای «امروز/دیروز/…» با تفکیک دسته ---- */
+// UTC date (YYYY-MM-DD) — matches what stories.published_at.slice(0,10) uses.
+function utcDayISO(offsetDays) {
+  offsetDays = offsetDays || 0;
+  return new Date(Date.now() + offsetDays * 86400e3).toISOString().slice(0, 10);
+}
+function dayLabel(dateStr) {
+  if (dateStr === utcDayISO(0)) return "امروز";
+  if (dateStr === utcDayISO(-1)) return "دیروز";
+  const diff = Math.floor((Date.parse(utcDayISO(0)) - Date.parse(dateStr)) / 86400e3);
+  if (diff > 1 && diff < 30) return faN(diff) + " روز پیش";
+  return dateStr;
+}
+function groupedByCategory(items) {
+  if (!items.length)
+    return `<div class="state"><div class="big">خبری در این روز نیست</div></div>`;
+  const order = Object.keys(CAT_FA).concat(["_other"]);
+  const groups = {};
+  items.forEach(s => {
+    const k = CAT_FA[s.category] ? s.category : "_other";
+    (groups[k] = groups[k] || []).push(s);
+  });
+  let html = "";
+  for (const k of order) {
+    const g = groups[k]; if (!g || !g.length) continue;
+    const label = k === "_other" ? "سایر" : CAT_FA[k];
+    html += `<div class="rule"><span>${esc(label)} <span class="n">${faN(g.length)}</span></span><span class="l"></span></div>
+      <div class="feed">${g.map(feedCard).join("")}</div>`;
+  }
+  return html;
+}
+function openDay(dateStr) {
+  if (!ALL.length) return;
+  setHash("#/day/" + dateStr);
+  show("topicarchive"); setTab("feed");
+  document.getElementById("ta-back-t").textContent = "بازگشت به خط خبری";
+  document.getElementById("ta-back").onclick = showFeed;
+  const items = ALL.filter(s => (s.published_at || "").slice(0, 10) === dateStr);
+  document.getElementById("ta-title").textContent = "خبرهای " + dayLabel(dateStr);
+  document.getElementById("ta-sub").textContent = faN(items.length) + " خبر · " + dateStr;
+  document.getElementById("ta-feed").innerHTML = groupedByCategory(items);
+}
+
 function openTopic(slug) {
   setHash("#/topic/" + slug);
   show("topicarchive"); setTab("topics");
@@ -766,7 +840,9 @@ function svgBars(vals, o) {
   for (let i = 0; i < n; i++) {
     const bh = Math.max(1.5, (vals[i] / mx) * (h - 2)), x = i * (bw + gap), y = h - bh;
     const lbl = (o.labels && o.labels[i]) ? esc(o.labels[i]) + " — " : "";
-    r += `<rect class="bar" x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5"><title>${lbl}${faN(vals[i])} خبر</title></rect>`;
+    // optional per-bar click handler + slight cursor hint via class="bar-click"
+    const click = (o.onclick && o.onclick[i]) ? ` class="bar bar-click" onclick="${o.onclick[i]}"` : ' class="bar"';
+    r += `<rect${click} x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" rx="1.5"><title>${lbl}${faN(vals[i])} خبر</title></rect>`;
   }
   return `<svg class="bars-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${r}</svg>`;
 }
@@ -863,13 +939,15 @@ async function renderHomeStats() {
     STATS = st;
     const roll = liveRolling(st);
     const daily = (st.activity_daily || []).map(x => x.n);
-    el.innerHTML = `<button class="statbar" onclick="showTrends()">
-      <span class="sb-item"><b>${faN(st.total || 0)}</b><span>کل خبرها</span></span>
+    const today = utcDayISO(0), yday = utcDayISO(-1);
+    el.innerHTML = `<div class="statbar">
+      <span class="sb-item sb-click" onclick="showTrends()"><b>${faN(st.total || 0)}</b><span>کل خبرها</span></span>
       <span class="sb-sep"></span>
-      <span class="sb-item"><b>${faN(st.calendar ? st.calendar.today : 0)}</b><span>امروز</span></span>
-      <span class="sb-item"><b>${faN(roll.h24)}</b><span>۲۴ ساعت</span></span>
-      <span class="sb-spark">${svgSpark(daily, { w: 90, h: 26 })}</span>
-      <span class="sb-go">نبض خبری ›</span></button>`;
+      <span class="sb-item sb-click" onclick="openDay('${today}')"><b>${faN(st.calendar ? st.calendar.today : 0)}</b><span>امروز ›</span></span>
+      <span class="sb-item sb-click" onclick="openDay('${yday}')"><b>${faN(st.calendar ? st.calendar.yesterday : 0)}</b><span>دیروز ›</span></span>
+      <span class="sb-item sb-click" onclick="showTrends()"><b>${faN(roll.h24)}</b><span>۲۴ ساعت</span></span>
+      <span class="sb-spark sb-click" onclick="showTrends()">${svgSpark(daily, { w: 90, h: 26 })}</span>
+    </div>`;
   } catch (e) {}
 }
 let STATS = null;
@@ -883,18 +961,30 @@ function liveRolling(st) {
 function statsBlock(st) {
   const roll = liveRolling(st), cal = st.calendar || {};
   const daily = (st.activity_daily || []);
+  const today = utcDayISO(0), yday = utcDayISO(-1);
+  // rolling windows (not tied to a single day) are non-clickable; day tiles link.
   const tiles = [
-    ["۴ ساعت", roll.h4], ["۸ ساعت", roll.h8], ["۱۲ ساعت", roll.h12], ["۲۴ ساعت", roll.h24],
-    ["امروز", cal.today || 0], ["دیروز", cal.yesterday || 0],
-    ["این هفته", cal.this_week || 0], ["هفتهٔ پیش", cal.last_week || 0],
+    ["۴ ساعت", roll.h4, null], ["۸ ساعت", roll.h8, null],
+    ["۱۲ ساعت", roll.h12, null], ["۲۴ ساعت", roll.h24, null],
+    ["امروز ›", cal.today || 0, today], ["دیروز ›", cal.yesterday || 0, yday],
+    ["این هفته", cal.this_week || 0, null], ["هفتهٔ پیش", cal.last_week || 0, null],
   ];
   const labels = daily.map(d => d.d.slice(5));
+  // bars: each day-bar becomes a button that jumps to that day's archive
+  const barsSvg = svgBars(daily.map(d => d.n), {
+    labels, w: 320, h: 70,
+    onclick: daily.map(d => `openDay('${d.d}')`),
+  });
   return `
     <div class="stat-hero"><span class="val">${faN(st.total || 0)}</span><span class="lbl">کل خبرهای سیستم</span></div>
-    <div class="stat-tiles">${tiles.map(t => `<div class="stile"><b>${faN(t[1])}</b><span>${t[0]}</span></div>`).join("")}</div>
-    <div class="rule"><span>فعالیتِ ۱۴ روزِ گذشته</span><span class="l"></span></div>
-    <div class="chart-wrap">${svgBars(daily.map(d => d.n), { labels, w: 320, h: 70 })}</div>
-    <p class="muted" style="margin:6px 0 4px">شمارِ خبرهای تازه در هر روز. پنجره‌های «۴ تا ۲۴ ساعت» زنده‌اند و لحظه‌ای حساب می‌شوند.</p>`;
+    <div class="stat-tiles">${tiles.map(t => {
+      const cls = t[2] ? "stile stile-click" : "stile";
+      const onc = t[2] ? ` onclick="openDay('${t[2]}')"` : "";
+      return `<div class="${cls}"${onc}><b>${faN(t[1])}</b><span>${t[0]}</span></div>`;
+    }).join("")}</div>
+    <div class="rule"><span>فعالیتِ ۱۴ روزِ گذشته <span class="n">— روی هر روز بزن</span></span><span class="l"></span></div>
+    <div class="chart-wrap">${barsSvg}</div>
+    <p class="muted" style="margin:6px 0 4px">شمارِ خبرهای تازه در هر روز. روی «امروز/دیروز» یا هر میله بزن تا خبرهای همان روز را با تفکیک دسته ببینی.</p>`;
 }
 
 loadFeed().then(route);   // load the feed, then honor any deep link in the URL
