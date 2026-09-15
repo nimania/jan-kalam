@@ -95,6 +95,21 @@ ENTITIES: list[dict] = [
 # "letter" = Latin/Persian letters, Persian digits and ZWNJ — but NOT Persian
 # punctuation (،؛؟ live at U+060C/061B/061F, below the letter block), so a name
 # followed by a comma still matches.
+# Pre-baked encyclopedia links for each figure — reader can compare framings.
+# Grokipedia is AI-generated and English-only, Persian Wikipedia is community-
+# curated; showing both alongside en.wikipedia lets the reader triangulate.
+from urllib.parse import quote
+
+def reference_links(ent: dict) -> list[dict]:
+    fa = quote(ent["fa"].replace(" ", "_"))
+    en = quote(ent["en"].replace(" ", "_"))
+    return [
+        {"src": "ویکی‌پدیا", "label": "فارسی", "url": f"https://fa.wikipedia.org/wiki/{fa}"},
+        {"src": "Wikipedia", "label": "English", "url": f"https://en.wikipedia.org/wiki/{en}"},
+        {"src": "Grokipedia", "label": "English", "url": f"https://grokipedia.com/search?q={quote(ent['en'])}"},
+    ]
+
+
 _LETTER = r"[A-Za-z0-9ء-ۓ۰-۹‌]"
 
 
@@ -107,13 +122,15 @@ _COMPILED = [(e, [_compile(a) for a in e["aliases"]]) for e in ENTITIES]
 
 
 def detect(text: str) -> list[dict]:
-    """Return the figures mentioned in `text`, as compact {slug, name_fa, kind}."""
+    """Return the figures mentioned in `text`, as compact
+    {slug, name_fa, kind, refs}."""
     if not text:
         return []
     found = []
     for e, pats in _COMPILED:
         if any(p.search(text) for p in pats):
-            found.append({"slug": e["slug"], "name_fa": e["fa"], "kind": e["kind"]})
+            found.append({"slug": e["slug"], "name_fa": e["fa"], "kind": e["kind"],
+                          "refs": reference_links(e)})
     return found
 
 

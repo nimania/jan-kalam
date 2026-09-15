@@ -215,7 +215,10 @@ ul{{list-style:none;padding:0;margin:16px 0}}
 li{{border-bottom:1px solid #24352d;padding:12px 0}}
 li a{{color:#dce8e1;font-size:17px}}
 .cta{{display:inline-block;margin-top:20px;background:#1a9d7e;color:#04120d;font-weight:700;padding:12px 20px;border-radius:12px}}
-@media(prefers-color-scheme:light){{body{{background:#f6f8f7;color:#16201b}}li{{border-color:#e2e9e5}}li a{{color:#26332c}}}}
+.refs{{margin:14px 0 6px;padding:12px 14px;background:#16201b;border:1px solid #24352d;border-radius:12px}}
+.refs .rhd{{color:#8fa89b;font-size:13px;margin-bottom:8px}}
+.refs a{{display:inline-block;margin:4px 4px 0 0;padding:5px 12px;border-radius:8px;background:rgba(26,157,126,.10);color:#3ec99f;text-decoration:none;font-size:14px;border:1px solid rgba(26,157,126,.25)}}
+@media(prefers-color-scheme:light){{body{{background:#f6f8f7;color:#16201b}}li{{border-color:#e2e9e5}}li a{{color:#26332c}}.refs{{background:#fff;border-color:#e2e9e5}}}}
 </style>
 </head>
 <body>
@@ -224,6 +227,7 @@ li a{{color:#dce8e1;font-size:17px}}
 <div class="meta">{kind_fa} · هوش خبری فارسی</div>
 <h1>خبرهای {e(name)}</h1>
 <div class="meta">{e(str(ent.get("count", 0)))} خبر مرتبط</div>
+{('<div class="refs"><div class="rhd">پیش‌زمینه از چند مرجع — روایت‌ها متفاوت است، خودتان مقایسه کنید.</div>' + "".join(f'<a href="{e(r["url"])}" target="_blank" rel="noopener">{e(r["src"])} · {e(r["label"])}</a>' for r in ent.get("refs", [])) + '</div>') if ent.get("refs") else ''}
 <ul>{items}</ul>
 <a class="cta" href="{e(app_url)}">دنبال‌کردن در جان‌کلام</a>
 </div>
@@ -345,7 +349,7 @@ def run() -> None:
             ent_meta[e["slug"]] = e
     entities_list = sorted(
         [{"slug": s, "name_fa": ent_meta[s]["name_fa"], "kind": ent_meta[s]["kind"],
-          "count": n} for s, n in ent_counts.items()],
+          "count": n, "refs": ent_meta[s].get("refs", [])} for s, n in ent_counts.items()],
         key=lambda x: -x["count"])
     _write(os.path.join(DATA, "entities.json"), entities_list)
 

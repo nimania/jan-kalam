@@ -196,7 +196,14 @@ button.tl-item:hover .tl-h{color:#1a9d7e}
 .day-chip.on{background:rgba(26,157,126,.15);border-color:#1a9d7e;color:#1a9d7e}
 .card-thumb{flex:0 0 84px;width:84px;height:84px;border-radius:8px;object-fit:cover;background:rgba(143,168,155,.10);border:1px solid rgba(143,168,155,.18)}
 .hero-img{width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:12px;background:rgba(143,168,155,.10);margin:6px 0 12px;display:block}
-.hero-credit{font-size:12px;color:#8fa89b;margin:-6px 0 12px;text-align:end}`;
+.hero-credit{font-size:12px;color:#8fa89b;margin:-6px 0 12px;text-align:end}
+.ref-strip{display:flex;flex-direction:column;gap:6px;margin:0 0 14px;padding:10px 12px;background:rgba(26,157,126,.06);border:1px solid rgba(26,157,126,.20);border-radius:10px}
+.ref-strip .ref-hd{font-size:12.5px;color:#8fa89b}
+.ref-strip .ref-hd b{color:#a9c4b7}
+.ref-links{display:flex;flex-wrap:wrap;gap:8px}
+.ref-links a{font-size:13px;padding:4px 10px;border-radius:8px;text-decoration:none;background:rgba(26,157,126,.10);color:#1a9d7e;border:1px solid rgba(26,157,126,.22);white-space:nowrap}
+.ref-links a:hover{background:rgba(26,157,126,.20)}
+.ref-links a .ref-src{color:#8fa89b;font-size:11.5px;margin-inline-end:4px}`;
   const st = document.createElement("style");
   st.textContent = css;
   document.head.appendChild(st);
@@ -630,6 +637,18 @@ function openTopic(slug) {
   document.getElementById("ta-feed").innerHTML = groupedFeed(items);
 }
 
+// pre-baked reference links (persian + english wikipedia + Grokipedia) so a
+// reader can pick up context from multiple encyclopedias with different tones
+// and compare — same "چند منبع، خودت مقایسه کن" ethos as the news layer.
+function referenceStrip(ent) {
+  if (!ent || !ent.refs) return "";
+  const links = ent.refs.map(r => `<a href="${esc(r.url)}" target="_blank" rel="noopener">
+    <span class="ref-src">${esc(r.src)}</span>${esc(r.label)}</a>`).join("");
+  return `<div class="ref-strip">
+    <div class="ref-hd"><b>پیش‌زمینه از چند مرجع</b> — روایت‌ها متفاوت است، خودتان مقایسه کنید.</div>
+    <div class="ref-links">${links}</div></div>`;
+}
+
 // a figure's page: all their stories in one place (+ follow into "my feed")
 function openEntity(slug) {
   if (!ALL.length) return;
@@ -643,7 +662,8 @@ function openEntity(slug) {
   document.getElementById("ta-title").textContent = (meta.kind === "body" ? "نهاد: " : "چهره: ") + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر مرتبط";
   document.getElementById("ta-feed").innerHTML =
-    followBar("entities", slug, "خبرهای این چهره در «خط خبری من» بیاید") + groupedFeed(items);
+    followBar("entities", slug, "خبرهای این چهره در «خط خبری من» بیاید")
+    + referenceStrip(meta) + groupedFeed(items);
 }
 
 function followBar(kind, id, note) {
