@@ -7,6 +7,7 @@ the copyright policy is enforced here, not bolted on later.
 from __future__ import annotations
 
 import json
+import re
 
 import feedparser
 
@@ -15,13 +16,31 @@ from app.ingestion.schemas import NormalizedItem
 from app.models.source import Source
 
 
+_IMG_SRC_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.IGNORECASE)
+
+
 def _image_from_entry(entry) -> str | None:
+    # Standard RSS/Atom image slots first (BBC, Guardian, etc use these).
     media = entry.get("media_content") or entry.get("media_thumbnail")
     if media and isinstance(media, list) and media[0].get("url"):
         return media[0]["url"]
     for enc in entry.get("enclosures", []) or []:
         if str(enc.get("type", "")).startswith("image"):
             return enc.get("href") or enc.get("url")
+    # Persian outlets often skip media:* and embed the picture as an <img> in
+    # the description/summary/content HTML — the standard practice for their
+    # RSS. Pull the first <img src="…"> out of any of those fields.
+    for field in ("summary", "description"):
+        val = entry.get(field)
+        if val and isinstance(val, str):
+            m = _IMG_SRC_RE.search(val)
+            if m:
+                return m.group(1)
+    content = entry.get("content")
+    if content and isinstance(content, list) and content[0].get("value"):
+        m = _IMG_SRC_RE.search(content[0]["value"])
+        if m:
+            return m.group(1)
     return None
 
 
