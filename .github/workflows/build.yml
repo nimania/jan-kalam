@@ -22,7 +22,7 @@ concurrency:
   # environment concurrency was silently marking mid-flight runs "cancelled"
   # when a newer scheduled/pushed run took over the pages deploy slot.
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
