@@ -8,6 +8,7 @@ from app.models.enums import (
     StatementKind,
     StoryStatus,
 )
+from app.models.figure_asset import FigureAsset
 from app.models.figure_post import FigurePost
 from app.models.ingestion_log import IngestionLog
 from app.models.source import Source
@@ -35,6 +36,7 @@ __all__ = [
     "UserFollow",
     "IngestionLog",
     "FigurePost",
+    "FigureAsset",
     "Category",
     "FeedType",
     "StoryStatus",

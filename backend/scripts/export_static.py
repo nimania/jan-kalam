@@ -27,6 +27,7 @@ from app.db.session import SessionLocal
 from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
 from app import figure_posts as figure_svc
+from app.figure_assets import export_avatars
 from app.geo import countries as countries_svc
 from app.geo import service as geo_svc
 from app.prices import service as price_svc
@@ -253,9 +254,14 @@ def run() -> None:
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
 
-    # جان‌کلام چهره‌ها: recent commentator views (optional — never break export).
+    # جان‌کلام چهره‌ها: avatars (self-hosted so they load inside Iran) + views.
     try:
-        fig_posts = figure_svc.recent_shown_posts(db, now=now)
+        fig_avatars = export_avatars(db, OUT, now=now)
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"avatars skipped: {exc}")
+        fig_avatars = {}
+    try:
+        fig_posts = figure_svc.recent_shown_posts(db, now=now, avatars=fig_avatars)
     except Exception as exc:  # pragma: no cover - defensive
         print(f"figures export skipped: {exc}")
         fig_posts = []
@@ -302,8 +308,11 @@ def run() -> None:
             _pub_dt = datetime.fromisoformat(_pub.replace("Z", "+00:00")) if _pub else None
         except ValueError:
             _pub_dt = None
+        # Match on the Persian synthesis only (headline + summary + what/why);
+        # source-view original headlines are often English and add noise.
         d["figures"] = figure_svc.match_story(
-            _story_match_texts(d) + [d.get("what_happened_fa")], _pub_dt, fig_posts)
+            [d.get("headline_fa"), d.get("summary_fa"),
+             d.get("what_happened_fa"), d.get("why_it_matters_fa")], _pub_dt, fig_posts)
 
         # Best image from the story's linked articles: use whatever the outlet's
         # RSS feed explicitly published in media:thumbnail / media:content, and
@@ -385,7 +394,8 @@ def run() -> None:
     trends["google"] = gt_svc.fetch([(e["slug"], e["name_fa"]) for e in series[:5]])
     _write(os.path.join(DATA, "trends.json"), trends)
 
-    _write(os.path.join(DATA, "figures.json"), figure_svc.figures_index(fig_posts))
+    _write(os.path.join(DATA, "figures.json"),
+           figure_svc.figures_index(fig_posts, avatars=fig_avatars))
     _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())

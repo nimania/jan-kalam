@@ -597,3 +597,24 @@
 .fp-name{font-weight:700; font-size:15.5px}
 .fp-role{font-size:13px; color:var(--ink-soft)}
 .fp-count{font-size:12px; color:var(--ink-faint); margin-top:4px}
+
+/* چهره‌ها — avatars & social */
+.fig-avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; flex-shrink:0;
+  background:var(--surface-2); border:1px solid var(--line); display:inline-grid; place-items:center}
+.fig-avatar.broken{visibility:hidden}
+.fig-avatar.ini{font-weight:700; color:var(--ink-soft); font-size:18px}
+.fig-avatar.sm{width:38px; height:38px; font-size:16px}
+.fig-avatar.md{width:46px; height:46px}
+.fig-avatar.lg{width:72px; height:72px; font-size:30px}
+.fig-view .v-h{display:flex; align-items:center; gap:10px}
+.fig-id{display:flex; flex-direction:column; gap:1px; min-width:0}
+.fig-person{flex-direction:row !important; align-items:center; gap:12px}
+.fp-body{display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-width:0}
+.fig-head{display:flex; align-items:center; gap:16px; padding:26px 0 8px}
+.fig-head-body{min-width:0}
+.fig-head-body h1{font-family:"Noto Naskh Arabic",serif; font-weight:600; font-size:clamp(22px,4.2vw,30px); margin:0 0 3px}
+.fig-social{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.fig-social a{display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px;
+  background:var(--surface); border:1px solid var(--line); color:var(--ink-soft); font-size:13px; box-shadow:var(--shadow-soft)}
+.fig-social a:hover{color:var(--accent); border-color:var(--line-strong)}
+.fig-social svg{width:15px; height:15px}

@@ -24,6 +24,10 @@ class Figure:
     name_fa: str
     role_fa: str       # neutral description shown on the figure's page
     field: str         # politics | foreign | economy | history | culture
+    # Their other public presence, as (kind, url). kind ∈ website|x|instagram|
+    # youtube|facebook. The Telegram channel link is added automatically — don't
+    # repeat it here. Only add links we have actually verified.
+    social: tuple[tuple[str, str], ...] = ()
 
 
 FIGURES: list[Figure] = [
@@ -31,16 +35,25 @@ FIGURES: list[Figure] = [
     Figure("Garajetadayoni", "مهدی تدینی", "مورخ و مترجم", "politics"),
     Figure("ahmadzeidabad", "احمد زیدآبادی", "روزنامه‌نگار و تحلیلگر سیاسی", "politics"),
     Figure("abdiabbas", "عباس عبدی", "روزنامه‌نگار و پژوهشگر اجتماعی", "politics"),
-    Figure("fazeli_mohammad", "محمد فاضلی", "جامعه‌شناس", "politics"),
+    Figure("fazeli_mohammad", "محمد فاضلی", "جامعه‌شناس", "politics",
+           (("website", "https://mohammadfazeli.ir"),)),
     Figure("miladdokhanchi", "میلاد دخانچی", "پژوهشگر مطالعات فرهنگی", "politics"),
-    Figure("iranemana_official", "سجاد فتاحی", "پژوهشگر، کانال «ایرانِ مانا»", "politics"),
+    Figure("iranemana_official", "سجاد فتاحی", "پژوهشگر، کانال «ایرانِ مانا»", "politics",
+           (("youtube", "https://youtube.com/@iran_mana"),)),
     Figure("iransocialproblems", "علی میرزامحمدی", "جامعه‌شناس", "politics"),
     Figure("rasaee", "حمید رسایی", "نماینده مجلس و مدیرمسئول هفته‌نامه ۹ دی", "politics"),
     # --- سیاست خارجی ---
-    Figure("sahandiranmehr", "سهند ایرانمهر", "پژوهشگر روابط بین‌الملل", "foreign"),
-    Figure("IzadiFoad", "فواد ایزدی", "استاد دانشکده مطالعات جهان دانشگاه تهران", "foreign"),
+    Figure("sahandiranmehr", "سهند ایرانمهر", "پژوهشگر روابط بین‌الملل", "foreign",
+           (("x", "https://x.com/sahandiranmehr"),
+            ("youtube", "https://youtube.com/@sahandiranmehr"))),
+    Figure("IzadiFoad", "فواد ایزدی", "استاد دانشکده مطالعات جهان دانشگاه تهران", "foreign",
+           (("x", "https://x.com/IzadiFoad"),
+            ("instagram", "https://instagram.com/izadifoad"))),
     # --- تاریخ ---
-    Figure("abdollahshahbazi", "عبدالله شهبازی", "مورخ", "history"),
+    Figure("abdollahshahbazi", "عبدالله شهبازی", "مورخ", "history",
+           (("website", "https://shahbazi.org"),
+            ("x", "https://twitter.com/ashahb"),
+            ("facebook", "https://facebook.com/abdollah.shahbazi"))),
     # --- اقتصاد ---
     Figure("ghaninejad_mousa", "موسی غنی‌نژاد", "اقتصاددان", "economy"),
     Figure("HosseinRaghfar", "حسین راغفر", "اقتصاددان", "economy"),
@@ -48,6 +61,19 @@ FIGURES: list[Figure] = [
     # --- فرهنگ و هنر ---
     Figure("bahman_babazadeh", "بهمن بابازاده", "خبرنگار موسیقی", "culture"),
 ]
+
+
+SOCIAL_FA = {"website": "وب‌سایت", "x": "ایکس", "instagram": "اینستاگرام",
+             "youtube": "یوتیوب", "facebook": "فیس‌بوک", "telegram": "تلگرام"}
+
+
+def figure_social(f: Figure) -> list[dict]:
+    """Public links for a figure, Telegram channel first."""
+    links = [{"kind": "telegram", "label": SOCIAL_FA["telegram"],
+              "url": f"https://t.me/{f.handle}"}]
+    for kind, url in f.social:
+        links.append({"kind": kind, "label": SOCIAL_FA.get(kind, kind), "url": url})
+    return links
 
 
 def figure_source_name(f: Figure) -> str:

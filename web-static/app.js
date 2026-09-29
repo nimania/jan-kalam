@@ -1031,11 +1031,29 @@ updateMineBadge();
    Data: story.figures (matched per story) + data/figures.json (all figures).
    A view is always attributed to its author and linked to the original post. */
 const KIND_NOTE = { party_claim: "ادعای یکی از طرفین" };
+const SOCIAL_ICON = {
+  telegram: '<path d="M21.5 4.5 2.5 11.8l5 1.6 1.9 5.6 2.7-3 4.5 3.3z" stroke-linejoin="round"/>',
+  x: '<path d="M4 4l16 16M20 4L4 20" stroke-linecap="round"/>',
+  instagram: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/>',
+  youtube: '<rect x="3" y="6" width="18" height="12" rx="3.5"/><path d="M11 9.5l4 2.5-4 2.5z" fill="currentColor" stroke="none"/>',
+  facebook: '<path d="M14 8h2V5h-2a3 3 0 0 0-3 3v2H9v3h2v6h3v-6h2.2l.4-3H14V8.5a.5.5 0 0 1 .5-.5z" stroke-linejoin="round"/>',
+  website: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 3.5 6 3.5 9S14.5 18.5 12 21c-2.5-2.5-3.5-6-3.5-9S9.5 5.5 12 3z"/>',
+};
+function avatar(p, cls) {
+  if (p.avatar) return `<img class="fig-avatar ${cls || ""}" src="${esc(p.avatar)}" alt="" loading="lazy" onerror="this.classList.add('broken')">`;
+  const ini = (p.name_fa || "?").trim().charAt(0);
+  return `<span class="fig-avatar ${cls || ""} ini">${esc(ini)}</span>`;
+}
+function socialLinks(links) {
+  if (!links || !links.length) return "";
+  return `<div class="fig-social">${links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.label)}" aria-label="${esc(l.label)}">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">${SOCIAL_ICON[l.kind] || SOCIAL_ICON.website}</svg><span>${esc(l.label)}</span></a>`).join("")}</div>`;
+}
 function figureCard(p, withName) {
   const party = p.kind === "party_claim"
     ? `<span class="cstatus st-warn" title="این شخص خودش طرفِ این ماجراست">${KIND_NOTE.party_claim}</span>` : "";
   const head = withName
-    ? `<div class="v-h"><a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a><span class="fig-role">${esc(p.role_fa)}</span><span class="spacer" style="flex:1"></span>${party}</div>`
+    ? `<div class="v-h">${avatar(p, "sm")}<div class="fig-id"><a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a><span class="fig-role">${esc(p.role_fa)}</span></div><span class="spacer" style="flex:1"></span>${party}</div>`
     : `<div class="v-h"><span class="fig-topic">${esc(p.topic_fa || "")}</span><span class="spacer" style="flex:1"></span>${party}</div>`;
   return `<div class="view fig-view">${head}
     <p>${esc(p.summary_fa || "")}</p>
@@ -1067,8 +1085,9 @@ async function renderFigures() {
     if (!people.length) return "";
     return `<div class="rule"><span>${esc(d.fields[f])}</span><span class="l"></span></div>
       <div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="openFigure('${esc(x.handle)}')">
-        <span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa)}</span>
-        <span class="fp-count">${x.count ? faN(x.count) + " دیدگاه در هفتهٔ اخیر" : "دیدگاهِ تازه‌ای نیست"}</span></button>`).join("")}</div>`;
+        ${avatar(x, "md")}
+        <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa)}</span>
+        <span class="fp-count">${x.count ? faN(x.count) + " دیدگاه در هفتهٔ اخیر" : "دیدگاهِ تازه‌ای نیست"}</span></span></button>`).join("")}</div>`;
   }).join("") || `<div class="state"><div class="big">هنوز دیدگاهی جمع نشده</div></div>`;
 }
 async function openFigure(handle) {
@@ -1081,7 +1100,7 @@ async function openFigure(handle) {
   const x = (d.figures || []).find(f => f.handle.toLowerCase() === String(handle).toLowerCase());
   if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
   el.innerHTML = `<button class="back" onclick="showFigures()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> همهٔ چهره‌ها</button>
-    <div class="lede"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)} · <a href="${esc(x.channel_url)}" target="_blank" rel="noopener">کانال تلگرام ↗</a></p></div>
+    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${socialLinks(x.social)}</div></div>
     <div class="views">${x.posts.length ? x.posts.map(p => figureCard(p, false)).join("") : '<p class="muted">در هفتهٔ اخیر دیدگاهِ تازه‌ای ثبت نشده.</p>'}</div>
     <p class="muted fig-note">فقط تحلیل‌ها و نظرهای خودِ این شخص نمایش داده می‌شود؛ بازنشرِ خبر، تبلیغ و حاشیه کنار گذاشته می‌شود. خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
 }

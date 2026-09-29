@@ -36,9 +36,14 @@ logger = get_logger("figures")
 Kind = Literal["analysis", "relay", "party_claim", "chatter", "promo"]
 SHOWN_KINDS = {"analysis", "party_claim"}
 
+# Bump when the prompt below changes so cached posts are re-labeled with the new
+# instructions (e.g. v1 → v2 = fuller summaries). Rule-based relay rows are left
+# alone; only AI-labeled rows from an older version are re-sent.
+PROMPT_VERSION = "v2"
+
 BATCH_SIZE = 20
 MAX_PER_RUN = 60          # ≤ 3 AI calls per build
-LOOKBACK_DAYS = 3         # don't spend quota on old backlog
+LOOKBACK_DAYS = 8         # window for new posts + re-labeling the shown backlog
 
 _ROLE = {figure_source_name(f): f.role_fa for f in FIGURES}
 
@@ -58,9 +63,12 @@ SYSTEM_PROMPT = """\
 
 برای هر پست:
 - topic_fa: موضوع در حداکثر ۸ کلمه (مثلاً «مذاکرات ایران و آمریکا»).
-- summary_fa: فقط برای analysis و party_claim؛ یک یا دو جملهٔ خنثی که دیدگاه را به
-  خودِ شخص نسبت دهد («به باور او…»، «او استدلال می‌کند…»). هرگز دیدگاه را به‌عنوان
-  واقعیت ننویس. توهین‌ها و الفاظ تند را بازتولید نکن. متن پست را کپی نکن.
+- summary_fa: فقط برای analysis و party_claim؛ یک بازگوییِ کاملِ استدلالِ شخص در
+  حدودِ ۳ تا ۶ جمله (یک پاراگراف). نکاتِ اصلی، دلیل‌ها، مثال‌ها و نتیجه‌گیریِ او را
+  با انسجام بیاور، طوری که خواننده بدونِ خواندنِ متنِ اصلی هم جانِ کلامِ او را بفهمد.
+  دیدگاه را روشن به خودِ شخص نسبت بده («به باور او…»، «او استدلال می‌کند…»، «از نظر او…»)
+  و هرگز آن را به‌عنوان واقعیتِ قطعی ننویس. توهین‌ها و الفاظِ تند را بازتولید نکن و به
+  زبانِ خنثی بازگو کن. متنِ پست را عیناً کپی نکن، بلکه خلاصه و بازنویسی کن.
   برای بقیهٔ دسته‌ها رشتهٔ خالی.
 - relayed_from: فقط برای relay؛ نام منبعِ اصلی خبر اگر در متن آمده (مثل «رویترز»)، وگرنه خالی.
 - confidence: عددی بین ۰ و ۱.
@@ -101,8 +109,14 @@ def build_user_prompt(batch: list[Article]) -> str:
 
 
 def _pending(db: Session, now: datetime) -> list[Article]:
+    """Figure articles that need (re)labeling: never labeled, or labeled by an
+    older prompt version. Rule-based relay rows and current-version AI rows are
+    considered done."""
     figure_ids = select(Source.id).where(Source.region == FIGURE_REGION)
-    done = select(FigurePost.article_id)
+    done = select(FigurePost.article_id).where(
+        FigurePost.classified_by.like("rule%")
+        | FigurePost.classified_by.like(f"{PROMPT_VERSION}:%")
+    )
     since = now - timedelta(days=LOOKBACK_DAYS)
     return list(db.execute(
         select(Article)
@@ -117,13 +131,18 @@ def _store(db: Session, a: Article, *, kind: str, topic: str = "", summary: str 
            relayed_from: str = "", confidence: float = 0.5, by: str = "rule") -> None:
     if kind in SHOWN_KINDS and not summary:
         kind = "chatter" if kind == "analysis" else kind  # nothing to show → hide
-    db.add(FigurePost(
-        article_id=a.id, source_id=a.source_id, kind=kind,
-        topic_fa=topic or None, summary_fa=summary or None,
-        relayed_from=relayed_from or None, confidence=confidence,
-        classified_by=by[:40], published_at=a.published_at,
-        shown=kind in SHOWN_KINDS and bool(summary),
-    ))
+    fp = db.query(FigurePost).filter_by(article_id=a.id).one_or_none()
+    if fp is None:
+        fp = FigurePost(article_id=a.id, source_id=a.source_id)
+        db.add(fp)
+    fp.kind = kind
+    fp.topic_fa = topic or None
+    fp.summary_fa = summary or None
+    fp.relayed_from = relayed_from or None
+    fp.confidence = confidence
+    fp.classified_by = by[:40]
+    fp.published_at = a.published_at
+    fp.shown = kind in SHOWN_KINDS and bool(summary)
 
 
 def _log(db: Session, r: ProviderResult | None, status: str, msg: str | None = None) -> None:
@@ -193,7 +212,7 @@ def classify_figure_posts(db: Session, *, provider: Provider | None = None,
                 continue  # left for the next build
             _store(db, a, kind=lab.kind, topic=lab.topic_fa, summary=lab.summary_fa,
                    relayed_from=lab.relayed_from, confidence=lab.confidence,
-                   by=result.model or "ai")
+                   by=f"{PROMPT_VERSION}:{result.model or 'ai'}")
             summary["ai_labeled"] += 1
         _log(db, result, "ok")
         db.commit()
@@ -220,8 +239,8 @@ _MATCH_STOP = {
     "کشور", "گفت", "گفته", "باید", "نمی", "بین", "پس", "یا", "اگر", "چه",
     "درباره", "دربارهٔ", "موضوع", "وضعیت", "فعلا", "فعلاً", "بسیار", "حتی",
 }
-MATCH_MIN_SHARED = 3
-MATCH_MIN_OVERLAP = 0.35
+MATCH_MIN_SHARED = 4        # significant (non-stopword) tokens in common
+MATCH_MIN_OVERLAP = 0.25    # relative to the shorter side
 MATCH_WINDOW_H = 48
 MAX_PER_STORY = 4
 
@@ -235,10 +254,11 @@ def _mtokens(*texts: str | None) -> set[str]:
 
 
 def recent_shown_posts(db: Session, *, now: datetime | None = None,
-                       days: int = 7) -> list[dict]:
+                       days: int = 7, avatars: dict[str, str] | None = None) -> list[dict]:
     """Shown (analysis / party_claim) posts from the last `days`, newest first,
     as plain dicts ready for JSON."""
     now = now or datetime.now(timezone.utc)
+    avatars = avatars or {}
     since = now - timedelta(days=days)
     rows = db.execute(
         select(FigurePost, Article, Source)
@@ -260,6 +280,7 @@ def recent_shown_posts(db: Session, *, now: datetime | None = None,
             "name_fa": fig.name_fa,
             "role_fa": fig.role_fa,
             "field": fig.field,
+            "avatar": avatars.get(fig.handle),
             "kind": fp.kind,
             "topic_fa": fp.topic_fa or "",
             "summary_fa": fp.summary_fa or "",
@@ -305,8 +326,12 @@ def match_story(texts: list[str | None], story_time: datetime | None,
     return [_public(p) for _, p in ranked]
 
 
-def figures_index(posts: list[dict], *, per_figure: int = 15) -> dict:
+def figures_index(posts: list[dict], *, per_figure: int = 15,
+                  avatars: dict[str, str] | None = None) -> dict:
     """data/figures.json — every figure (even with no recent views) + latest views."""
+    from app.figures import figure_social
+
+    avatars = avatars or {}
     by: dict[str, list[dict]] = {}
     for p in posts:
         by.setdefault(p["handle"], []).append(_public(p))
@@ -317,6 +342,8 @@ def figures_index(posts: list[dict], *, per_figure: int = 15) -> dict:
             "handle": f.handle, "name_fa": f.name_fa, "role_fa": f.role_fa,
             "field": f.field, "field_fa": FIELD_FA.get(f.field, ""),
             "channel_url": f"https://t.me/{f.handle}",
+            "avatar": avatars.get(f.handle),
+            "social": figure_social(f),
             "count": len(by.get(f.handle, [])), "posts": items,
         })
     return {"fields": FIELD_FA, "figures": figures}
