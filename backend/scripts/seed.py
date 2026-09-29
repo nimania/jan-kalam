@@ -11,6 +11,13 @@ from datetime import datetime, timedelta, timezone
 
 from app.db.base import Base
 from app.db.session import SessionLocal, engine
+from app.figures import (
+    FIGURE_REGION,
+    FIGURES,
+    figure_feed_url,
+    figure_home_url,
+    figure_source_name,
+)
 from app.models.article import Article
 from app.models.enums import (
     Category,
@@ -124,6 +131,26 @@ def run() -> None:
             )
             db.add(s)
             by_name[name] = s
+        # جان‌کلام چهره‌ها: sync commentators' Telegram channels (app/figures.py).
+        # They are marked region=FIGURE_REGION so clustering keeps them out of the
+        # news feed; low reliability because a post is opinion, not reporting.
+        for f in FIGURES:
+            name = figure_source_name(f)
+            wanted.add(name)
+            s = db.query(Source).filter_by(name=name).one_or_none()
+            if s is None:
+                s = Source(name=name, attribution_required=True)
+                db.add(s)
+            s.homepage_url = figure_home_url(f)
+            s.feed_url = figure_feed_url(f)
+            s.feed_type = FeedType.telegram
+            s.region = FIGURE_REGION
+            s.language = "fa"
+            s.reliability_score = 0.3
+            s.allow_image = False
+            s.allow_full_content = False
+            s.usage_notes = f"{f.role_fa} | field={f.field}"
+            s.enabled = True
         # Disable feeds that were pruned from SOURCES but still linger in the
         # cached DB (dead/blocked feeds — Reuters, AP, Tasnim, VOA, …).
         for s in db.query(Source).all():

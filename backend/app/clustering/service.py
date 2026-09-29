@@ -15,8 +15,10 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.clustering.similarity import score, tokenize
 from app.core.logging import get_logger
+from app.figures import FIGURE_REGION
 from app.models.article import Article
 from app.models.enums import StoryStatus
+from app.models.source import Source
 from app.models.story import Story, StoryArticle
 
 logger = get_logger("clustering")
@@ -58,10 +60,19 @@ def cluster_articles(
 ) -> dict:
     """Assign every unclustered article to a story. Returns a summary."""
     clustered_ids = {row[0] for row in db.execute(select(StoryArticle.article_id)).all()}
+    # Posts from commentators' channels (جان‌کلام چهره‌ها) are opinion, not
+    # reporting: they must never seed a news story or count as a news source.
+    # They are handled separately by the figures pipeline.
+    figure_source_ids = set(
+        db.execute(select(Source.id).where(Source.region == FIGURE_REGION)).scalars().all()
+    )
     articles = db.execute(
         select(Article).order_by(Article.published_at.asc().nullslast())
     ).scalars().all()
-    pending = [a for a in articles if a.id not in clustered_ids]
+    pending = [
+        a for a in articles
+        if a.id not in clustered_ids and a.source_id not in figure_source_ids
+    ]
 
     clusters = _load_open_clusters(db)
     new_stories = 0

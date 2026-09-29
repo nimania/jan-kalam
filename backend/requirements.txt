@@ -9,6 +9,7 @@ alembic>=1.14
 # Ingestion (Phase 2)
 feedparser>=6.0
 httpx>=0.28
+beautifulsoup4>=4.12   # Telegram channel preview pages (t.me/s/…)
 
 # Postgres driver (production). Tests run on SQLite, so this is optional locally.
 psycopg[binary]>=3.2 ; platform_system != "unknown"

@@ -20,6 +20,7 @@ class FeedType(str, enum.Enum):
     atom = "atom"
     json = "json"
     api = "api"
+    telegram = "telegram"  # public channel web preview (t.me/s/<handle>)
 
 
 class StoryStatus(str, enum.Enum):
