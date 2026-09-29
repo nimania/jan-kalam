@@ -1,0 +1,203 @@
+"""جان‌کلام چهره‌ها — stage 2: classify each commentator post once.
+
+Flow per build:
+  1. Forwarded posts are classified by rule as `relay` (no AI cost).
+  2. Remaining unclassified posts from the last few days are sent to the AI in
+     batches (one call per batch) and validated with Pydantic.
+  3. Results are stored in `figure_posts` and never re-classified.
+
+If no AI key is configured (mock provider) the stage does nothing, so posts stay
+unclassified until a real model is available — we never store fake labels.
+A failure here must never break the build: callers wrap it.
+"""
+from __future__ import annotations
+
+import json
+from datetime import datetime, timedelta, timezone
+from typing import Literal
+
+from pydantic import BaseModel, Field, ValidationError, field_validator
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from app.ai.providers import get_provider
+from app.ai.providers.base import Provider, ProviderResult
+from app.core.config import settings
+from app.core.logging import get_logger
+from app.figures import FIGURE_REGION, FIGURES, figure_source_name
+from app.ingestion.telegram import FORWARD_PREFIX, is_forwarded
+from app.models.article import Article
+from app.models.figure_post import FigurePost
+from app.models.source import Source
+from app.models.usage_log import UsageLog
+
+logger = get_logger("figures")
+
+Kind = Literal["analysis", "relay", "party_claim", "chatter", "promo"]
+SHOWN_KINDS = {"analysis", "party_claim"}
+
+BATCH_SIZE = 20
+MAX_PER_RUN = 60          # ≤ 3 AI calls per build
+LOOKBACK_DAYS = 3         # don't spend quota on old backlog
+
+_ROLE = {figure_source_name(f): f.role_fa for f in FIGURES}
+
+SYSTEM_PROMPT = """\
+تو دستیار سردبیری «جان‌کلام» هستی. فهرستی از پست‌های کانال تلگرام چند چهرهٔ عمومی
+(تحلیلگر، اقتصاددان، مورخ، روزنامه‌نگار) به تو داده می‌شود. هر پست را جداگانه دسته‌بندی کن.
+
+دسته‌ها (kind):
+- "analysis": نظر، تحلیل یا استدلالِ خودِ این شخص دربارهٔ یک موضوع عمومی.
+- "relay": پست عمدتاً خبرِ دیگران را نقل می‌کند (خبرگزاری، رسانه، مقام رسمی) و نظر
+  چشمگیری از خود شخص ندارد. اگر نقل خبر همراه با نظر روشن شخص است، "analysis" بگذار.
+- "party_claim": شخص خودش طرفِ ماجراست (پروندهٔ خودش، دعوای شخصی‌اش، دفاع از خودش،
+  حمایت دیگران از خودش).
+- "chatter": شوخی، طعنه، حملهٔ شخصی یا توهین به افراد، احوال‌پرسی، مطالب بی‌ربط به امور عمومی.
+- "promo": تبلیغ کتاب، کارگاه، کلاس، درخواست حمایت مالی، «ویدیو را در یوتیوب ببینید»،
+  اطلاعیه‌های شخصی.
+
+برای هر پست:
+- topic_fa: موضوع در حداکثر ۸ کلمه (مثلاً «مذاکرات ایران و آمریکا»).
+- summary_fa: فقط برای analysis و party_claim؛ یک یا دو جملهٔ خنثی که دیدگاه را به
+  خودِ شخص نسبت دهد («به باور او…»، «او استدلال می‌کند…»). هرگز دیدگاه را به‌عنوان
+  واقعیت ننویس. توهین‌ها و الفاظ تند را بازتولید نکن. متن پست را کپی نکن.
+  برای بقیهٔ دسته‌ها رشتهٔ خالی.
+- relayed_from: فقط برای relay؛ نام منبعِ اصلی خبر اگر در متن آمده (مثل «رویترز»)، وگرنه خالی.
+- confidence: عددی بین ۰ و ۱.
+
+فقط یک شیء JSON معتبر برگردان با کلید "posts": فهرستی از اشیاء با کلیدهای
+id، kind، topic_fa، summary_fa، relayed_from، confidence. برای هر پستِ ورودی دقیقاً یک خروجی.
+"""
+
+
+class PostLabel(BaseModel):
+    id: str
+    kind: Kind
+    topic_fa: str = Field(default="", max_length=200)
+    summary_fa: str = ""
+    relayed_from: str = Field(default="", max_length=200)
+    confidence: float = Field(default=0.5, ge=0.0, le=1.0)
+
+    @field_validator("topic_fa", "summary_fa", "relayed_from", mode="before")
+    @classmethod
+    def _none_to_empty(cls, v):
+        return (v or "").strip() if isinstance(v, str) or v is None else v
+
+
+class BatchLabels(BaseModel):
+    posts: list[PostLabel]
+
+
+def build_user_prompt(batch: list[Article]) -> str:
+    rows = []
+    for i, a in enumerate(batch, 1):
+        rows.append({
+            "id": str(i),
+            "person": a.source_name.removeprefix("چهره: "),
+            "role": _ROLE.get(a.source_name, ""),
+            "text": a.description or a.title,
+        })
+    return "پست‌ها:\n" + json.dumps(rows, ensure_ascii=False, indent=1)
+
+
+def _pending(db: Session, now: datetime) -> list[Article]:
+    figure_ids = select(Source.id).where(Source.region == FIGURE_REGION)
+    done = select(FigurePost.article_id)
+    since = now - timedelta(days=LOOKBACK_DAYS)
+    return list(db.execute(
+        select(Article)
+        .where(Article.source_id.in_(figure_ids))
+        .where(Article.id.not_in(done))
+        .where((Article.published_at.is_(None)) | (Article.published_at >= since))
+        .order_by(Article.published_at.desc().nullslast())
+    ).scalars().all())
+
+
+def _store(db: Session, a: Article, *, kind: str, topic: str = "", summary: str = "",
+           relayed_from: str = "", confidence: float = 0.5, by: str = "rule") -> None:
+    if kind in SHOWN_KINDS and not summary:
+        kind = "chatter" if kind == "analysis" else kind  # nothing to show → hide
+    db.add(FigurePost(
+        article_id=a.id, source_id=a.source_id, kind=kind,
+        topic_fa=topic or None, summary_fa=summary or None,
+        relayed_from=relayed_from or None, confidence=confidence,
+        classified_by=by[:40], published_at=a.published_at,
+        shown=kind in SHOWN_KINDS and bool(summary),
+    ))
+
+
+def _log(db: Session, r: ProviderResult | None, status: str, msg: str | None = None) -> None:
+    cost = 0.0
+    if r:
+        cost = round(r.prompt_tokens / 1e6 * settings.ai_price_in_per_mtok
+                     + r.completion_tokens / 1e6 * settings.ai_price_out_per_mtok, 6)
+    db.add(UsageLog(
+        stage="figures", provider="gemini" if r else "", model=getattr(r, "model", "") or "",
+        prompt_tokens=getattr(r, "prompt_tokens", 0),
+        completion_tokens=getattr(r, "completion_tokens", 0),
+        cost_estimate=cost, latency_ms=getattr(r, "latency_ms", 0),
+        status=status, message=(msg or "")[:500] or None,
+    ))
+
+
+def classify_figure_posts(db: Session, *, provider: Provider | None = None,
+                          now: datetime | None = None) -> dict:
+    now = now or datetime.now(timezone.utc)
+    pending = _pending(db, now)
+    summary = {"pending": len(pending), "relay_rule": 0, "ai_labeled": 0,
+               "shown": 0, "failed_batches": 0, "skipped": ""}
+
+    # 1) forwarded posts → relay, free
+    rest: list[Article] = []
+    for a in pending:
+        if is_forwarded(a.author):
+            _store(db, a, kind="relay",
+                   relayed_from=a.author.removeprefix(FORWARD_PREFIX), confidence=0.9)
+            summary["relay_rule"] += 1
+        else:
+            rest.append(a)
+    db.commit()
+
+    # 2) AI batches
+    provider = provider or get_provider()
+    if getattr(provider, "name", "") == "mock":
+        summary["skipped"] = "no_ai_key"
+        logger.info("figures: %s", summary)
+        return summary
+
+    todo = rest[:MAX_PER_RUN]
+    for start in range(0, len(todo), BATCH_SIZE):
+        batch = todo[start:start + BATCH_SIZE]
+        try:
+            result = provider.generate(system=SYSTEM_PROMPT,
+                                       user=build_user_prompt(batch), context={})
+        except Exception as exc:
+            logger.warning("figures: provider error: %s", exc)
+            _log(db, None, "provider_error", str(exc))
+            db.commit()
+            summary["failed_batches"] += 1
+            continue
+        try:
+            labels = BatchLabels.model_validate(result.data)
+        except ValidationError as exc:
+            logger.warning("figures: validation error: %s", exc)
+            _log(db, result, "validation_error", str(exc))
+            db.commit()
+            summary["failed_batches"] += 1
+            continue
+
+        by_id = {l.id: l for l in labels.posts}
+        for i, a in enumerate(batch, 1):
+            lab = by_id.get(str(i))
+            if lab is None:
+                continue  # left for the next build
+            _store(db, a, kind=lab.kind, topic=lab.topic_fa, summary=lab.summary_fa,
+                   relayed_from=lab.relayed_from, confidence=lab.confidence,
+                   by=result.model or "ai")
+            summary["ai_labeled"] += 1
+        _log(db, result, "ok")
+        db.commit()
+
+    summary["shown"] = db.query(FigurePost).filter(FigurePost.shown.is_(True)).count()
+    logger.info("figures: %s", summary)
+    return summary
