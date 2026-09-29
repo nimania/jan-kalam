@@ -26,6 +26,7 @@ from app.credibility import compute_credibility
 from app.db.session import SessionLocal
 from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
+from app import figure_posts as figure_svc
 from app.geo import countries as countries_svc
 from app.geo import service as geo_svc
 from app.prices import service as price_svc
@@ -252,6 +253,13 @@ def run() -> None:
     from datetime import datetime, timezone
     now = datetime.now(timezone.utc)
 
+    # جان‌کلام چهره‌ها: recent commentator views (optional — never break export).
+    try:
+        fig_posts = figure_svc.recent_shown_posts(db, now=now)
+    except Exception as exc:  # pragma: no cover - defensive
+        print(f"figures export skipped: {exc}")
+        fig_posts = []
+
     feed = story_svc.get_feed(db, limit=60, offset=0, category=None)
     cards = [c.model_dump(mode="json") for c in feed.items]
 
@@ -288,6 +296,14 @@ def run() -> None:
         d["entities"] = entity_svc.detect(_text)
         # Countries mentioned — powers the mini world-map badge on each story.
         d["countries"] = countries_svc.detect(_text)
+        # What commentators said about it (opinion, kept apart from the facts).
+        _pub = d.get("published_at")
+        try:
+            _pub_dt = datetime.fromisoformat(_pub.replace("Z", "+00:00")) if _pub else None
+        except ValueError:
+            _pub_dt = None
+        d["figures"] = figure_svc.match_story(
+            _story_match_texts(d) + [d.get("what_happened_fa")], _pub_dt, fig_posts)
 
         # Best image from the story's linked articles: use whatever the outlet's
         # RSS feed explicitly published in media:thumbnail / media:content, and
@@ -317,6 +333,8 @@ def run() -> None:
                           for t in d.get("topics", [])]
         card["entities"] = d["entities"]
         card["countries"] = d["countries"]
+        if d["figures"]:
+            card["figure_count"] = len(d["figures"])
         card["geo"] = geo
         if d.get("image_url"):
             card["image_url"] = d["image_url"]
@@ -367,6 +385,7 @@ def run() -> None:
     trends["google"] = gt_svc.fetch([(e["slug"], e["name_fa"]) for e in series[:5]])
     _write(os.path.join(DATA, "trends.json"), trends)
 
+    _write(os.path.join(DATA, "figures.json"), figure_svc.figures_index(fig_posts))
     _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())

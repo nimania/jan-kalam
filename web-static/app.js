@@ -33,7 +33,8 @@ async function getJSON(path) { const r = await fetch(path, { cache: "no-cache" }
 
 const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
   factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
-  weather: "weather-view", iran: "iran-view", faq: "faq-view", market: "market-view" };
+  weather: "weather-view", iran: "iran-view", faq: "faq-view", market: "market-view",
+  figures: "figures-view" };
 const TABS = ["feed", "trends", "factchecks", "iran", "topics"];
 const SCOPE_FA = { local: "استانی", national: "کشوری", international: "بین‌المللی" };
 function setTab(w) { for (const t of TABS) document.getElementById("tab-" + t).classList.toggle("active", w === t); }
@@ -77,6 +78,8 @@ async function route() {
   if (kind === "market") return showMarket();
   if (kind === "weather") return showWeather();
   if (kind === "faq") return showFaq();
+  if (kind === "figures") return showFigures();
+  if (kind === "figure" && arg) return openFigure(arg);
   return showFeed();
 }
 window.addEventListener("hashchange", () => { if (!_navLock) route(); });
@@ -230,7 +233,7 @@ function feedCard(s) {
     </div>
     ${peopleRow(s.entities)}
     <div class="foot"><span class="sources-mini">${faN(s.source_count || 0)} منبع:</span>${badges}
-      <span class="cred-row">${credBadge(s.credibility)}${fcBadge(s.factcheck)}${saveBtn(s.id)}</span></div>
+      <span class="cred-row">${s.figure_count ? `<span class="fig-badge" title="دیدگاه چهره‌ها دربارهٔ این خبر">${faN(s.figure_count)} دیدگاه</span>` : ""}${credBadge(s.credibility)}${fcBadge(s.factcheck)}${saveBtn(s.id)}</span></div>
   </button>`;
 }
 
@@ -409,6 +412,7 @@ async function openStory(id) {
     ${trendSec}
     ${relSection}
     <div class="layers"><h3 class="section-h">منابع چه می‌گویند <span class="n">دیدگاه هر منبع، جدا از واقعیت</span></h3><div class="views">${views || '<p class="muted">—</p>'}</div>${consensus}</div>
+    ${figuresSection(s.figures)}
     <div class="layers"><h3 class="section-h">منابع</h3><div class="cites">${cites}</div></div>
     <div class="ask"><div class="a-h"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="color:var(--accent)"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z" stroke-linejoin="round"/></svg> دربارهٔ این خبر بپرس</div>
       <p class="a-sub">پاسخ‌های آماده از روی همین خبر.</p>
@@ -1021,3 +1025,63 @@ renderHomeStats();
 renderHomePrices();
 renderHomeWeather();
 updateMineBadge();
+
+
+/* ---- جان‌کلام چهره‌ها — commentators' views, kept apart from the facts ----
+   Data: story.figures (matched per story) + data/figures.json (all figures).
+   A view is always attributed to its author and linked to the original post. */
+const KIND_NOTE = { party_claim: "ادعای یکی از طرفین" };
+function figureCard(p, withName) {
+  const party = p.kind === "party_claim"
+    ? `<span class="cstatus st-warn" title="این شخص خودش طرفِ این ماجراست">${KIND_NOTE.party_claim}</span>` : "";
+  const head = withName
+    ? `<div class="v-h"><a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a><span class="fig-role">${esc(p.role_fa)}</span><span class="spacer" style="flex:1"></span>${party}</div>`
+    : `<div class="v-h"><span class="fig-topic">${esc(p.topic_fa || "")}</span><span class="spacer" style="flex:1"></span>${party}</div>`;
+  return `<div class="view fig-view">${head}
+    <p>${esc(p.summary_fa || "")}</p>
+    <div class="fig-foot"><span class="muted">${relTime(p.published_at)}</span>
+      <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در تلگرام ↗</a></div></div>`;
+}
+function figuresSection(list) {
+  if (!list || !list.length) return "";
+  return `<div class="layers"><h3 class="section-h">چهره‌ها چه می‌گویند <span class="n">دیدگاه شخصی — نه واقعیتِ خبر</span></h3>
+    <div class="views">${list.map(p => figureCard(p, true)).join("")}</div>
+    <p class="muted fig-note">خلاصه‌ها را هوش مصنوعی از پست‌های تلگرامِ خودِ این افراد نوشته؛ برای دقیق‌ترین روایت، متن کامل را بخوانید.
+      <a href="#/figures" onclick="event.preventDefault();showFigures()">همهٔ چهره‌ها</a></p></div>`;
+}
+let _FIG = null;
+async function loadFigures() {
+  if (_FIG) return _FIG;
+  try { _FIG = await getJSON(`${DATA}/figures.json`); } catch (e) { _FIG = { figures: [], fields: {} }; }
+  return _FIG;
+}
+function showFigures() { show("figures"); setTab(""); renderFigures(); setHash("#/figures"); }
+async function renderFigures() {
+  document.getElementById("figures-lede").style.display = "";
+  const el = document.getElementById("figures");
+  el.innerHTML = `<div class="spinner"></div>`;
+  const d = await loadFigures();
+  const order = Object.keys(d.fields || {});
+  el.innerHTML = order.map(f => {
+    const people = (d.figures || []).filter(x => x.field === f);
+    if (!people.length) return "";
+    return `<div class="rule"><span>${esc(d.fields[f])}</span><span class="l"></span></div>
+      <div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="openFigure('${esc(x.handle)}')">
+        <span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa)}</span>
+        <span class="fp-count">${x.count ? faN(x.count) + " دیدگاه در هفتهٔ اخیر" : "دیدگاهِ تازه‌ای نیست"}</span></button>`).join("")}</div>`;
+  }).join("") || `<div class="state"><div class="big">هنوز دیدگاهی جمع نشده</div></div>`;
+}
+async function openFigure(handle) {
+  setHash("#/figure/" + handle);
+  show("figures"); setTab("");
+  document.getElementById("figures-lede").style.display = "none";
+  const el = document.getElementById("figures");
+  el.innerHTML = `<div class="spinner"></div>`;
+  const d = await loadFigures();
+  const x = (d.figures || []).find(f => f.handle.toLowerCase() === String(handle).toLowerCase());
+  if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
+  el.innerHTML = `<button class="back" onclick="showFigures()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> همهٔ چهره‌ها</button>
+    <div class="lede"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)} · <a href="${esc(x.channel_url)}" target="_blank" rel="noopener">کانال تلگرام ↗</a></p></div>
+    <div class="views">${x.posts.length ? x.posts.map(p => figureCard(p, false)).join("") : '<p class="muted">در هفتهٔ اخیر دیدگاهِ تازه‌ای ثبت نشده.</p>'}</div>
+    <p class="muted fig-note">فقط تحلیل‌ها و نظرهای خودِ این شخص نمایش داده می‌شود؛ بازنشرِ خبر، تبلیغ و حاشیه کنار گذاشته می‌شود. خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
+}

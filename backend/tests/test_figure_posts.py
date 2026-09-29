@@ -119,3 +119,49 @@ def test_old_posts_are_skipped(db):
 
 def test_run_cap():
     assert MAX_PER_RUN <= 60
+
+
+# --- stage 3: export -----------------------------------------------------------
+from app.figure_posts import figures_index, match_story, recent_shown_posts  # noqa: E402
+from app.figures import FIGURES  # noqa: E402
+from app.models.enums import FeedType  # noqa: E402
+from app.models.source import Source  # noqa: E402
+from app.figures import FIGURE_REGION  # noqa: E402
+
+
+def _real_figure_setup(db):
+    """Same fixture page, but under a real figure's channel."""
+    f = FIGURES[0]
+    src = Source(name="چهره: " + f.name_fa, homepage_url=f"https://t.me/{f.handle}",
+                 feed_url=f"https://t.me/s/{f.handle}", feed_type=FeedType.telegram,
+                 region=FIGURE_REGION, language="fa")
+    db.add(src)
+    db.commit()
+    ingest_source(db, src, raw_content=PAGE.replace("testfig", f.handle))
+    classify_figure_posts(db, provider=FakeProvider(), now=NOW)
+    return f
+
+
+def test_recent_shown_posts_and_index(db):
+    f = _real_figure_setup(db)
+    posts = recent_shown_posts(db, now=NOW)
+    assert len(posts) == 1 and posts[0]["handle"] == f.handle
+    assert posts[0]["url"].startswith(f"https://t.me/{f.handle}/")
+    idx = figures_index(posts)
+    assert len(idx["figures"]) == len(FIGURES)          # every figure listed
+    me = next(x for x in idx["figures"] if x["handle"] == f.handle)
+    assert me["count"] == 1 and "_tokens" not in me["posts"][0]
+
+
+def test_match_story_same_topic_only(db):
+    _real_figure_setup(db)
+    posts = recent_shown_posts(db, now=NOW)
+    t = datetime(2026, 9, 28, 20, tzinfo=timezone.utc)
+    on_topic = ["مذاکرات هسته‌ای ایران و آمریکا بر سر تنگه هرمز",
+                "طرف ایرانی دربارهٔ مذاکره هسته‌ای و پایان جنگ با آمریکا گفت‌وگو می‌کند."]
+    hit = match_story(on_topic, t, posts)
+    assert len(hit) == 1 and hit[0]["kind"] == "analysis"
+    off_topic = ["قیمت طلا و سکه در بازار تهران", "نرخ سکه امروز افزایش یافت."]
+    assert match_story(off_topic, t, posts) == []
+    # too far in time → no match
+    assert match_story(on_topic, datetime(2026, 10, 5, tzinfo=timezone.utc), posts) == []

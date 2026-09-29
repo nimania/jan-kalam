@@ -201,3 +201,122 @@ def classify_figure_posts(db: Session, *, provider: Provider | None = None,
     summary["shown"] = db.query(FigurePost).filter(FigurePost.shown.is_(True)).count()
     logger.info("figures: %s", summary)
     return summary
+
+
+# ---------------------------------------------------------------------------
+# Stage 3 — export for the static site
+# ---------------------------------------------------------------------------
+from app.clustering.similarity import tokenize  # noqa: E402
+
+_BY_HANDLE = {f.handle.lower(): f for f in FIGURES}
+FIELD_FA = {"politics": "سیاست و جامعه", "foreign": "سیاست خارجی",
+            "economy": "اقتصاد", "history": "تاریخ", "culture": "فرهنگ و هنر"}
+
+# Words too common in Persian news/commentary to signal "same topic".
+_MATCH_STOP = {
+    "او", "باور", "معتقد", "می", "ها", "های", "هم", "یک", "اما", "نیز", "خود",
+    "شود", "شد", "کند", "کرد", "دارد", "دارند", "تا", "بر", "هر", "آن", "ای",
+    "شده", "کرده", "اشاره", "استدلال", "نظر", "دیدگاه", "ایران", "ایرانی",
+    "کشور", "گفت", "گفته", "باید", "نمی", "بین", "پس", "یا", "اگر", "چه",
+    "درباره", "دربارهٔ", "موضوع", "وضعیت", "فعلا", "فعلاً", "بسیار", "حتی",
+}
+MATCH_MIN_SHARED = 3
+MATCH_MIN_OVERLAP = 0.35
+MATCH_WINDOW_H = 48
+MAX_PER_STORY = 4
+
+
+def _handle(source_home: str | None) -> str:
+    return (source_home or "").rstrip("/").rsplit("/", 1)[-1]
+
+
+def _mtokens(*texts: str | None) -> set[str]:
+    return {t for t in tokenize(*texts) if t not in _MATCH_STOP}
+
+
+def recent_shown_posts(db: Session, *, now: datetime | None = None,
+                       days: int = 7) -> list[dict]:
+    """Shown (analysis / party_claim) posts from the last `days`, newest first,
+    as plain dicts ready for JSON."""
+    now = now or datetime.now(timezone.utc)
+    since = now - timedelta(days=days)
+    rows = db.execute(
+        select(FigurePost, Article, Source)
+        .join(Article, FigurePost.article_id == Article.id)
+        .join(Source, FigurePost.source_id == Source.id)
+        .where(FigurePost.shown.is_(True))
+        .where((FigurePost.published_at.is_(None)) | (FigurePost.published_at >= since))
+        .order_by(FigurePost.published_at.desc().nullslast())
+    ).all()
+    out: list[dict] = []
+    for fp, art, src in rows:
+        h = _handle(src.homepage_url)
+        fig = _BY_HANDLE.get(h.lower())
+        if fig is None:
+            continue  # figure removed from the list
+        out.append({
+            "id": fp.id,
+            "handle": fig.handle,
+            "name_fa": fig.name_fa,
+            "role_fa": fig.role_fa,
+            "field": fig.field,
+            "kind": fp.kind,
+            "topic_fa": fp.topic_fa or "",
+            "summary_fa": fp.summary_fa or "",
+            "url": art.article_url,
+            "published_at": fp.published_at.isoformat() if fp.published_at else None,
+            "_tokens": _mtokens(fp.topic_fa, fp.summary_fa, art.description),
+            "_time": fp.published_at,
+        })
+    return out
+
+
+def _public(p: dict) -> dict:
+    return {k: v for k, v in p.items() if not k.startswith("_")}
+
+
+def match_story(texts: list[str | None], story_time: datetime | None,
+                posts: list[dict]) -> list[dict]:
+    """Figures' views that are about this story (one per figure, best first).
+    Lexical match on AI-written topic/summary + the post excerpt, within
+    ±MATCH_WINDOW_H of the story."""
+    s_tok = _mtokens(*texts)
+    if not s_tok:
+        return []
+    best: dict[str, tuple[float, dict]] = {}
+    for p in posts:
+        if story_time and p["_time"]:
+            st = story_time if story_time.tzinfo else story_time.replace(tzinfo=timezone.utc)
+            pt = p["_time"] if p["_time"].tzinfo else p["_time"].replace(tzinfo=timezone.utc)
+            if abs((st - pt).total_seconds()) > MATCH_WINDOW_H * 3600:
+                continue
+        shared = s_tok & p["_tokens"]
+        if len(shared) < MATCH_MIN_SHARED:
+            continue
+        overlap = len(shared) / max(1, min(len(p["_tokens"]), len(s_tok)))
+        if overlap < MATCH_MIN_OVERLAP:
+            continue
+        prev = best.get(p["handle"])
+        if prev is None or overlap > prev[0]:
+            best[p["handle"]] = (overlap, p)
+    ranked = sorted(best.values(), key=lambda x: -x[0])[:MAX_PER_STORY]
+    # analysis before party claims
+    ranked.sort(key=lambda x: (x[1]["kind"] != "analysis", -x[0]))
+    return [_public(p) for _, p in ranked]
+
+
+def figures_index(posts: list[dict], *, per_figure: int = 15) -> dict:
+    """data/figures.json — every figure (even with no recent views) + latest views."""
+    by: dict[str, list[dict]] = {}
+    for p in posts:
+        by.setdefault(p["handle"], []).append(_public(p))
+    figures = []
+    for f in FIGURES:
+        items = by.get(f.handle, [])[:per_figure]
+        figures.append({
+            "handle": f.handle, "name_fa": f.name_fa, "role_fa": f.role_fa,
+            "field": f.field, "field_fa": FIELD_FA.get(f.field, ""),
+            "channel_url": f"https://t.me/{f.handle}",
+            "count": len(by.get(f.handle, [])), "posts": items,
+        })
+    return {"fields": FIELD_FA, "figures": figures}
