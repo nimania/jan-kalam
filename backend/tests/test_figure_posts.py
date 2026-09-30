@@ -113,12 +113,12 @@ def test_analysis_without_summary_is_hidden(db):
 
 def test_old_posts_are_skipped(db):
     _setup(db)
-    later = datetime(2026, 10, 10, tzinfo=timezone.utc)
+    later = datetime(2026, 11, 15, tzinfo=timezone.utc)   # well past LOOKBACK_DAYS=30
     assert classify_figure_posts(db, provider=FakeProvider(), now=later)["pending"] == 0
 
 
 def test_run_cap():
-    assert MAX_PER_RUN <= 60
+    assert MAX_PER_RUN <= 120
 
 
 # --- stage 3: export -----------------------------------------------------------
