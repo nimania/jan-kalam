@@ -42,8 +42,8 @@ SHOWN_KINDS = {"analysis", "party_claim"}
 PROMPT_VERSION = "v2"
 
 BATCH_SIZE = 20
-MAX_PER_RUN = 60          # ≤ 3 AI calls per build
-LOOKBACK_DAYS = 8         # window for new posts + re-labeling the shown backlog
+MAX_PER_RUN = 120         # ≤ 6 AI calls per build
+LOOKBACK_DAYS = 30        # window for new posts + re-labeling the shown backlog
 
 _ROLE = {figure_source_name(f): f.role_fa for f in FIGURES}
 
@@ -269,7 +269,7 @@ def _mtokens(*texts: str | None) -> set[str]:
 
 
 def recent_shown_posts(db: Session, *, now: datetime | None = None,
-                       days: int = 7, avatars: dict[str, str] | None = None) -> list[dict]:
+                       days: int = 30, avatars: dict[str, str] | None = None) -> list[dict]:
     """Shown (analysis / party_claim) posts from the last `days`, newest first,
     as plain dicts ready for JSON."""
     now = now or datetime.now(timezone.utc)
