@@ -80,6 +80,8 @@ async function route() {
   if (kind === "faq") return showFaq();
   if (kind === "figures") return showFigures();
   if (kind === "figure" && arg) return openFigure(arg);
+  if (kind === "news-person" && arg) return openNewsPerson(arg);
+  if (kind === "statement" && arg) return openStatement(arg);
   return showFeed();
 }
 window.addEventListener("hashchange", () => { if (!_navLock) route(); });
@@ -1090,6 +1092,7 @@ function socialLinks(links) {
   document.head.appendChild(st);
 })();
 
+function statementKey(p) { return encodeURIComponent(String(p.id || "")); }
 function figureCard(p, withName) {
   const party = p.kind === "party_claim"
     ? `<span class="cstatus st-warn" title="این شخص خودش طرفِ این ماجراست">${KIND_NOTE.party_claim}</span>` : "";
@@ -1098,7 +1101,7 @@ function figureCard(p, withName) {
     : `<div class="v-h"><span class="fig-topic">${esc(p.topic_fa || "")}</span><span class="spacer" style="flex:1"></span>${party}</div>`;
   return `<div class="view fig-view">${head}
     <p>${esc(p.summary_fa || "")}</p>
-    <div class="fig-foot"><span class="muted">${relTime(p.published_at)}</span>
+    <div class="fig-foot"><button class="fig-profile-link" onclick="openStatement(\'${statementKey(p)}\')">صفحهٔ این گفته</button><span class="muted">${relTime(p.published_at)}</span>
       <a href="${esc(p.url)}" target="_blank" rel="noopener">${p.kind === "news_statement" ? "منبع این گفته" : "متن کامل در " + (String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام")} ↗</a></div></div>`;
 }
 const FIG_FOLLOW_KEY = "jankalam-figure-follows";
@@ -1216,6 +1219,7 @@ async function renderFigures() {
     : `<div class="state"><div class="big">هنوز شخصی در این بخش ثبت نشده</div></div>`);
 }
 async function openNewsPerson(handle) {
+  setHash("#/news-person/" + encodeURIComponent(handle));
   show("figures"); setTab("");
   document.getElementById("figures-lede").style.display = "none";
   document.getElementById("figure-timeline").innerHTML = "";
@@ -1240,6 +1244,30 @@ let _figureProfileFilter = "all";
 function setFigureProfileFilter(handle, mode) {
   _figureProfileFilter = mode;
   openFigure(handle, false);
+}
+async function openStatement(id) {
+  const raw = decodeURIComponent(id);
+  const [direct, news] = await Promise.all([loadFigures(), loadNewsPeople()]);
+  let person = null, post = null, isNews = false;
+  for (const f of (direct.figures || [])) {
+    const p = (f.posts || []).find(x => String(x.id) === raw);
+    if (p) { person = f; post = p; break; }
+  }
+  if (!post) for (const f of (news.figures || [])) {
+    const p = (f.posts || []).find(x => String(x.id) === raw);
+    if (p) { person = f; post = p; isNews = true; break; }
+  }
+  show("figures"); setTab("");
+  document.getElementById("figures-lede").style.display = "none";
+  document.getElementById("figure-timeline").innerHTML = "";
+  const el = document.getElementById("figures");
+  if (!post) { el.innerHTML = '<div class="state"><div class="big">این گفته پیدا نشد</div></div>'; return; }
+  setHash("#/statement/" + encodeURIComponent(raw));
+  el.innerHTML = '<button class="back" onclick="' + (isNews ? "openNewsPerson" : "openFigure") + "(\'" + esc(person.handle) + "\')\">بازگشت به پروفایل</button>" +
+    '<div class="fig-head">' + avatar(person,"lg") + '<div class="fig-head-body"><h1>' + esc(person.name_fa) + '</h1><p class="muted">' + esc(person.role_fa||"") + '</p></div></div>' +
+    '<div class="rule"><span>' + (isNews ? "گفته در خبر" : "دیدگاه") + '</span><span class="l"></span></div>' +
+    figureCard(post,false) +
+    '<p class="muted fig-note">این صفحه نشانی مستقل دارد و می‌توان مستقیماً به همین گفته ارجاع داد.</p>';
 }
 async function openFigure(handle, resetFilter = true) {
   if (resetFilter) _figureProfileFilter = "all";
