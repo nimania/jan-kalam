@@ -29,6 +29,7 @@ class Figure:
     # repeat it here. Only add links we have actually verified.
     social: tuple[tuple[str, str], ...] = ()
     gender: str = "m"  # "m" | "f" — used for balance / future comparison stats
+    bale: str | None = None  # verified public Bale channel handle (without @)
 
 
 FIGURES: list[Figure] = [
@@ -37,7 +38,7 @@ FIGURES: list[Figure] = [
     # ══════════════════════════════════════════════════════════════════════
     Figure("Garajetadayoni", "مهدی تدینی", "مورخ و مترجم", "politics"),
     Figure("ahmadzeidabad", "احمد زیدآبادی", "روزنامه‌نگار و تحلیلگر سیاسی", "politics"),
-    Figure("abdiabbas", "عباس عبدی", "روزنامه‌نگار و پژوهشگر اجتماعی", "politics"),
+    Figure("abdiabbas", "عباس عبدی", "روزنامه‌نگار و پژوهشگر اجتماعی", "politics", bale="ayandeha"),
     Figure("fazeli_mohammad", "محمد فاضلی", "جامعه‌شناس", "politics",
            (("website", "https://mohammadfazeli.ir"),)),
     Figure("miladdokhanchi", "میلاد دخانچی", "پژوهشگر مطالعات فرهنگی", "politics"),
@@ -46,7 +47,7 @@ FIGURES: list[Figure] = [
     Figure("iransocialproblems", "علی میرزامحمدی", "جامعه‌شناس", "politics"),
     Figure("rasaee", "حمید رسایی", "نماینده مجلس و مدیرمسئول هفته‌نامه ۹ دی", "politics"),
     Figure("sadeghzibakalam", "صادق زیباکلام", "استاد علوم سیاسی دانشگاه تهران", "politics",
-           (("facebook", "https://facebook.com/SadeghZibakalam"),)),
+           (("facebook", "https://facebook.com/SadeghZibakalam"),), bale="sadeghzibakalamofficial"),
     Figure("Parvanehsalahshouri", "پروانه سلحشوری", "جامعه‌شناس و نمایندهٔ سابق مجلس",
            "politics", (), "f"),
     Figure("SaeedHajarian", "سعید حجاریان", "نظریه‌پرداز سیاسی", "politics"),
@@ -55,6 +56,14 @@ FIGURES: list[Figure] = [
            "نمایندهٔ سابق مجلس و تحلیلگر امنیت ملی", "politics"),
     Figure("emadbaghi", "عمادالدین باقی", "روزنامه‌نگار و فعال حقوق بشر", "law"),
     Figure("m_borhani57", "محسن برهانی", "حقوقدان و استاد حقوق جزا", "law"),
+    Figure("Ghabl_enghelab", "وحید اشتری", "فعال اجتماعی و روزنامه‌نگار", "politics", bale="ghabl_enghelab"),
+    Figure("sabety_ir", "امیرحسین ثابتی", "نماینده مجلس", "politics", bale="sabety_ir"),
+    Figure("yaminpour", "وحید یامین‌پور", "نویسنده و پژوهشگر", "politics", bale="yaminpour"),
+    Figure("ali_gholhaky", "علی قلهکی", "روزنامه‌نگار و تحلیلگر سیاسی", "politics", bale="ali_gholhaki"),
+    Figure("MalekShariati_ir", "مالک شریعتی نیاسر", "نماینده مجلس", "politics", bale="malekshariati"),
+    Figure("kasaeizade", "سید هادی کسایی‌زاده", "روزنامه‌نگار", "media",
+           (("x", "https://x.com/seyedhadikasaei"),), bale="kasaeizade"),
+    Figure("hasanabbasi_students", "حسن عباسی", "سخنران و پژوهشگر", "politics", bale="hasanabbasi_students"),
 
     # ══════════════════════════════════════════════════════════════════════
     #  سیاست خارجی
@@ -90,7 +99,7 @@ FIGURES: list[Figure] = [
     #  محیط‌زیست
     # ══════════════════════════════════════════════════════════════════════
     Figure("KavehMadani", "کاوه مدنی", "پژوهشگر آب و محیط‌زیست", "environment"),
-    Figure("darvishnameh", "محمد درویش", "فعال محیط‌زیست", "environment"),
+    Figure("darvishnameh", "محمد درویش", "فعال محیط‌زیست", "environment", bale="darvishnameh"),
 
     # ══════════════════════════════════════════════════════════════════════
     #  رسانه و تحلیل
@@ -150,13 +159,15 @@ FIGURES: list[Figure] = [
 
 
 SOCIAL_FA = {"website": "وب‌سایت", "x": "ایکس", "instagram": "اینستاگرام",
-             "youtube": "یوتیوب", "facebook": "فیس‌بوک", "telegram": "تلگرام"}
+             "youtube": "یوتیوب", "facebook": "فیس‌بوک", "telegram": "تلگرام", "bale": "بله"}
 
 
 def figure_social(f: Figure) -> list[dict]:
     """Public links for a figure, Telegram channel first."""
     links = [{"kind": "telegram", "label": SOCIAL_FA["telegram"],
               "url": f"https://t.me/{f.handle}"}]
+    if f.bale:
+        links.append({"kind": "bale", "label": SOCIAL_FA["bale"], "url": f"https://ble.ir/{f.bale}"})
     for kind, url in f.social:
         links.append({"kind": kind, "label": SOCIAL_FA.get(kind, kind), "url": url})
     return links
