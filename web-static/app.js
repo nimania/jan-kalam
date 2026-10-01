@@ -1320,6 +1320,7 @@ async function openFigure(handle, resetFilter = true) {
   setHash("#/figure/" + handle);
   show("figures"); setTab("");
   document.getElementById("figures-lede").style.display = "none";
+  document.getElementById("figure-timeline").innerHTML = "";
   const el = document.getElementById("figures");
   el.innerHTML = `<div class="spinner"></div>`;
   const d = await loadFigures();
