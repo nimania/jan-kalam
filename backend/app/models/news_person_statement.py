@@ -20,7 +20,7 @@ class NewsPersonStatement(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     statement_fa: Mapped[str] = mapped_column(Text, nullable=False)
     source_name: Mapped[str] = mapped_column(String(200), nullable=False)
     article_url: Mapped[str] = mapped_column(String(1000), nullable=False)
-    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     direct_quote: Mapped[bool] = mapped_column(Boolean, default=False)
 
     __table_args__ = (
