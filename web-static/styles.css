@@ -636,3 +636,8 @@
 .trend-dossier-stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 24px}
 .trend-dossier-stats span{border:1px solid var(--line);border-radius:14px;padding:9px 14px;background:var(--card)}
 .trend-dossier-stats b{font-size:1.15rem;margin-inline-end:4px}
+
+/* crypto rows on Market */
+.p-symbol{font-size:.72em;opacity:.58;font-weight:600;direction:ltr;display:inline-block;margin-inline-start:5px}
+.crypto-price .p-val{direction:ltr;text-align:right}
+.crypto-price .p-chg .p-unit{font-size:.72em;opacity:.65;margin-inline-start:4px}
