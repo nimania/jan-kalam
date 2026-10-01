@@ -1308,7 +1308,7 @@ async function openStatement(id) {
     '<div class="rule"><span>' + (isNews ? "گفته در خبر" : "دیدگاه") + '</span><span class="l"></span></div>' +
     figureCard(post,false) +
     ((post.related_people || []).length ? '<div class="rule"><span>ارتباط این گفته</span><span class="l"></span></div><div class="views">' +
-      post.related_people.map(r => '<button class="fig-person" onclick="openNewsPerson(\\'' + esc(r.handle) + '\\')"><span class="fp-body"><span class="fp-name">' + esc(r.name_fa) + '</span><span class="fp-role">' + (r.relation === "response" ? "پاسخ / واکنش مرتبط" : "شخص نام‌برده در این گفته") + '</span></span></button>').join("") + '</div>' : '') +
+      post.related_people.map(r => `<button class="fig-person" onclick="openNewsPerson('${esc(r.handle)}')"><span class="fp-body"><span class="fp-name">${esc(r.name_fa)}</span><span class="fp-role">${r.relation === "response" ? "پاسخ / واکنش مرتبط" : "شخص نام‌برده در این گفته"}</span></span></button>`).join("") + '</div>' : '') +
     '<p class="muted fig-note">این صفحه نشانی مستقل دارد و می‌توان مستقیماً به همین گفته ارجاع داد.</p>';
 }
 async function openFigure(handle, resetFilter = true) {
