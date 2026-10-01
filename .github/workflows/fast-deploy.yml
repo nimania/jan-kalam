@@ -1,6 +1,7 @@
 name: Fast Deploy Jan Kalam UI
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
