@@ -88,6 +88,8 @@ FIGURES: list[Figure] = [
     Figure("dr_bokharaei", "احمد بخارایی", "جامعه‌شناس", "society"),
     Figure("drsiminkazemi", "سیمین کاظمی", "پزشک و جامعه‌شناس", "society", (), "f"),
     Figure("hamidrezajalaeipour", "حمیدرضا جلایی‌پور", "جامعه‌شناس سیاسی", "society"),
+    Figure("nasserfakouhi", "ناصر فکوهی", "انسان‌شناس و استاد دانشگاه", "society",
+           (("website", "https://nasserfakouhi.com"),)),
     Figure("jalaeipour", "محمدرضا جلایی‌پور", "جامعه‌شناس و پژوهشگر سیاست‌گذاری اجتماعی", "society",
            (("instagram", "https://instagram.com/m.jalaeipour"),)),
     Figure("mostafamehraeen", "مصطفی مهرآیین", "جامعه‌شناس و پژوهشگر فرهنگ", "society"),
@@ -143,6 +145,10 @@ FIGURES: list[Figure] = [
     #  فلسفه و اندیشه
     # ══════════════════════════════════════════════════════════════════════
     Figure("mostafamalekian", "مصطفی ملکیان", "پژوهشگر فلسفه و اخلاق", "philosophy"),
+    Figure("Mardihamorteza", "مرتضی مردیها", "پژوهشگر فلسفه و علوم انسانی", "philosophy",
+           (("instagram", "https://instagram.com/mardihamorteza"),
+            ("youtube", "https://youtube.com/@MortazaMardiha"))),
+    Figure("khalajich", "مهدی خلجی", "پژوهشگر علوم انسانی و اندیشه", "philosophy"),
     Figure("Soroushdabbagh_Official", "سروش دباغ", "پژوهشگر فلسفه", "philosophy",
            (("x", "https://x.com/dabbaghsoroush"),
             ("instagram", "https://instagram.com/soroush_dabbagh"))),
