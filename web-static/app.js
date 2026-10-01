@@ -29,7 +29,15 @@ function relTime(iso) {
   const d = Math.floor(h / 24);
   return d === 1 ? "دیروز" : faN(d) + " روز پیش";
 }
-async function getJSON(path) { const r = await fetch(path, { cache: "no-cache" }); if (!r.ok) throw new Error(r.status); return r.json(); }
+async function getJSON(path, timeoutMs = 12000) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
+  try {
+    const r = await fetch(path, { cache: "no-cache", signal: ctl.signal });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return await r.json();
+  } finally { clearTimeout(timer); }
+}
 
 const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
   factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
@@ -250,8 +258,16 @@ async function loadFeed() {
     renderDayChips();
     updateFreshness();
   } catch (e) {
-    el.innerHTML = `<div class="state"><div class="big">خبرها بارگذاری نشد</div></div>`;
+    const why = e && e.name === "AbortError" ? "دریافت داده بیش از حد طول کشید." : "فایل خبرها در دسترس نیست.";
+    el.innerHTML = `<div class="state"><div class="big">خبرها بارگذاری نشد</div>
+      <p class="muted">${why}</p>
+      <button class="fchip on" onclick="retryFeed()">تلاش دوباره</button></div>`;
   }
+}
+async function retryFeed() {
+  const el = document.getElementById("feed");
+  el.innerHTML = '<div class="loader"></div>';
+  await loadFeed();
 }
 // A small horizontally-scrolling strip above the feed: today, yesterday, and
 // the last few days that actually have stories. Fast browse "back in time".
