@@ -34,7 +34,8 @@ def _quote_handle(name: str) -> str:
 
 
 def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
-                      days: int = 7, per_figure: int = 15) -> dict:
+                      days: int = 7, per_figure: int = 15,
+                      avatars: dict[str, str] | None = None) -> dict:
     """Add evidence-backed news statements to figures.json.
 
     Existing curated figures are merged by normalized Persian name. New people get
@@ -42,6 +43,7 @@ def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
     excluded from the main directory until seen in >=2 distinct news sources.
     """
     now = now or datetime.now(timezone.utc)
+    avatars = avatars or {}
     since = now - timedelta(days=days)
     rows = list(db.execute(
         select(NewsPersonStatement)
@@ -70,13 +72,16 @@ def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
             f = {
                 "handle": handle, "name_fa": items[0].person_name_fa,
                 "role_fa": newest_role, "field": "news", "field_fa": "گفته‌ها در خبر",
-                "gender": "", "channel_url": None, "avatar": None, "social": [],
+                "gender": "", "channel_url": None,
+                "avatar": avatars.get(handle) if curated else None, "social": [],
                 "count": 0, "posts": [], "directory": source_count >= 2,
                 "news_source_count": source_count,
             }
             figures.append(f)
             by_handle[handle] = f
         f = by_handle[handle]
+        if curated and avatars.get(handle):
+            f["avatar"] = avatars[handle]
         f["directory"] = True if curated else source_count >= 2
         f["news_source_count"] = source_count
         existing_ids = {str(p.get("id")) for p in f.get("posts", [])}
