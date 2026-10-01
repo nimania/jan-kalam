@@ -75,6 +75,8 @@ FIGURES: list[Figure] = [
            (("x", "https://x.com/IzadiFoad"),
             ("instagram", "https://instagram.com/izadifoad"))),
     Figure("rezanasrichannel", "رضا نصری", "حقوقدان بین‌المللی و تحلیلگر دیپلماسی", "foreign"),
+    Figure("Karimipour_K", "یدالله کریمی‌پور", "پژوهشگر ژئوپلیتیک", "foreign"),
+    Figure("MehdiMotaharnia1344", "مهدی مطهرنیا", "پژوهشگر آینده‌پژوهی و روابط بین‌الملل", "foreign"),
     Figure("majidtafreshi", "مجید تفرشی", "تاریخ‌نگار و پژوهشگر مسائل معاصر", "foreign",
            (("x", "https://x.com/majidtafreshi"),)),
     Figure("yekhezaran", "حسین جابری‌انصاری", "دیپلمات و پژوهشگر مسائل منطقه‌ای", "foreign",
@@ -86,6 +88,12 @@ FIGURES: list[Figure] = [
     # ══════════════════════════════════════════════════════════════════════
     Figure("mfarasatkhah", "مقصود فراستخواه", "جامعه‌شناس و استاد آموزش عالی", "society"),
     Figure("dr_bokharaei", "احمد بخارایی", "جامعه‌شناس", "society"),
+    Figure("darwinsabouri", "داروین صبوری", "جامعه‌شناس", "society",
+           (("youtube", "https://youtube.com/@darwinsabouri"),)),
+    Figure("mostafadaneshgar", "مصطفی دانشگر", "نویسنده و پژوهشگر مسائل ایران", "society"),
+    Figure("DrAzarakhshMokri", "آذرخش مکری", "روان‌پزشک و مدرس دانشگاه", "society",
+           (("youtube", "https://youtube.com/@DrAzarakhshMokriOfficial"),
+            ("instagram", "https://instagram.com/azarakhshmokri"))),
     Figure("drsiminkazemi", "سیمین کاظمی", "پزشک و جامعه‌شناس", "society", (), "f"),
     Figure("hamidrezajalaeipour", "حمیدرضا جلایی‌پور", "جامعه‌شناس سیاسی", "society"),
     Figure("nasserfakouhi", "ناصر فکوهی", "انسان‌شناس و استاد دانشگاه", "society",
@@ -128,6 +136,10 @@ FIGURES: list[Figure] = [
            (("x", "https://x.com/mohmohajeri"),)),
     Figure("NegarMim", "نگار مرتضوی", "روزنامه‌نگار و تحلیلگر سیاسی", "media", (), "f"),
     Figure("hoderestan", "حسین درخشان", "نویسنده و پژوهشگر رسانه", "media"),
+    Figure("KGhafouri", "کامبیز غفوری", "روزنامه‌نگار", "media",
+           (("x", "https://x.com/KambizGhafouri"),
+            ("instagram", "https://instagram.com/kambiz.ghafouri.public"))),
+    Figure("mohamadaliabtahi", "محمدعلی ابطحی", "روحانی و فعال سیاسی", "media"),
 
     # ══════════════════════════════════════════════════════════════════════
     #  دین و اندیشهٔ دینی
@@ -153,7 +165,7 @@ FIGURES: list[Figure] = [
     Figure("Soroushdabbagh_Official", "سروش دباغ", "پژوهشگر فلسفه", "philosophy",
            (("x", "https://x.com/dabbaghsoroush"),
             ("instagram", "https://instagram.com/soroush_dabbagh"))),
-    Figure("bijanabdolkarimi", "بیژن عبدالکریمی", "فیلسوف و استاد فلسفه", "philosophy"),
+    Figure("bijanabdolkarimi", "بیژن عبدالکریمی", "فیلسوف و استاد فلسفه", "philosophy", bale="bijanabdolkarimi"),
 
     # ══════════════════════════════════════════════════════════════════════
     #  تاریخ
@@ -172,6 +184,8 @@ FIGURES: list[Figure] = [
            "development", (("website", "https://lashkarbolouki.com"),)),
     Figure("sharenovate", "امیر ناظمی", "پژوهشگر سیاست‌گذاری علم، فناوری و توسعه",
            "development"),
+    Figure("mojvahedi", "مجتبی واحدی", "روزنامه‌نگار و تحلیلگر سیاسی", "opposition"),
+    Figure("Reasondoubt", "غزال مدیریان", "پژوهشگر و فعال سیاسی", "opposition"),
     Figure("mohsensazegara", "محسن سازگارا", "تحلیلگر سیاسی", "opposition",
            (("youtube", "https://youtube.com/@MohsenSazegara"),)),
     Figure("OfficialRezaPahlavi", "رضا پهلوی", "چهرهٔ اپوزیسیون", "opposition",
