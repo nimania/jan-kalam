@@ -129,6 +129,9 @@ FIGURES: list[Figure] = [
     # ══════════════════════════════════════════════════════════════════════
     #  دین و اندیشهٔ دینی
     # ══════════════════════════════════════════════════════════════════════
+    Figure("Baznegari", "امیر ترکاشوند", "پژوهشگر تاریخ و متون دینی", "religion"),
+    Figure("abolghasemfanaei", "ابوالقاسم فنائی", "پژوهشگر فلسفه اخلاق و دین", "religion",
+           (("instagram", "https://instagram.com/Abolghasemfanaei"),)),
     Figure("Mohsen_Kadivar_Official", "محسن کدیور", "پژوهشگر دین و فلسفهٔ دین", "religion",
            (("website", "https://kadivar.com"),)),
     Figure("mohammadsorooshmahallati", "محمد سروش محلاتی", "پژوهشگر فقه و اندیشهٔ دینی",
@@ -158,6 +161,8 @@ FIGURES: list[Figure] = [
     # ══════════════════════════════════════════════════════════════════════
     Figure("sariolghalam", "محمود سریع‌القلم", "استاد علوم سیاسی و روابط بین‌الملل",
            "development"),
+    Figure("Dr_Lashkarbolouki", "مجتبی لشکربلوکی", "پژوهشگر استراتژی و توسعه",
+           "development", (("website", "https://lashkarbolouki.com"),)),
     Figure("sharenovate", "امیر ناظمی", "پژوهشگر سیاست‌گذاری علم، فناوری و توسعه",
            "development"),
     Figure("mohsensazegara", "محسن سازگارا", "تحلیلگر سیاسی", "opposition",
