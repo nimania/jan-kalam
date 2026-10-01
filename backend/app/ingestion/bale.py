@@ -40,7 +40,7 @@ def _balanced_array(text: str, key: str) -> str | None:
         if in_str:
             if esc:
                 esc = False
-            elif ch == "\\\\":
+            elif ch == "\\":
                 esc = True
             elif ch == '"':
                 in_str = False
