@@ -1,0 +1,81 @@
+name: Fast Deploy Jan Kalam UI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "web-static/**"
+      - ".github/workflows/fast-deploy.yml"
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages-ui
+  cancel-in-progress: true
+
+jobs:
+  build-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find latest successful data refresh
+        id: refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id')"
+          test -n "$run_id" -a "$run_id" != "null"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+      - name: Download latest complete static site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ steps.refresh.outputs.run_id }}
+        run: |
+          mkdir -p site
+          gh run download "$RUN_ID" -n latest-static-site -D site
+      - name: Overlay current UI
+        run: |
+          cp -a web-static/. site/
+          python - <<'PY'
+          import hashlib, pathlib, re
+          root = pathlib.Path("site")
+          versions = {}
+          for name in ("app.js", "styles.css", "iran-provinces.js"):
+              p = root / name
+              if p.exists():
+                  versions[name] = hashlib.md5(p.read_bytes()).hexdigest()[:8]
+          idx = root / "index.html"
+          text = idx.read_text(encoding="utf-8")
+          for name, version in versions.items():
+              text = re.sub(
+                  r'((?:src|href)="' + re.escape(name) + r')(?:\\?v=[0-9a-f]+)?(")',
+                  r'\\1?v=' + version + r'\\2',
+                  text,
+              )
+          idx.write_text(text, encoding="utf-8")
+          sw = root / "sw.js"
+          app_v = versions.get("app.js")
+          if sw.exists() and app_v:
+              s = sw.read_text(encoding="utf-8")
+              s = re.sub(r'const V = "[^"]*";', f'const V = "jankalam-{app_v}";', s, count=1)
+              sw.write_text(s, encoding="utf-8")
+          PY
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build-ui
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
