@@ -1176,29 +1176,59 @@ function figuresSection(list) {
     <p class="muted fig-note">دیدگاه‌های مستقیم از کانال‌های عمومی خود افراد و «گفته در خبر» از منابع خبری جدا برچسب می‌خورند؛ لینک هر مورد به منبع همان گفته می‌رود.
       <a href="#/figures" onclick="event.preventDefault();showFigures()">همهٔ چهره‌ها</a></p></div>`;
 }
-let _FIG = null;
+let _FIG = null, _NEWS_PEOPLE = null, _figDirectoryMode = "direct";
 async function loadFigures() {
   if (_FIG) return _FIG;
   try { _FIG = await getJSON(`${DATA}/figures.json`); } catch (e) { _FIG = { figures: [], fields: {} }; }
   return _FIG;
 }
+async function loadNewsPeople() {
+  if (_NEWS_PEOPLE) return _NEWS_PEOPLE;
+  try { _NEWS_PEOPLE = await getJSON(`${DATA}/news-people.json`); } catch (e) { _NEWS_PEOPLE = { figures: [], fields: {} }; }
+  return _NEWS_PEOPLE;
+}
+function setFigureDirectoryMode(mode) {
+  _figDirectoryMode = mode;
+  renderFigures();
+}
 function showFigures() { show("figures"); setTab(""); document.getElementById("figures-lede").style.display = ""; document.getElementById("figures").innerHTML = ""; renderFigureTimeline(); setHash("#/figures"); }
-function renderFiguresDirectory() { document.getElementById("figure-timeline").innerHTML = ""; renderFigures(); }
+function renderFiguresDirectory() {
+  document.getElementById("figure-timeline").innerHTML = "";
+  _figDirectoryMode = "direct";
+  renderFigures();
+}
 async function renderFigures() {
   document.getElementById("figures-lede").style.display = "";
   const el = document.getElementById("figures");
   el.innerHTML = `<div class="spinner"></div>`;
-  const d = await loadFigures();
-  const order = Object.keys(d.fields || {});
-  el.innerHTML = order.map(f => {
-    const people = (d.figures || []).filter(x => x.field === f && x.directory !== false);
-    if (!people.length) return "";
-    return `<div class="rule"><span>${esc(d.fields[f])}</span><span class="l"></span></div>
-      <div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="openFigure('${esc(x.handle)}')">
-        ${avatar(x, "md")}
-        <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa)}</span>
-        <span class="fp-count">${x.count ? faN(x.count) + " دیدگاه در هفتهٔ اخیر" : "دیدگاهِ تازه‌ای نیست"}</span></span></button>`).join("")}</div>`;
-  }).join("") || `<div class="state"><div class="big">هنوز دیدگاهی جمع نشده</div></div>`;
+  const d = _figDirectoryMode === "news" ? await loadNewsPeople() : await loadFigures();
+  const tabs = `<div class="fig-profile-filters">
+    <button class="fchip ${_figDirectoryMode==="direct"?"on":""}" onclick="setFigureDirectoryMode('direct')">چهره‌های دیدگاه</button>
+    <button class="fchip ${_figDirectoryMode==="news"?"on":""}" onclick="setFigureDirectoryMode('news')">چهره‌های خبر</button>
+  </div>
+  <p class="muted">${_figDirectoryMode==="direct" ? "نویسندگان، تحلیلگران و صاحب‌نظرانی که منابع مستقیمشان در جان‌کلام دنبال می‌شود." : "مقام‌ها، کارشناسان و اشخاصی که اظهارنظرشان از داخل خبرها استخراج شده است."}</p>`;
+  const people = (d.figures || []).filter(x => x.directory !== false)
+    .sort((a,b) => (b.count||0)-(a.count||0) || String(a.name_fa||"").localeCompare(String(b.name_fa||""),"fa"));
+  el.innerHTML = tabs + (people.length ? `<div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="${_figDirectoryMode==="news" ? "openNewsPerson" : "openFigure"}('${esc(x.handle)}')">
+    ${avatar(x, "md")}
+    <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa||"")}</span>
+    <span class="fp-count">${faN(x.count||0)} ${_figDirectoryMode==="news" ? "گفته در خبر" : "دیدگاه اخیر"}</span></span></button>`).join("")}</div>`
+    : `<div class="state"><div class="big">هنوز شخصی در این بخش ثبت نشده</div></div>`);
+}
+async function openNewsPerson(handle) {
+  show("figures"); setTab("");
+  document.getElementById("figures-lede").style.display = "none";
+  document.getElementById("figure-timeline").innerHTML = "";
+  const el = document.getElementById("figures");
+  el.innerHTML = `<div class="spinner"></div>`;
+  const d = await loadNewsPeople();
+  const x = (d.figures || []).find(f => String(f.handle).toLowerCase() === String(handle).toLowerCase());
+  if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
+  el.innerHTML = `<button class="back" onclick="renderFiguresDirectory()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> فهرست چهره‌ها</button>
+    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa||"چهرهٔ حاضر در خبر")}</p></div></div>
+    <div class="news-statement-tag">چهرهٔ خبر</div>
+    <div class="views">${(x.posts||[]).length ? (x.posts||[]).map(p=>figureCard(p,false)).join("") : '<div class="state"><div class="big">گفته‌ای ثبت نشده.</div></div>'}</div>
+    <p class="muted fig-note">این موارد از گزارش رسانه‌ها استخراج شده‌اند و لینک هر مورد به همان خبر منبع می‌رود.</p>`;
 }
 async function openFigureByName(name) {
   const d = await loadFigures();
