@@ -870,10 +870,11 @@ async function renderHomeMajra() {
       const image = story && story.image_url
         ? `<img loading="lazy" src="${esc(story.image_url)}" alt="" onerror="this.parentElement.classList.add('no-img');this.remove()">`
         : "";
-      const dev = d.development_count || tp.story_count || 0;
+      const latestHeadline = story && story.headline_fa ? story.headline_fa : "";
+      const latestWords = latestHeadline.trim().split(/\\s+/).filter(Boolean).slice(0, 5).join(" ");
       return `<button class="hm-strip-card ${image ? "" : "no-img"}" onclick="openTrendDossier('${esc(tp.slug)}')">
         <span class="hm-strip-media">${image}</span>
-        <span class="hm-strip-copy"><strong>${esc(tp.name_fa || tp.slug)}</strong><small>${faN(dev)} تحول</small></span>
+        <span class="hm-strip-copy"><strong>${esc(tp.name_fa || tp.slug)}</strong>${latestWords ? `<small>${esc(latestWords)}</small>` : ""}</span>
       </button>`;
     }).join("");
     section.style.display = "";
