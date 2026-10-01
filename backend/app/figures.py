@@ -75,6 +75,10 @@ FIGURES: list[Figure] = [
            (("x", "https://x.com/IzadiFoad"),
             ("instagram", "https://instagram.com/izadifoad"))),
     Figure("rezanasrichannel", "رضا نصری", "حقوقدان بین‌المللی و تحلیلگر دیپلماسی", "foreign"),
+    Figure("majidtafreshi", "مجید تفرشی", "تاریخ‌نگار و پژوهشگر مسائل معاصر", "foreign",
+           (("x", "https://x.com/majidtafreshi"),)),
+    Figure("yekhezaran", "حسین جابری‌انصاری", "دیپلمات و پژوهشگر مسائل منطقه‌ای", "foreign",
+           (("instagram", "https://instagram.com/jaberi_ansari"),)),
     Figure("covid_policy_dip", "کوروش احمدی", "دیپلمات بازنشسته و پژوهشگر روابط بین‌الملل", "foreign"),
 
     # ══════════════════════════════════════════════════════════════════════
@@ -116,13 +120,18 @@ FIGURES: list[Figure] = [
     # ══════════════════════════════════════════════════════════════════════
     #  رسانه و تحلیل
     # ══════════════════════════════════════════════════════════════════════
-    Figure("HosseinBastaniChannel", "حسین باستانی", "روزنامه‌نگار و تحلیلگر بی‌بی‌سی", "media"),
+    Figure("HosseinBastaniChannel", "حسین باستانی", "روزنامه‌نگار و تحلیلگر", "media"),
+    Figure("mohajerimohamad", "محمد مهاجری", "روزنامه‌نگار", "media",
+           (("x", "https://x.com/mohmohajeri"),)),
     Figure("NegarMim", "نگار مرتضوی", "روزنامه‌نگار و تحلیلگر سیاسی", "media", (), "f"),
     Figure("hoderestan", "حسین درخشان", "نویسنده و پژوهشگر رسانه", "media"),
 
     # ══════════════════════════════════════════════════════════════════════
     #  دین و اندیشهٔ دینی
     # ══════════════════════════════════════════════════════════════════════
+    Figure("Baznegari", "امیر ترکاشوند", "پژوهشگر تاریخ و متون دینی", "religion"),
+    Figure("abolghasemfanaei", "ابوالقاسم فنائی", "پژوهشگر فلسفه اخلاق و دین", "religion",
+           (("instagram", "https://instagram.com/Abolghasemfanaei"),)),
     Figure("Mohsen_Kadivar_Official", "محسن کدیور", "پژوهشگر دین و فلسفهٔ دین", "religion",
            (("website", "https://kadivar.com"),)),
     Figure("mohammadsorooshmahallati", "محمد سروش محلاتی", "پژوهشگر فقه و اندیشهٔ دینی",
@@ -151,6 +160,10 @@ FIGURES: list[Figure] = [
     #  علوم سیاسی و توسعه
     # ══════════════════════════════════════════════════════════════════════
     Figure("sariolghalam", "محمود سریع‌القلم", "استاد علوم سیاسی و روابط بین‌الملل",
+           "development"),
+    Figure("Dr_Lashkarbolouki", "مجتبی لشکربلوکی", "پژوهشگر استراتژی و توسعه",
+           "development", (("website", "https://lashkarbolouki.com"),)),
+    Figure("sharenovate", "امیر ناظمی", "پژوهشگر سیاست‌گذاری علم، فناوری و توسعه",
            "development"),
     Figure("mohsensazegara", "محسن سازگارا", "تحلیلگر سیاسی", "opposition",
            (("youtube", "https://youtube.com/@MohsenSazegara"),)),
