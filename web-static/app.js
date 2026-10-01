@@ -857,24 +857,25 @@ async function renderHomeMajra() {
   const el = document.getElementById("home-majra-cards");
   if (!section || !el) return;
   try {
-    const t = await getJSON(`${DATA}/trends.json`, 18000);
-    const topics = (t.topics || []).filter(x => x && x.slug).slice(0, 5);
+    const [t, stories] = await Promise.all([
+      getJSON(`${DATA}/trends.json`, 18000),
+      getJSON(`${DATA}/stories.json`).catch(() => [])
+    ]);
+    const byId = new Map((stories || []).map(s => [String(s.id), s]));
+    const topics = (t.topics || []).filter(x => x && x.slug).slice(0, 6);
     if (!topics.length) { section.style.display = "none"; return; }
-    const card = (tp, i) => {
+    el.innerHTML = topics.map(tp => {
       const d = tp.dossier || {};
-      const summary = d.summary_fa || "چند تحول خبری مرتبط در این پرونده دنبال می‌شود.";
+      const story = (d.story_ids || []).map(id => byId.get(String(id))).find(Boolean);
+      const image = story && story.image_url
+        ? `<img loading="lazy" src="${esc(story.image_url)}" alt="" onerror="this.parentElement.classList.add('no-img');this.remove()">`
+        : "";
       const dev = d.development_count || tp.story_count || 0;
-      const cov = d.source_coverage || tp.coverage || 0;
-      return `<button class="hm-card ${i === 0 ? "hm-lead" : "hm-side"}" onclick="openTrendDossier('${esc(tp.slug)}')">
-        <div class="hm-card-body">
-          ${i === 0 ? '<span class="hm-kicker">پروندهٔ اصلی</span>' : ""}
-          <h3>${esc(tp.name_fa || tp.slug)}</h3>
-          <p>${esc(summary)}</p>
-        </div>
-        <div class="hm-foot"><span>${faN(dev)} تحول · ${faN(cov)} منبع</span><span class="hm-arrow">‹</span></div>
+      return `<button class="hm-strip-card ${image ? "" : "no-img"}" onclick="openTrendDossier('${esc(tp.slug)}')">
+        <span class="hm-strip-media">${image}</span>
+        <span class="hm-strip-copy"><strong>${esc(tp.name_fa || tp.slug)}</strong><small>${faN(dev)} تحول</small></span>
       </button>`;
-    };
-    el.innerHTML = topics.map(card).join("");
+    }).join("");
     section.style.display = "";
   } catch (e) {
     section.style.display = "none";
