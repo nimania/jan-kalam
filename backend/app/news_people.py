@@ -69,7 +69,7 @@ def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
         existing_ids = {str(p.get("id")) for p in f.get("posts", [])}
         news_posts = []
         for x in items:
-            pid = "news:" + x.id
+            pid = "news:" + str(x.id)
             if pid in existing_ids:
                 continue
             news_posts.append({
