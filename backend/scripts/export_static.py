@@ -258,8 +258,9 @@ def _person_page(person: dict, *, news: bool = False) -> str:
 <meta name="description" content="{e(label)}ی {e(name)} در جان‌کلام"><link rel="canonical" href="{e(url)}">
 <meta property="og:type" content="profile"><meta property="og:title" content="{e(name)} — جان‌کلام">
 <meta property="og:url" content="{e(url)}"><meta name="theme-color" content="#155a4f">
-<style>body{{margin:0;background:#0f1512;color:#e8efe9;font-family:Vazirmatn,system-ui,sans-serif;line-height:1.9}}.wrap{{max-width:680px;margin:auto;padding:28px 20px}}a{{color:#3ec99f;text-decoration:none}}.meta{{color:#8fa89b}}li{{padding:12px 0;border-bottom:1px solid #24352d}}.cta{{display:inline-block;margin-top:20px;padding:10px 16px;border-radius:10px;background:#1a9d7e;color:#04120d;font-weight:700}}</style>
-</head><body><div class="wrap"><a href="{SITE}/">جان‌کلام</a><h1>{e(name)}</h1>
+{('<meta property="og:image" content="' + e(person.get("avatar")) + '">' if person.get("avatar") else '')}
+<style>body{{margin:0;background:#0f1512;color:#e8efe9;font-family:Vazirmatn,system-ui,sans-serif;line-height:1.9}}.wrap{{max-width:680px;margin:auto;padding:28px 20px}}a{{color:#3ec99f;text-decoration:none}}.meta{{color:#8fa89b}}li{{padding:12px 0;border-bottom:1px solid #24352d}}.cta{{display:inline-block;margin-top:20px;padding:10px 16px;border-radius:10px;background:#1a9d7e;color:#04120d;font-weight:700}}.profile-avatar{{width:96px;height:96px;border-radius:50%;object-fit:cover;border:2px solid #24352d;margin:14px 0}}</style>
+</head><body><div class="wrap"><a href="{SITE}/">جان‌کلام</a>{('<div><img class="profile-avatar" src="' + e(person.get("avatar")) + '" alt="' + e(name) + '"></div>') if person.get("avatar") else ''}<h1>{e(name)}</h1>
 <p class="meta">{e(person.get("role_fa") or "")} · {label}</p><ul>{items}</ul>
 <a class="cta" href="{e(app_url)}">باز کردن پروفایل کامل</a></div></body></html>"""
 
