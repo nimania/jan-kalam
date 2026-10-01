@@ -21,6 +21,7 @@ from app.core.config import settings
 from app.core.logging import get_logger
 from app.models.enums import IranRelevance, StatementKind, StoryStatus
 from app.models.story import SourceView, Statement, Story, StoryArticle
+from app.models.news_person_statement import NewsPersonStatement
 from app.models.usage_log import UsageLog
 
 logger = get_logger("ai.pipeline")
@@ -112,6 +113,10 @@ def _clear_children(db: Session, story_id: str) -> None:
         select(SourceView).where(SourceView.story_id == story_id)
     ).scalars().all():
         db.delete(row)
+    for row in db.execute(
+        select(NewsPersonStatement).where(NewsPersonStatement.story_id == story_id)
+    ).scalars().all():
+        db.delete(row)
     db.flush()
 
 
@@ -147,6 +152,24 @@ def _apply(db: Session, story: Story, out: JanKalamOutput, articles: list) -> No
             article_url=a.article_url if a else None,
             published_at=a.published_at if a else None,
             viewpoint_fa=sv.viewpoint_fa,
+        ))
+
+    # Named people quoted or clearly paraphrased by a supplied news article.
+    # Reject statements whose claimed source is not one of the actual inputs:
+    # no source evidence => no profile item.
+    for ps in out.person_statements:
+        a = by_name.get(ps.source_name)
+        if not a or not a.article_url:
+            continue
+        db.add(NewsPersonStatement(
+            story_id=story.id,
+            person_name_fa=ps.person_name_fa.strip(),
+            role_fa=ps.role_fa.strip() or None,
+            statement_fa=ps.statement_fa.strip(),
+            source_name=ps.source_name,
+            article_url=a.article_url,
+            published_at=a.published_at,
+            direct_quote=ps.direct_quote,
         ))
 
 
