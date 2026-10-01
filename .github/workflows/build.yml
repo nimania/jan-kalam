@@ -16,8 +16,6 @@ on:
         default: mark_sent
         type: choice
         options: [mark_sent, retry]
-  push:
-    branches: [main]
   schedule:
     - cron: "*/15 * * * *"            # every 15 minutes (the build DB is cached, so each
                                     # run only synthesizes genuinely NEW stories)
@@ -28,12 +26,9 @@ permissions:
   id-token: write
 
 concurrency:
-  # The site always regenerates from the latest main + cached DB, so cancelling
-  # a pending older run in favor of a newer one loses NOTHING — the newer run
-  # will include every commit the old one had. Without this, GitHub Pages'
-  # environment concurrency was silently marking mid-flight runs "cancelled"
-  # when a newer scheduled/pushed run took over the pages deploy slot.
-  group: pages
+  # Data refreshes are serialized. UI-only pushes use fast-deploy.yml and no
+  # longer start this expensive ingestion/AI pipeline.
+  group: data-refresh
   cancel-in-progress: false
 
 jobs:
@@ -80,6 +75,16 @@ jobs:
           path: backend/public/data/figures.json
           if-no-files-found: error
           retention-days: 7
+      # Keep a reusable copy of the latest complete static site. The fast UI
+      # workflow overlays web-static/ on this artifact instead of rebuilding news.
+      - name: Save latest complete site for fast UI deploys
+        uses: actions/upload-artifact@v4
+        with:
+          name: latest-static-site
+          path: backend/public
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
