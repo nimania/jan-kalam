@@ -53,8 +53,8 @@ jobs:
           text = idx.read_text(encoding="utf-8")
           for name, version in versions.items():
               text = re.sub(
-                  r'((?:src|href)="' + re.escape(name) + r')(?:\\?v=[0-9a-f]+)?(")',
-                  r'\\1?v=' + version + r'\\2',
+                  r'((?:src|href)="' + re.escape(name) + r')(?:\?v=[0-9a-f]+)?(")',
+                  r'\1?v=' + version + r'\2',
                   text,
               )
           idx.write_text(text, encoding="utf-8")
