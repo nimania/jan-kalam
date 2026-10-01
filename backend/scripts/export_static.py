@@ -455,6 +455,7 @@ def run() -> None:
     _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
+    _write(os.path.join(DATA, "crypto.json"), price_svc.fetch_crypto_prices())
     _write(os.path.join(DATA, "weather.json"), weather_svc.fetch_weather())
     _write(os.path.join(DATA, "geo.json"), geo_svc.stats(cards))
 

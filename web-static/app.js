@@ -856,17 +856,32 @@ function showMarket() { show("market"); setTab("feed"); renderMarket(); setHash(
 async function renderMarket() {
   const el = document.getElementById("market");
   try {
-    const prices = await getJSON(`${DATA}/prices.json`);
-    if (!prices || !prices.length) { el.innerHTML = `<div class="state"><div class="big">نرخ‌ها در دسترس نیست</div></div>`; return; }
-    const rows = prices.map(p => {
+    const [prices, crypto] = await Promise.all([
+      getJSON(`${DATA}/prices.json`).catch(() => []),
+      getJSON(`${DATA}/crypto.json`).catch(() => []),
+    ]);
+    if ((!prices || !prices.length) && (!crypto || !crypto.length)) {
+      el.innerHTML = `<div class="state"><div class="big">نرخ‌ها در دسترس نیست</div></div>`; return;
+    }
+    const priceRows = (prices || []).map(p => {
       const cls = p.dir === "up" ? "up" : p.dir === "down" ? "down" : "flat";
       const arrow = p.dir === "up" ? "▲" : p.dir === "down" ? "▼" : "—";
       return `<div class="price"><div class="p-label">${esc(p.label_fa)}</div>
         <div class="p-val">${faN(grp(p.value))} <span class="p-unit">${esc(p.unit_fa)}</span></div>
         <div class="p-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪</div></div>`;
     }).join("");
-    el.innerHTML = `<div class="price-grid">${rows}</div>
-      <p class="muted" style="margin-top:14px">منبع نرخ‌ها: tgju — هر ساعت به‌روز می‌شود. مقادیر به تومان‌اند مگر آنکه واحدِ دیگری ذکر شده باشد.</p>`;
+    const cryptoRows = (crypto || []).map(p => {
+      const cls = p.dir === "up" ? "up" : p.dir === "down" ? "down" : "flat";
+      const arrow = p.dir === "up" ? "▲" : p.dir === "down" ? "▼" : "—";
+      const value = p.value >= 1000 ? grp(Math.round(p.value)) : Number(p.value).toLocaleString("en-US", {maximumFractionDigits: p.value < 1 ? 4 : 2});
+      return `<div class="price crypto-price"><div class="p-label">${esc(p.label_fa)} <span class="p-symbol">${esc(p.symbol || "")}</span></div>
+        <div class="p-val">$ ${faN(value)}</div>
+        <div class="p-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪ <span class="p-unit">۲۴ساعت</span></div></div>`;
+    }).join("");
+    el.innerHTML =
+      (priceRows ? `<div class="rule"><span>ارز و طلا</span><span class="l"></span></div><div class="price-grid">${priceRows}</div>` : "") +
+      (cryptoRows ? `<div class="rule" style="margin-top:26px"><span>رمزارزها</span><span class="l"></span></div><div class="price-grid crypto-grid">${cryptoRows}</div>` : "") +
+      `<p class="muted" style="margin-top:14px">ارز و طلا: TGJU · رمزارزها: CoinGecko. تغییر رمزارزها مربوط به ۲۴ ساعت گذشته است؛ داده‌ها با هر به‌روزرسانی جان‌کلام تازه می‌شوند.</p>`;
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">بازار بارگذاری نشد</div></div>`; }
 }
 
