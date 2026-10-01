@@ -11,6 +11,7 @@ from app.models.enums import (
 from app.models.figure_asset import FigureAsset
 from app.models.figure_post import FigurePost
 from app.models.ingestion_log import IngestionLog
+from app.models.news_person_statement import NewsPersonStatement
 from app.models.source import Source
 from app.models.usage_log import UsageLog
 from app.models.story import (
@@ -37,6 +38,7 @@ __all__ = [
     "IngestionLog",
     "FigurePost",
     "FigureAsset",
+    "NewsPersonStatement",
     "Category",
     "FeedType",
     "StoryStatus",
