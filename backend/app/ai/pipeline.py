@@ -208,7 +208,7 @@ def backfill_news_people(db: Session, *, limit: int = 8,
     stories = db.execute(
         select(Story)
         .where(Story.status == StoryStatus.published)
-        .where(Story.id.not_in(scanned))
+        .where(Story.id.notin_(scanned))
         .options(selectinload(Story.article_links).selectinload(StoryArticle.article))
         .order_by(Story.published_at.desc().nullslast())
         .limit(limit)
