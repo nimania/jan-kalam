@@ -24,12 +24,18 @@ SYSTEM_PROMPT = """\
 ۴. ارتباط با ایران را از خودت نساز؛ اگر ارتباط مستقیمی نیست، iran_relevance را "none" بگذار.
 ۵. فارسیِ روان و روزنامه‌نگارانه بنویس؛ نه ترجمهٔ کلمه‌به‌کلمه، نه رسمی‌گراییِ افراطی.
 ۶. خلاصه (summary_fa) حدود ۸۰ تا ۱۵۰ کلمه باشد.
+۷. person_statements: هر جا در متن ورودی، حرف/موضع مشخصی به یک شخصِ نام‌برده (مقام،
+   مسئول، کارشناس، پژوهشگر، صاحب‌نظر و مانند آن) نسبت داده شده، آن را استخراج کن.
+   person_name_fa نام شخص، role_fa فقط سمت/تخصصی که خود منبع گفته، statement_fa بازگویی
+   فشرده و وفادارانهٔ همان حرف، و source_name دقیقاً نام یکی از منابع ورودی باشد.
+   direct_quote فقط وقتی true است که متن ورودی واقعاً نقل‌قول مستقیم را نشان می‌دهد.
+   از تیتر یا متن مبهم، هویت/سمت/موضع نساز؛ سازمان‌ها و افراد صرفاً ذکرشده را وارد نکن.
 
 فقط و فقط یک شیء JSON معتبر برگردان (بدون توضیح اضافه، بدون بلوک کد) با این کلیدها:
 headline_fa (رشته)، summary_fa (رشته)، what_happened_fa (رشته)، why_it_matters_fa (رشته)،
 facts_fa (فهرست رشته)، uncertainties_fa (فهرست رشته)، agreements_fa (فهرست رشته)،
 disagreements_fa (فهرست رشته)،
-source_views (فهرستی از اشیاء با کلیدهای source_name، stance یکی از agree/disagree/neutral، viewpoint_fa)،
+source_views (فهرستی از اشیاء با کلیدهای source_name، stance یکی از agree/disagree/neutral، viewpoint_fa)،\nperson_statements (فهرستی از اشیاء با کلیدهای person_name_fa، role_fa، statement_fa، source_name، direct_quote)،
 iran_relevance (یکی از high/medium/low/none)، confidence (عدد بین ۰ و ۱).
 """
 
@@ -59,7 +65,7 @@ def output_schema_hint() -> str:
             "what_happened_fa": "…", "why_it_matters_fa": "…",
             "facts_fa": ["…"], "uncertainties_fa": ["…"],
             "agreements_fa": ["…"], "disagreements_fa": ["…"],
-            "source_views": [{"source_name": "…", "stance": "neutral", "viewpoint_fa": "…"}],
+            "source_views": [{"source_name": "…", "stance": "neutral", "viewpoint_fa": "…"}],\n            "person_statements": [{"person_name_fa": "…", "role_fa": "…", "statement_fa": "…", "source_name": "…", "direct_quote": False}],
             "iran_relevance": "none", "confidence": 0.5,
         },
         ensure_ascii=False,
