@@ -28,8 +28,8 @@ class Figure:
     # youtube|facebook. The Telegram channel link is added automatically — don't
     # repeat it here. Only add links we have actually verified.
     social: tuple[tuple[str, str], ...] = ()
-    bale: str | None = None  # verified public Bale channel handle (without @)
     gender: str = "m"  # "m" | "f" — used for balance / future comparison stats
+    bale: str | None = None  # verified public Bale channel handle (without @)  # "m" | "f" — used for balance / future comparison stats
 
 
 FIGURES: list[Figure] = [
