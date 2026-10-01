@@ -102,4 +102,26 @@ def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
         f["posts"] = combined[:per_figure]
         f["count"] = len(combined)
 
+    # Cross-link statements conservatively when the text explicitly names another
+    # indexed person. We call these "related exchanges", not a verified reply,
+    # unless the source text itself contains reply/response language.
+    all_people = [x for x in figures if not _profile_blocked(x.get("name_fa", ""))]
+    reply_words = ("پاسخ", "جواب", "واکنش", "در واکنش", "خطاب به")
+    for person in all_people:
+        for post in person.get("posts", []):
+            text = _norm_name(post.get("summary_fa", ""))
+            rel = []
+            for other in all_people:
+                if other.get("handle") == person.get("handle"):
+                    continue
+                other_name = _norm_name(other.get("name_fa", ""))
+                if other_name and other_name in text:
+                    rel.append({
+                        "handle": other.get("handle"),
+                        "name_fa": other.get("name_fa"),
+                        "relation": "response" if any(w in text for w in reply_words) else "mentions",
+                    })
+            if rel:
+                post["related_people"] = rel[:6]
+
     return index
