@@ -43,7 +43,7 @@ function show(v) {
     document.getElementById(id).style.display = key === v ? "block" : "none";
   window.scrollTo({ top: 0, behavior: "instant" });
 }
-function showFeed() { show("feed"); setTab("feed"); setHash(""); renderFigureTimeline(); }
+function showFeed() { show("feed"); setTab("feed"); setHash(""); }
 function showTopics() { show("topics"); setTab("topics"); renderTopics(); setHash("#/topics"); }
 function showTrends() { show("trends"); setTab("trends"); renderTrends(); setHash("#/trends"); }
 function showFactchecks() { show("factchecks"); setTab("factchecks"); renderFactchecks(); setHash("#/fact"); }
@@ -244,7 +244,6 @@ async function loadFeed() {
   try {
     ALL = await getJSON(`${DATA}/stories.json`);
     renderFeed();
-    renderFigureTimeline();
     renderDayChips();
     updateFreshness();
   } catch (e) {
@@ -1163,7 +1162,8 @@ async function loadFigures() {
   try { _FIG = await getJSON(`${DATA}/figures.json`); } catch (e) { _FIG = { figures: [], fields: {} }; }
   return _FIG;
 }
-function showFigures() { show("figures"); setTab(""); renderFigures(); setHash("#/figures"); }
+function showFigures() { show("figures"); setTab(""); document.getElementById("figures-lede").style.display = ""; document.getElementById("figures").innerHTML = ""; renderFigureTimeline(); setHash("#/figures"); }
+function renderFiguresDirectory() { document.getElementById("figure-timeline").innerHTML = ""; renderFigures(); }
 async function renderFigures() {
   document.getElementById("figures-lede").style.display = "";
   const el = document.getElementById("figures");
