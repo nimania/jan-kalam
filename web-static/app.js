@@ -870,11 +870,10 @@ async function renderHomeMajra() {
       const image = story && story.image_url
         ? `<img loading="lazy" src="${esc(story.image_url)}" alt="" onerror="this.parentElement.classList.add('no-img');this.remove()">`
         : "";
-      const latestHeadline = story && story.headline_fa ? story.headline_fa : "";
-      const latestWords = latestHeadline.trim().split(/\\s+/).filter(Boolean).slice(0, 5).join(" ");
+      const latestHeadline = story && story.headline_fa ? story.headline_fa : (tp.name_fa || tp.slug);
       return `<button class="hm-strip-card ${image ? "" : "no-img"}" onclick="openTrendDossier('${esc(tp.slug)}')">
         <span class="hm-strip-media">${image}</span>
-        <span class="hm-strip-copy"><strong>${esc(tp.name_fa || tp.slug)}</strong>${latestWords ? `<small>${esc(latestWords)}</small>` : ""}</span>
+        <span class="hm-strip-copy"><strong>${esc(latestHeadline)}</strong></span>
       </button>`;
     }).join("");
     section.style.display = "";
