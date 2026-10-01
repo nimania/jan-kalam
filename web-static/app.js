@@ -350,6 +350,16 @@ async function openStory(id) {
       <div class="c-body"><div class="c-src">${esc(c.source_name)}</div><div class="c-title">${esc(c.original_headline || "")}</div></div>
       <span class="c-time">${relTime(c.published_at)}</span>
       <span class="ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></span></a>`).join("");
+  const quotedPeople = (s.person_statements || []).length ? `
+    <div class="layers"><h3 class="section-h">چه کسانی در این خبر حرف زده‌اند <span class="n">گفتهٔ شخص، با لینک منبع</span></h3>
+      <div class="views">${(s.person_statements || []).map(q => `<div class="view fig-view">
+        <div class="v-h"><button class="fig-profile-link v-name" onclick="openFigureByName('${esc(q.person_name_fa)}')">${esc(q.person_name_fa)}</button>
+          <span class="fig-role">${esc(q.role_fa || "")}</span></div>
+        <p>${esc(q.statement_fa || "")}</p>
+        <div class="fig-foot"><span class="muted">${q.direct_quote ? "نقل‌قول مستقیم" : "گفته در گزارش"}</span>
+          <a href="${esc(q.article_url)}" target="_blank" rel="noopener">منبع · ${esc(q.source_name)} ↗</a></div>
+      </div>`).join("")}</div>
+    </div>` : "";
   const known = (s.facts && s.facts.length) || (s.uncertainties && s.uncertainties.length) ? `
     <div class="layers"><h3 class="section-h">واقعیت در برابر ابهام</h3><div class="know">
       <div class="panel fact"><div class="p-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> آنچه معلوم است</div><ul>${li(s.facts)}</ul></div>
@@ -1072,6 +1082,7 @@ function socialLinks(links) {
 .fig-follow{font:inherit;font-size:12px;border:1px solid rgba(143,168,155,.35);border-radius:999px;background:transparent;color:#8fa89b;padding:4px 9px;cursor:pointer;white-space:nowrap}
 .fig-follow.on{color:#e0b341;border-color:rgba(224,179,65,.5);background:rgba(224,179,65,.08)}
 .fig-follow.compact{font-size:11px;padding:3px 7px}
+.news-statement-tag{display:inline-block;margin:9px 0 0;font-size:12px;color:#8fa89b;background:rgba(143,168,155,.10);border-radius:999px;padding:3px 9px}
 @media(max-width:600px){.home-fig-card{padding:14px}.home-fig-card .v-h{align-items:flex-start}.home-fig-card .muted{font-size:11px}}`;
   document.head.appendChild(st);
 })();
@@ -1085,7 +1096,7 @@ function figureCard(p, withName) {
   return `<div class="view fig-view">${head}
     <p>${esc(p.summary_fa || "")}</p>
     <div class="fig-foot"><span class="muted">${relTime(p.published_at)}</span>
-      <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a></div></div>`;
+      <a href="${esc(p.url)}" target="_blank" rel="noopener">${p.kind === "news_statement" ? "منبع این گفته" : "متن کامل در " + (String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام")} ↗</a></div></div>`;
 }
 const FIG_FOLLOW_KEY = "jankalam-figure-follows";
 let _figTimelineMode = "all";
@@ -1146,7 +1157,7 @@ async function renderFigureTimeline() {
       <a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a>
       <span class="fig-role">${esc(p.role_fa)}${p.field_fa ? " · " + esc(p.field_fa) : ""}</span>
     </div><span class="spacer" style="flex:1"></span>${figureFollowBtn(p.handle,true)}<span class="muted">${relTime(p.published_at)}</span></div>
-    ${p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : ""}
+    ${p.kind === "news_statement" ? `<div class="news-statement-tag">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : (p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : "")}
     <p class="kalam">${esc(p.summary_fa || "")}</p>
     <div class="fig-foot">
       <button class="fig-profile-link" onclick="openFigure('${esc(p.handle)}')">پروفایل و دیدگاه‌های بیشتر</button>
@@ -1159,7 +1170,7 @@ function figuresSection(list) {
   if (!list || !list.length) return "";
   return `<div class="layers"><h3 class="section-h">چهره‌ها چه می‌گویند <span class="n">دیدگاه شخصی — نه واقعیتِ خبر</span></h3>
     <div class="views">${list.map(p => figureCard(p, true)).join("")}</div>
-    <p class="muted fig-note">خلاصه‌ها را هوش مصنوعی از پست‌های عمومی تلگرام و بلهٔ خودِ این افراد نوشته؛ برای دقیق‌ترین روایت، متن کامل را بخوانید.
+    <p class="muted fig-note">دیدگاه‌های مستقیم از کانال‌های عمومی خود افراد و «گفته در خبر» از منابع خبری جدا برچسب می‌خورند؛ لینک هر مورد به منبع همان گفته می‌رود.
       <a href="#/figures" onclick="event.preventDefault();showFigures()">همهٔ چهره‌ها</a></p></div>`;
 }
 let _FIG = null;
@@ -1177,7 +1188,7 @@ async function renderFigures() {
   const d = await loadFigures();
   const order = Object.keys(d.fields || {});
   el.innerHTML = order.map(f => {
-    const people = (d.figures || []).filter(x => x.field === f);
+    const people = (d.figures || []).filter(x => x.field === f && x.directory !== false);
     if (!people.length) return "";
     return `<div class="rule"><span>${esc(d.fields[f])}</span><span class="l"></span></div>
       <div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="openFigure('${esc(x.handle)}')">
@@ -1185,6 +1196,12 @@ async function renderFigures() {
         <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa)}</span>
         <span class="fp-count">${x.count ? faN(x.count) + " دیدگاه در هفتهٔ اخیر" : "دیدگاهِ تازه‌ای نیست"}</span></span></button>`).join("")}</div>`;
   }).join("") || `<div class="state"><div class="big">هنوز دیدگاهی جمع نشده</div></div>`;
+}
+async function openFigureByName(name) {
+  const d = await loadFigures();
+  const norm = s => String(s || "").replace(/‌/g, " ").replace(/\s+/g, " ").trim();
+  const x = (d.figures || []).find(f => norm(f.name_fa) === norm(name));
+  if (x) return openFigure(x.handle);
 }
 async function openFigure(handle) {
   setHash("#/figure/" + handle);
@@ -1198,5 +1215,5 @@ async function openFigure(handle) {
   el.innerHTML = `<button class="back" onclick="showFigures()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> همهٔ چهره‌ها</button>
     <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${figureFollowBtn(x.handle,false)}${socialLinks(x.social)}</div></div>
     <div class="views">${x.posts.length ? x.posts.map(p => figureCard(p, false)).join("") : '<p class="muted">در هفتهٔ اخیر دیدگاهِ تازه‌ای ثبت نشده.</p>'}</div>
-    <p class="muted fig-note">فقط تحلیل‌ها و نظرهای خودِ این شخص نمایش داده می‌شود؛ بازنشرِ خبر، تبلیغ و حاشیه کنار گذاشته می‌شود. خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
+    <p class="muted fig-note">این صفحه دیدگاه‌های مستقیم شخص و گفته‌های منتسب به او در خبرها را جداگانه نشان می‌دهد. هر «گفته در خبر» به مقاله‌ای که آن را منتشر کرده لینک دارد؛ خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
 }

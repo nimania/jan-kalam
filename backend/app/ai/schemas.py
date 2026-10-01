@@ -20,6 +20,15 @@ class SourceViewItem(BaseModel):
     viewpoint_fa: str = Field(min_length=1)
 
 
+class PersonStatementItem(BaseModel):
+    """A statement attributable to a named person in one supplied article."""
+    person_name_fa: str = Field(min_length=2, max_length=200)
+    role_fa: str = Field(default="", max_length=300)
+    statement_fa: str = Field(min_length=3)
+    source_name: str = Field(min_length=1, max_length=200)
+    direct_quote: bool = False
+
+
 class JanKalamOutput(BaseModel):
     """One story's full synthesized output, four layers kept separate."""
 
@@ -34,6 +43,7 @@ class JanKalamOutput(BaseModel):
     disagreements_fa: list[str] = Field(default_factory=list)
 
     source_views: list[SourceViewItem] = Field(default_factory=list)
+    person_statements: list[PersonStatementItem] = Field(default_factory=list)
 
     iran_relevance: IranRel = "none"
     confidence: float = Field(ge=0.0, le=1.0)
