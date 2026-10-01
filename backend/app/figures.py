@@ -84,6 +84,8 @@ FIGURES: list[Figure] = [
     Figure("dr_bokharaei", "احمد بخارایی", "جامعه‌شناس", "society"),
     Figure("drsiminkazemi", "سیمین کاظمی", "پزشک و جامعه‌شناس", "society", (), "f"),
     Figure("hamidrezajalaeipour", "حمیدرضا جلایی‌پور", "جامعه‌شناس سیاسی", "society"),
+    Figure("jalaeipour", "محمدرضا جلایی‌پور", "جامعه‌شناس و پژوهشگر سیاست‌گذاری اجتماعی", "society",
+           (("instagram", "https://instagram.com/m.jalaeipour"),)),
     Figure("mostafamehraeen", "مصطفی مهرآیین", "جامعه‌شناس و پژوهشگر فرهنگ", "society"),
     Figure("DrNematallahFazeli", "نعمت‌الله فاضلی", "انسان‌شناس و پژوهشگر مطالعات فرهنگی", "society"),
     Figure("Renani_Mohsen", "محسن رنانی", "اقتصاددان و پژوهشگر توسعه", "society",
