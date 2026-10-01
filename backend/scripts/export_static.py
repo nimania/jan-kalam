@@ -27,6 +27,7 @@ from app.db.session import SessionLocal
 from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
 from app import figure_posts as figure_svc
+from app.news_people import merge_news_people
 from app.figure_assets import export_avatars
 from app.geo import countries as countries_svc
 from app.geo import service as geo_svc
@@ -394,8 +395,9 @@ def run() -> None:
     trends["google"] = gt_svc.fetch([(e["slug"], e["name_fa"]) for e in series[:5]])
     _write(os.path.join(DATA, "trends.json"), trends)
 
-    _write(os.path.join(DATA, "figures.json"),
-           figure_svc.figures_index(fig_posts, avatars=fig_avatars))
+    figure_index = figure_svc.figures_index(fig_posts, avatars=fig_avatars)
+    figure_index = merge_news_people(figure_index, db, now=now)
+    _write(os.path.join(DATA, "figures.json"), figure_index)
     _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
