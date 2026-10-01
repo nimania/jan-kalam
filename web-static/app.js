@@ -1072,6 +1072,7 @@ function socialLinks(links) {
 .fig-follow{font:inherit;font-size:12px;border:1px solid rgba(143,168,155,.35);border-radius:999px;background:transparent;color:#8fa89b;padding:4px 9px;cursor:pointer;white-space:nowrap}
 .fig-follow.on{color:#e0b341;border-color:rgba(224,179,65,.5);background:rgba(224,179,65,.08)}
 .fig-follow.compact{font-size:11px;padding:3px 7px}
+.news-statement-tag{display:inline-block;margin:9px 0 0;font-size:12px;color:#8fa89b;background:rgba(143,168,155,.10);border-radius:999px;padding:3px 9px}
 @media(max-width:600px){.home-fig-card{padding:14px}.home-fig-card .v-h{align-items:flex-start}.home-fig-card .muted{font-size:11px}}`;
   document.head.appendChild(st);
 })();
@@ -1085,7 +1086,7 @@ function figureCard(p, withName) {
   return `<div class="view fig-view">${head}
     <p>${esc(p.summary_fa || "")}</p>
     <div class="fig-foot"><span class="muted">${relTime(p.published_at)}</span>
-      <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a></div></div>`;
+      <a href="${esc(p.url)}" target="_blank" rel="noopener">${p.kind === "news_statement" ? "منبع این گفته" : "متن کامل در " + (String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام")} ↗</a></div></div>`;
 }
 const FIG_FOLLOW_KEY = "jankalam-figure-follows";
 let _figTimelineMode = "all";
@@ -1177,7 +1178,7 @@ async function renderFigures() {
   const d = await loadFigures();
   const order = Object.keys(d.fields || {});
   el.innerHTML = order.map(f => {
-    const people = (d.figures || []).filter(x => x.field === f);
+    const people = (d.figures || []).filter(x => x.field === f && x.directory !== false);
     if (!people.length) return "";
     return `<div class="rule"><span>${esc(d.fields[f])}</span><span class="l"></span></div>
       <div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="openFigure('${esc(x.handle)}')">
