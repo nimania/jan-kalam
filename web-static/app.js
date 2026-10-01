@@ -1114,7 +1114,7 @@ function figureCard(p, withName) {
   const party = p.kind === "party_claim"
     ? `<span class="cstatus st-warn" title="این شخص خودش طرفِ این ماجراست">${KIND_NOTE.party_claim}</span>` : "";
   const head = withName
-    ? `<div class="v-h">${avatar(p, "sm")}<div class="fig-id"><a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a><span class="fig-role">${esc(p.role_fa)}</span></div><span class="spacer" style="flex:1"></span>${party}</div>`
+    ? `<div class="v-h">${avatar(p, "sm")}<div class="fig-id"><a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();${p._newsPerson ? "openNewsPerson" : "openFigure"}('${esc(p.handle)}')">${esc(p.name_fa)}</a><span class="fig-role">${esc(p.role_fa)}</span></div><span class="spacer" style="flex:1"></span>${party}</div>`
     : `<div class="v-h"><span class="fig-topic">${esc(p.topic_fa || "")}</span><span class="spacer" style="flex:1"></span>${party}</div>`;
   return `<div class="view fig-view">${head}
     <p>${esc(p.summary_fa || "")}</p>
@@ -1146,24 +1146,28 @@ function setFigureTimelineField(field) { _figTimelineField = field; renderFigure
 async function renderFigureTimeline() {
   const el = document.getElementById("figure-timeline");
   if (!el) return;
-  const d = await loadFigures();
+  const [direct, news] = await Promise.all([loadFigures(), loadNewsPeople()]);
+  const isNewsMode = _figTimelineMode === "news";
+  const d = isNewsMode ? news : direct;
   const fields = d.fields || {};
   let posts = (d.figures || []).flatMap(f => (f.posts || []).map(p => ({
     ...p, field: f.field,
     name_fa: p.name_fa || f.name_fa,
     role_fa: p.role_fa || f.role_fa,
     field_fa: f.field_fa || fields[f.field] || "",
-    avatar: p.avatar || f.avatar
+    avatar: p.avatar || f.avatar,
+    _newsPerson: isNewsMode
   }))).sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
   const follows = figureFollows();
   if (_figTimelineMode === "following") posts = posts.filter(p => follows.has(String(p.handle).toLowerCase()));
-  if (_figTimelineField !== "all") posts = posts.filter(p => p.field === _figTimelineField);
+  if (_figTimelineField !== "all" && !isNewsMode) posts = posts.filter(p => p.field === _figTimelineField);
   const controls = `<div class="fig-tl-controls">
     <div class="imp-filter">
       <button class="fchip ${_figTimelineMode === "all" ? "on" : ""}" onclick="setFigureTimelineMode('all')">همه</button>
       <button class="fchip ${_figTimelineMode === "following" ? "on" : ""}" onclick="setFigureTimelineMode('following')">★ دنبال‌شده‌ها ${follows.size ? '<span class="chip-n">'+faN(follows.size)+'</span>' : ""}</button>
+      <button class="fchip ${_figTimelineMode === "news" ? "on" : ""}" onclick="setFigureTimelineMode('news')">چهره‌های خبر</button>
     </div>
-    <select class="fig-field-select" onchange="setFigureTimelineField(this.value)" aria-label="فیلتر حوزه">
+    <select class="fig-field-select" onchange="setFigureTimelineField(this.value)" aria-label="فیلتر حوزه" ${isNewsMode ? "disabled" : ""}>
       <option value="all">همهٔ حوزه‌ها</option>
       ${Object.entries(fields).map(([k,v]) => `<option value="${esc(k)}" ${_figTimelineField===k?"selected":""}>${esc(v)}</option>`).join("")}
     </select>
@@ -1183,7 +1187,7 @@ async function renderFigureTimeline() {
     ${p.kind === "news_statement" ? `<div class="news-statement-tag">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : (p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : "")}
     <p class="kalam">${esc(p.summary_fa || "")}</p>
     <div class="fig-foot">
-      <button class="fig-profile-link" onclick="openFigure('${esc(p.handle)}')">پروفایل و دیدگاه‌های بیشتر</button>
+      <button class="fig-profile-link" onclick="${p._newsPerson ? "openNewsPerson" : "openFigure"}('${esc(p.handle)}')">پروفایل و دیدگاه‌های بیشتر</button>
       <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a>
     </div>
   </article>`).join("");
