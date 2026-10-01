@@ -629,3 +629,10 @@
 .tech-row{display:grid;grid-template-columns:145px 1fr;gap:14px;padding:13px 0;border-bottom:1px solid var(--line);font-size:13.5px}.tech-row:last-child{border-bottom:0}.tech-row b{color:var(--ink)}.tech-row span{color:var(--ink-soft)}
 .site-footer{margin:34px 0 64px;padding:18px 0;border-top:1px solid var(--line)}.site-footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.site-footer p{margin:0}.footer-links{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.footer-links button,.footer-links a{border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--ink-faint);cursor:pointer}.footer-links button:hover,.footer-links a:hover{color:var(--accent)}
 @media(max-width:600px){.tech-grid{grid-template-columns:1fr}.tech-row{grid-template-columns:1fr;gap:3px}.site-footer{margin-bottom:74px}}
+
+/* Jan-e Majra — topic dossier assembled from independent story clusters */
+.trend-dossier{margin:8px 0 22px}
+.trend-dossier .kalam{font-size:1.08rem;line-height:2;max-width:850px}
+.trend-dossier-stats{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0 24px}
+.trend-dossier-stats span{border:1px solid var(--line);border-radius:14px;padding:9px 14px;background:var(--card)}
+.trend-dossier-stats b{font-size:1.15rem;margin-inline-end:4px}
