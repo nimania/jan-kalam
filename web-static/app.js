@@ -43,7 +43,7 @@ function show(v) {
     document.getElementById(id).style.display = key === v ? "block" : "none";
   window.scrollTo({ top: 0, behavior: "instant" });
 }
-function showFeed() { show("feed"); setTab("feed"); setHash(""); }
+function showFeed() { show("feed"); setTab("feed"); setHash(""); renderFigureTimeline(); }
 function showTopics() { show("topics"); setTab("topics"); renderTopics(); setHash("#/topics"); }
 function showTrends() { show("trends"); setTab("trends"); renderTrends(); setHash("#/trends"); }
 function showFactchecks() { show("factchecks"); setTab("factchecks"); renderFactchecks(); setHash("#/fact"); }
@@ -244,6 +244,7 @@ async function loadFeed() {
   try {
     ALL = await getJSON(`${DATA}/stories.json`);
     renderFeed();
+    renderFigureTimeline();
     renderDayChips();
     updateFreshness();
   } catch (e) {
@@ -1050,6 +1051,20 @@ function socialLinks(links) {
   return `<div class="fig-social">${links.map(l => `<a href="${esc(l.url)}" target="_blank" rel="noopener" title="${esc(l.label)}" aria-label="${esc(l.label)}">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">${SOCIAL_ICON[l.kind] || SOCIAL_ICON.website}</svg><span>${esc(l.label)}</span></a>`).join("")}</div>`;
 }
+(function () {
+  const st = document.createElement("style");
+  st.textContent = `.figure-timeline{display:flex;flex-direction:column;gap:12px;margin:8px 0 24px}
+.home-fig-card{padding:16px 18px;border:1px solid rgba(143,168,155,.22);border-radius:14px;background:rgba(26,157,126,.035)}
+.home-fig-card:hover{border-color:rgba(26,157,126,.5)}
+.home-fig-topic{font-size:17px;line-height:1.6;margin:10px 0 3px}
+.home-fig-card .kalam{margin:0 0 10px;line-height:1.9}
+.home-fig-card .fig-foot{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.fig-profile-link{border:0;background:none;padding:0;color:#1a9d7e;font:inherit;cursor:pointer}
+.fig-profile-link:hover{text-decoration:underline}
+@media(max-width:600px){.home-fig-card{padding:14px}.home-fig-card .v-h{align-items:flex-start}.home-fig-card .muted{font-size:11px}}`;
+  document.head.appendChild(st);
+})();
+
 function figureCard(p, withName) {
   const party = p.kind === "party_claim"
     ? `<span class="cstatus st-warn" title="این شخص خودش طرفِ این ماجراست">${KIND_NOTE.party_claim}</span>` : "";
@@ -1061,6 +1076,35 @@ function figureCard(p, withName) {
     <div class="fig-foot"><span class="muted">${relTime(p.published_at)}</span>
       <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a></div></div>`;
 }
+async function renderFigureTimeline() {
+  const el = document.getElementById("figure-timeline");
+  if (!el) return;
+  const d = await loadFigures();
+  const posts = (d.figures || []).flatMap(f => (f.posts || []).map(p => ({
+    ...p,
+    name_fa: p.name_fa || f.name_fa,
+    role_fa: p.role_fa || f.role_fa,
+    field_fa: f.field_fa || (d.fields || {})[f.field] || "",
+    avatar: p.avatar || f.avatar
+  }))).sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
+  if (!posts.length) {
+    el.innerHTML = '<div class="state"><div class="big">هنوز دیدگاه تازه‌ای ثبت نشده</div></div>';
+    return;
+  }
+  el.innerHTML = posts.slice(0, 40).map(p => `<article class="home-fig-card">
+    <div class="v-h">${avatar(p, "sm")}<div class="fig-id">
+      <a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a>
+      <span class="fig-role">${esc(p.role_fa)}${p.field_fa ? " · " + esc(p.field_fa) : ""}</span>
+    </div><span class="spacer" style="flex:1"></span><span class="muted">${relTime(p.published_at)}</span></div>
+    ${p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : ""}
+    <p class="kalam">${esc(p.summary_fa || "")}</p>
+    <div class="fig-foot">
+      <button class="fig-profile-link" onclick="openFigure('${esc(p.handle)}')">پروفایل و دیدگاه‌های بیشتر</button>
+      <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a>
+    </div>
+  </article>`).join("");
+}
+
 function figuresSection(list) {
   if (!list || !list.length) return "";
   return `<div class="layers"><h3 class="section-h">چهره‌ها چه می‌گویند <span class="n">دیدگاه شخصی — نه واقعیتِ خبر</span></h3>
