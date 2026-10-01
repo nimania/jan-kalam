@@ -240,6 +240,49 @@ li a{{color:#dce8e1;font-size:17px}}
 """
 
 
+
+def _person_page(person: dict, *, news: bool = False) -> str:
+    e = html.escape
+    handle = str(person.get("handle") or "")
+    name = person.get("name_fa") or ""
+    kind = "news-person" if news else "figure"
+    label = "گفته‌ها در خبر" if news else "دیدگاه‌ها"
+    url = f"{SITE}/person/{handle}/"
+    app_url = f"{SITE}/#/{kind}/{handle}"
+    posts = person.get("posts") or []
+    items = "".join(
+        f'<li><a href="{SITE}/statement/{str(p.get("id") or "").replace(":", "-")}/">{e(_clip(p.get("summary_fa") or p.get("topic_fa") or "گفته", 120))}</a></li>'
+        for p in posts)
+    return f"""<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(name)} — جان‌کلام</title>
+<meta name="description" content="{e(label)}ی {e(name)} در جان‌کلام"><link rel="canonical" href="{e(url)}">
+<meta property="og:type" content="profile"><meta property="og:title" content="{e(name)} — جان‌کلام">
+<meta property="og:url" content="{e(url)}"><meta name="theme-color" content="#155a4f">
+<style>body{{margin:0;background:#0f1512;color:#e8efe9;font-family:Vazirmatn,system-ui,sans-serif;line-height:1.9}}.wrap{{max-width:680px;margin:auto;padding:28px 20px}}a{{color:#3ec99f;text-decoration:none}}.meta{{color:#8fa89b}}li{{padding:12px 0;border-bottom:1px solid #24352d}}.cta{{display:inline-block;margin-top:20px;padding:10px 16px;border-radius:10px;background:#1a9d7e;color:#04120d;font-weight:700}}</style>
+</head><body><div class="wrap"><a href="{SITE}/">جان‌کلام</a><h1>{e(name)}</h1>
+<p class="meta">{e(person.get("role_fa") or "")} · {label}</p><ul>{items}</ul>
+<a class="cta" href="{e(app_url)}">باز کردن پروفایل کامل</a></div></body></html>"""
+
+
+def _statement_page(person: dict, post: dict, *, news: bool = False) -> str:
+    e = html.escape
+    sid = str(post.get("id") or "")
+    safe = sid.replace(":", "-")
+    name = person.get("name_fa") or ""
+    summary = post.get("summary_fa") or ""
+    url = f"{SITE}/statement/{safe}/"
+    app_url = f"{SITE}/#/statement/{sid}"
+    return f"""<!doctype html><html lang="fa" dir="rtl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{e(_clip(summary,80))} — {e(name)}</title>
+<meta name="description" content="{e(_clip(summary,180))}"><link rel="canonical" href="{e(url)}">
+<meta property="og:type" content="article"><meta property="og:title" content="{e(name)} — {'گفته در خبر' if news else 'دیدگاه'}">
+<meta property="og:description" content="{e(_clip(summary,180))}"><meta property="og:url" content="{e(url)}">
+<style>body{{margin:0;background:#0f1512;color:#e8efe9;font-family:Vazirmatn,system-ui,sans-serif;line-height:1.9}}.wrap{{max-width:680px;margin:auto;padding:28px 20px}}a{{color:#3ec99f}}.box{{margin:18px 0;padding:18px;border:1px solid #24352d;border-radius:14px;background:#16201b;font-size:18px}}.meta{{color:#8fa89b}}</style>
+</head><body><div class="wrap"><a href="{SITE}/person/{e(str(person.get('handle') or ''))}/">{e(name)}</a>
+<p class="meta">{'گفته در خبر' if news else 'دیدگاه'} · {e(post.get("source_name") or "")}</p><div class="box">{e(summary)}</div>
+<a href="{e(post.get("url") or app_url)}">منبع اصلی ↗</a> · <a href="{e(app_url)}">باز کردن در جان‌کلام</a></div></body></html>"""
+
+
 def _story_match_texts(detail: dict) -> list[str | None]:
     texts: list[str | None] = [detail.get("headline_fa"), detail.get("summary_fa")]
     for sv in detail.get("source_views", []):
@@ -448,6 +491,23 @@ def run() -> None:
                   if any(x["slug"] == ent["slug"] for x in c.get("entities", []))]
         _write_text(os.path.join(OUT, "e", ent["slug"], "index.html"), _entity_page(ent, ecards))
         urls.append(f"{SITE}/e/{ent['slug']}/")
+    # Permanent public pages for every commentator/news person and every statement.
+    for is_news, idx in ((False, figure_index), (True, news_people_index)):
+        for person in idx.get("figures", []):
+            handle = str(person.get("handle") or "")
+            if not handle:
+                continue
+            _write_text(os.path.join(OUT, "person", handle, "index.html"),
+                        _person_page(person, news=is_news))
+            urls.append(f"{SITE}/person/{handle}/")
+            for post in person.get("posts", []):
+                sid = str(post.get("id") or "")
+                if not sid:
+                    continue
+                safe_sid = sid.replace(":", "-")
+                _write_text(os.path.join(OUT, "statement", safe_sid, "index.html"),
+                            _statement_page(person, post, news=is_news))
+                urls.append(f"{SITE}/statement/{safe_sid}/")
     sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                + "".join(f"  <url><loc>{u}</loc></url>\n" for u in urls)
