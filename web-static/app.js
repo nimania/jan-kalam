@@ -878,11 +878,51 @@ async function renderMarket() {
         <div class="p-val">$ ${faN(value)}</div>
         <div class="p-chg ${cls}">${arrow} ${faN(Math.abs(p.dp || 0))}٪ <span class="p-unit">۲۴ساعت</span></div></div>`;
     }).join("");
+    const fiatUnits = (prices || []).filter(p => ["دلار آمریکا","یورو","پوند","لیر ترکیه","درهم امارات"].includes(p.label_fa))
+      .map(p => ({ id: "fiat:" + p.label_fa, label: p.label_fa, toman: Number(p.value) }));
+    const usdToman = (fiatUnits.find(x => x.label === "دلار آمریکا") || {}).toman || 0;
+    const cryptoUnits = (crypto || []).filter(p => Number(p.value) > 0 && usdToman > 0)
+      .map(p => ({ id: "crypto:" + p.symbol, label: p.label_fa + " (" + p.symbol + ")", toman: Number(p.value) * usdToman }));
+    window.JK_MARKET_UNITS = [{id:"toman",label:"تومان",toman:1}, ...fiatUnits, ...cryptoUnits];
+
     el.innerHTML =
+      `<div class="rule"><span>تبدیل واحد مالی</span><span class="l"></span></div>
+       <div class="money-converter">
+         <div class="mc-field"><label>مقدار</label><input id="mc-amount" type="number" inputmode="decimal" min="0" step="any" value="1" oninput="convertMarketUnit()"></div>
+         <div class="mc-field"><label>از</label><select id="mc-from" onchange="convertMarketUnit()"></select></div>
+         <button class="mc-swap" onclick="swapMarketUnits()" aria-label="جابه‌جایی واحدها">⇄</button>
+         <div class="mc-field"><label>به</label><select id="mc-to" onchange="convertMarketUnit()"></select></div>
+         <div class="mc-result" id="mc-result">—</div>
+       </div>` +
       (priceRows ? `<div class="rule"><span>ارز و طلا</span><span class="l"></span></div><div class="price-grid">${priceRows}</div>` : "") +
       (cryptoRows ? `<div class="rule" style="margin-top:26px"><span>رمزارزها</span><span class="l"></span></div><div class="price-grid crypto-grid">${cryptoRows}</div>` : "") +
-      `<p class="muted" style="margin-top:14px">ارز و طلا: TGJU · رمزارزها: CoinGecko. تغییر رمزارزها مربوط به ۲۴ ساعت گذشته است؛ داده‌ها با هر به‌روزرسانی جان‌کلام تازه می‌شوند.</p>`;
+      `<p class="muted" style="margin-top:14px">ارز و طلا: TGJU · رمزارزها: CoinGecko. تبدیل‌ها تقریبی و بر اساس همین آخرین نرخ‌های ذخیره‌شده‌اند.</p>`;
+  setupMarketConverter();
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">بازار بارگذاری نشد</div></div>`; }
+}
+
+function setupMarketConverter() {
+  const units = window.JK_MARKET_UNITS || [], from = document.getElementById("mc-from"), to = document.getElementById("mc-to");
+  if (!from || !to || !units.length) return;
+  const opts = units.map(u => `<option value="${esc(u.id)}">${esc(u.label)}</option>`).join("");
+  from.innerHTML = opts; to.innerHTML = opts;
+  const usd = units.findIndex(u => u.label === "دلار آمریکا");
+  from.selectedIndex = usd >= 0 ? usd : 0; to.selectedIndex = 0;
+  convertMarketUnit();
+}
+function convertMarketUnit() {
+  const units = window.JK_MARKET_UNITS || [], amount = Number(document.getElementById("mc-amount")?.value || 0);
+  const from = units.find(u => u.id === document.getElementById("mc-from")?.value);
+  const to = units.find(u => u.id === document.getElementById("mc-to")?.value);
+  const out = document.getElementById("mc-result");
+  if (!out || !from || !to || !Number.isFinite(amount) || !to.toman) return;
+  const result = amount * from.toman / to.toman;
+  const digits = result < 0.01 ? 8 : result < 1 ? 6 : result < 100 ? 4 : 2;
+  out.innerHTML = `<b>${faN(amount.toLocaleString("en-US"))}</b> ${esc(from.label)} = <strong>${faN(result.toLocaleString("en-US",{maximumFractionDigits:digits}))}</strong> ${esc(to.label)}`;
+}
+function swapMarketUnits() {
+  const a=document.getElementById("mc-from"), b=document.getElementById("mc-to"); if(!a||!b)return;
+  const v=a.value; a.value=b.value; b.value=v; convertMarketUnit();
 }
 
 // weather — home strip (4 cities) + dedicated page
