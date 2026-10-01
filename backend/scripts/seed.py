@@ -27,6 +27,7 @@ from app.models.enums import (
     StoryStatus,
 )
 from app.models.source import Source
+from app.models.news_person_statement import NewsPersonStatement  # register table for create_all
 from app.models.story import SourceView, Statement, Story, StoryArticle
 from app.models.taxonomy import StoryTopic, Topic
 
