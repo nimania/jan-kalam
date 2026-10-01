@@ -402,9 +402,12 @@ def run() -> None:
     trends["google"] = gt_svc.fetch([(e["slug"], e["name_fa"]) for e in series[:5]])
     _write(os.path.join(DATA, "trends.json"), trends)
 
+    # Keep direct commentators and people discovered in news as separate products.
+    # The main figure timeline must never mix news-attributed statements into direct views.
     figure_index = figure_svc.figures_index(fig_posts, avatars=fig_avatars)
-    figure_index = merge_news_people(figure_index, db, now=now)
     _write(os.path.join(DATA, "figures.json"), figure_index)
+    news_people_index = merge_news_people({"figures": [], "fields": {}}, db, now=now)
+    _write(os.path.join(DATA, "news-people.json"), news_people_index)
     _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
