@@ -350,6 +350,16 @@ async function openStory(id) {
       <div class="c-body"><div class="c-src">${esc(c.source_name)}</div><div class="c-title">${esc(c.original_headline || "")}</div></div>
       <span class="c-time">${relTime(c.published_at)}</span>
       <span class="ext"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17 17 7M8 7h9v9"/></svg></span></a>`).join("");
+  const quotedPeople = (s.person_statements || []).length ? `
+    <div class="layers"><h3 class="section-h">چه کسانی در این خبر حرف زده‌اند <span class="n">گفتهٔ شخص، با لینک منبع</span></h3>
+      <div class="views">${(s.person_statements || []).map(q => `<div class="view fig-view">
+        <div class="v-h"><button class="fig-profile-link v-name" onclick="openFigureByName('${esc(q.person_name_fa)}')">${esc(q.person_name_fa)}</button>
+          <span class="fig-role">${esc(q.role_fa || "")}</span></div>
+        <p>${esc(q.statement_fa || "")}</p>
+        <div class="fig-foot"><span class="muted">${q.direct_quote ? "نقل‌قول مستقیم" : "گفته در گزارش"}</span>
+          <a href="${esc(q.article_url)}" target="_blank" rel="noopener">منبع · ${esc(q.source_name)} ↗</a></div>
+      </div>`).join("")}</div>
+    </div>` : "";
   const known = (s.facts && s.facts.length) || (s.uncertainties && s.uncertainties.length) ? `
     <div class="layers"><h3 class="section-h">واقعیت در برابر ابهام</h3><div class="know">
       <div class="panel fact"><div class="p-h"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6 9 17l-5-5"/></svg> آنچه معلوم است</div><ul>${li(s.facts)}</ul></div>
@@ -1186,6 +1196,12 @@ async function renderFigures() {
         <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa)}</span>
         <span class="fp-count">${x.count ? faN(x.count) + " دیدگاه در هفتهٔ اخیر" : "دیدگاهِ تازه‌ای نیست"}</span></span></button>`).join("")}</div>`;
   }).join("") || `<div class="state"><div class="big">هنوز دیدگاهی جمع نشده</div></div>`;
+}
+async function openFigureByName(name) {
+  const d = await loadFigures();
+  const norm = s => String(s || "").replace(/‌/g, " ").replace(/\s+/g, " ").trim();
+  const x = (d.figures || []).find(f => norm(f.name_fa) === norm(name));
+  if (x) return openFigure(x.handle);
 }
 async function openFigure(handle) {
   setHash("#/figure/" + handle);
