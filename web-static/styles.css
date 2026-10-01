@@ -650,3 +650,16 @@
 .mc-result{grid-column:1/-1;padding:13px 14px;border-radius:11px;background:rgba(26,157,126,.09);line-height:1.8}
 .mc-result strong{font-size:1.18rem}
 @media(max-width:620px){.money-converter{grid-template-columns:1fr 44px 1fr}.mc-field:first-child{grid-column:1/-1}.mc-result{grid-column:1/-1}}
+
+/* Keep the expanded utility header compact on phones. */
+@media(max-width:620px){
+  .top .wrap{gap:7px}
+  .top .icon-btn{width:34px;height:34px;border-radius:10px}
+  .top .icon-btn svg{width:17px;height:17px}
+  .brand .tag{display:none}
+}
+@media(max-width:420px){
+  .top .wrap{gap:5px}
+  .top .icon-btn{width:32px;height:32px}
+  .brand .logo{font-size:24px}
+}
