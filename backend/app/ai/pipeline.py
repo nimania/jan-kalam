@@ -24,6 +24,8 @@ from app.models.story import SourceView, Statement, Story, StoryArticle
 from app.models.news_person_statement import NewsPersonStatement
 from app.models.usage_log import UsageLog
 
+NEWS_PEOPLE_BACKFILL_STAGE = "news_people_v1"
+
 logger = get_logger("ai.pipeline")
 
 
@@ -189,4 +191,43 @@ def synthesize_drafts(db: Session, *, limit: int = 20,
         "published": sum(1 for r in results if r.get("status") == "published"),
         "failed": sum(1 for r in results if r.get("status") in
                       ("validation_error", "provider_error")),
+    }
+
+
+def backfill_news_people(db: Session, *, limit: int = 8,
+                         provider: Provider | None = None) -> dict:
+    """Gradually re-synthesize published stories once for person attribution.
+
+    A marker is written even when a story contains no attributable person, so
+    zero-result stories are not charged again on every scheduled build.
+    """
+    provider = provider or get_provider()
+    if getattr(provider, "name", "") == "mock":
+        return {"processed": 0, "published": 0, "skipped": "no_ai_key"}
+    scanned = select(UsageLog.story_id).where(UsageLog.stage == NEWS_PEOPLE_BACKFILL_STAGE)
+    stories = db.execute(
+        select(Story)
+        .where(Story.status == StoryStatus.published)
+        .where(Story.id.not_in(scanned))
+        .options(selectinload(Story.article_links).selectinload(StoryArticle.article))
+        .order_by(Story.published_at.desc().nullslast())
+        .limit(limit)
+    ).scalars().unique().all()
+    results = []
+    for story in stories:
+        result = synthesize_story(db, story, provider=provider)
+        results.append(result)
+        # Mark only successful re-synthesis. Failed stories remain eligible for retry.
+        if result.get("status") == "published":
+            db.add(UsageLog(
+                story_id=story.id, stage=NEWS_PEOPLE_BACKFILL_STAGE,
+                provider="system", model="", prompt_tokens=0, completion_tokens=0,
+                cost_estimate=0.0, latency_ms=0, status="ok",
+                message="person attribution backfill complete",
+            ))
+            db.commit()
+    return {
+        "processed": len(results),
+        "published": sum(1 for r in results if r.get("status") == "published"),
+        "failed": sum(1 for r in results if r.get("status") != "published"),
     }
