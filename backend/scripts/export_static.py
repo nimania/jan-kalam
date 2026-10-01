@@ -450,7 +450,7 @@ def run() -> None:
     # The main figure timeline must never mix news-attributed statements into direct views.
     figure_index = figure_svc.figures_index(fig_posts, avatars=fig_avatars)
     _write(os.path.join(DATA, "figures.json"), figure_index)
-    news_people_index = merge_news_people({"figures": [], "fields": {}}, db, now=now)
+    news_people_index = merge_news_people({"figures": [], "fields": {}}, db, now=now, avatars=fig_avatars)
     _write(os.path.join(DATA, "news-people.json"), news_people_index)
     _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
