@@ -75,6 +75,7 @@ FIGURES: list[Figure] = [
            (("x", "https://x.com/IzadiFoad"),
             ("instagram", "https://instagram.com/izadifoad"))),
     Figure("rezanasrichannel", "رضا نصری", "حقوقدان بین‌المللی و تحلیلگر دیپلماسی", "foreign"),
+    Figure("covid_policy_dip", "کوروش احمدی", "دیپلمات بازنشسته و پژوهشگر روابط بین‌الملل", "foreign"),
 
     # ══════════════════════════════════════════════════════════════════════
     #  جامعه و اندیشهٔ اجتماعی
@@ -83,6 +84,10 @@ FIGURES: list[Figure] = [
     Figure("dr_bokharaei", "احمد بخارایی", "جامعه‌شناس", "society"),
     Figure("drsiminkazemi", "سیمین کاظمی", "پزشک و جامعه‌شناس", "society", (), "f"),
     Figure("hamidrezajalaeipour", "حمیدرضا جلایی‌پور", "جامعه‌شناس سیاسی", "society"),
+    Figure("jalaeipour", "محمدرضا جلایی‌پور", "جامعه‌شناس و پژوهشگر سیاست‌گذاری اجتماعی", "society",
+           (("instagram", "https://instagram.com/m.jalaeipour"),)),
+    Figure("mostafamehraeen", "مصطفی مهرآیین", "جامعه‌شناس و پژوهشگر فرهنگ", "society"),
+    Figure("DrNematallahFazeli", "نعمت‌الله فاضلی", "انسان‌شناس و پژوهشگر مطالعات فرهنگی", "society"),
     Figure("Renani_Mohsen", "محسن رنانی", "اقتصاددان و پژوهشگر توسعه", "society",
            (("website", "https://renani.net"),)),
 
@@ -96,6 +101,9 @@ FIGURES: list[Figure] = [
     Figure("MohammadTabibian", "محمد طبیبیان", "اقتصاددان و استاد دانشگاه", "economy"),
     Figure("economics_and_finance", "پویا ناظران", "اقتصاددان", "economy"),
     Figure("ahemmati", "عبدالناصر همتی", "اقتصاددان و رئیس سابق بانک مرکزی", "economy"),
+    Figure("Sadegh_Alhosseini", "صادق الحسینی", "پژوهشگر اقتصاد و سیاست‌گذاری", "economy",
+           (("x", "https://x.com/alhosseini"),
+            ("instagram", "https://instagram.com/sadegh_alhosseini"))),
     Figure("ali_sarzaeem", "علی سرزعیم", "اقتصاددان", "economy",
            (("website", "https://sarzaeem.ir"),)),
 
