@@ -1033,6 +1033,7 @@ updateMineBadge();
 const KIND_NOTE = { party_claim: "ادعای یکی از طرفین" };
 const SOCIAL_ICON = {
   telegram: '<path d="M21.5 4.5 2.5 11.8l5 1.6 1.9 5.6 2.7-3 4.5 3.3z" stroke-linejoin="round"/>',
+  bale: '<rect x="4" y="4" width="16" height="16" rx="5"/><path d="M8 8h5a3 3 0 0 1 0 6H8zm0 6h6a3 3 0 0 1 0 6" stroke-linejoin="round"/>',
   x: '<path d="M4 4l16 16M20 4L4 20" stroke-linecap="round"/>',
   instagram: '<rect x="4" y="4" width="16" height="16" rx="4.5"/><circle cx="12" cy="12" r="3.4"/><circle cx="17" cy="7" r="1" fill="currentColor" stroke="none"/>',
   youtube: '<rect x="3" y="6" width="18" height="12" rx="3.5"/><path d="M11 9.5l4 2.5-4 2.5z" fill="currentColor" stroke="none"/>',
@@ -1058,13 +1059,13 @@ function figureCard(p, withName) {
   return `<div class="view fig-view">${head}
     <p>${esc(p.summary_fa || "")}</p>
     <div class="fig-foot"><span class="muted">${relTime(p.published_at)}</span>
-      <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در تلگرام ↗</a></div></div>`;
+      <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a></div></div>`;
 }
 function figuresSection(list) {
   if (!list || !list.length) return "";
   return `<div class="layers"><h3 class="section-h">چهره‌ها چه می‌گویند <span class="n">دیدگاه شخصی — نه واقعیتِ خبر</span></h3>
     <div class="views">${list.map(p => figureCard(p, true)).join("")}</div>
-    <p class="muted fig-note">خلاصه‌ها را هوش مصنوعی از پست‌های تلگرامِ خودِ این افراد نوشته؛ برای دقیق‌ترین روایت، متن کامل را بخوانید.
+    <p class="muted fig-note">خلاصه‌ها را هوش مصنوعی از پست‌های عمومی تلگرام و بلهٔ خودِ این افراد نوشته؛ برای دقیق‌ترین روایت، متن کامل را بخوانید.
       <a href="#/figures" onclick="event.preventDefault();showFigures()">همهٔ چهره‌ها</a></p></div>`;
 }
 let _FIG = null;
