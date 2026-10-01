@@ -15,6 +15,16 @@ from app.core.logging import get_logger
 logger = get_logger("prices")
 
 URL = "https://call.tgju.org/ajax.json"
+CRYPTO_URL = "https://api.coingecko.com/api/v3/coins/markets"
+_CRYPTO = [
+    ("bitcoin", "بیت‌کوین", "BTC"),
+    ("ethereum", "اتریوم", "ETH"),
+    ("tether", "تتر", "USDT"),
+    ("binancecoin", "BNB", "BNB"),
+    ("solana", "سولانا", "SOL"),
+    ("ripple", "XRP", "XRP"),
+    ("dogecoin", "دوج‌کوین", "DOGE"),
+]
 
 # label, candidate keys (first present wins), unit, rial→toman?
 _ITEMS = [
@@ -74,3 +84,45 @@ def fetch_prices(timeout: float = 20.0) -> list[dict]:
         })
     logger.info("fetched %d price rows", len(out))
     return out
+
+
+def fetch_crypto_prices(timeout: float = 20.0) -> list[dict]:
+    """Top crypto reference prices in USD, with 24h change. Best-effort."""
+    wanted = {coin_id: (label, symbol) for coin_id, label, symbol in _CRYPTO}
+    try:
+        resp = httpx.get(
+            CRYPTO_URL,
+            params={
+                "vs_currency": "usd",
+                "ids": ",".join(wanted),
+                "price_change_percentage": "24h",
+                "sparkline": "false",
+            },
+            timeout=timeout,
+            headers={"user-agent": "JanKalam/1.0"},
+        )
+        resp.raise_for_status()
+        rows = resp.json()
+    except Exception as exc:
+        logger.warning("could not fetch crypto prices: %s", exc)
+        return []
+
+    found = {}
+    for row in rows if isinstance(rows, list) else []:
+        coin_id = row.get("id")
+        if coin_id not in wanted:
+            continue
+        label, symbol = wanted[coin_id]
+        price = _num(row.get("current_price"))
+        change = _num(row.get("price_change_percentage_24h"))
+        if price is None:
+            continue
+        found[coin_id] = {
+            "id": coin_id, "label_fa": label, "symbol": symbol,
+            "value": price, "unit_fa": "دلار",
+            "dp": round(change or 0, 2),
+            "dir": "up" if (change or 0) > 0 else "down" if (change or 0) < 0 else "flat",
+            "market_cap": row.get("market_cap"),
+            "volume_24h": row.get("total_volume"),
+        }
+    return [found[x[0]] for x in _CRYPTO if x[0] in found]
