@@ -641,3 +641,12 @@
 .p-symbol{font-size:.72em;opacity:.58;font-weight:600;direction:ltr;display:inline-block;margin-inline-start:5px}
 .crypto-price .p-val{direction:ltr;text-align:right}
 .crypto-price .p-chg .p-unit{font-size:.72em;opacity:.65;margin-inline-start:4px}
+
+/* Market financial unit converter */
+.money-converter{display:grid;grid-template-columns:1.2fr 1fr auto 1fr;gap:10px;align-items:end;padding:16px;margin:10px 0 24px;border:1px solid var(--line);border-radius:16px;background:var(--card)}
+.mc-field{display:flex;flex-direction:column;gap:6px}.mc-field label{font-size:.78rem;opacity:.65}
+.mc-field input,.mc-field select{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:inherit;padding:10px 11px;font:inherit}
+.mc-swap{height:43px;min-width:43px;border:1px solid var(--line);border-radius:11px;background:var(--bg);color:inherit;font-size:1.25rem;cursor:pointer}
+.mc-result{grid-column:1/-1;padding:13px 14px;border-radius:11px;background:rgba(26,157,126,.09);line-height:1.8}
+.mc-result strong{font-size:1.18rem}
+@media(max-width:620px){.money-converter{grid-template-columns:1fr 44px 1fr}.mc-field:first-child{grid-column:1/-1}.mc-result{grid-column:1/-1}}
