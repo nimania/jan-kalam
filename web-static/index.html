@@ -25,6 +25,9 @@
       <button class="icon-btn" onclick="showFigures()" aria-label="چهره‌ها" title="چهره‌ها — دیدگاه تحلیلگران">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" stroke-linecap="round"/><path d="M15.5 5.2a3 3 0 0 1 0 5.6M17.5 14.3c1.7.6 2.8 2.2 3.1 4.7" stroke-linecap="round"/></svg>
       </button>
+      <button class="icon-btn" onclick="showTech()" aria-label="فناوری و طراحی" title="فناوری و طراحی">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <button class="icon-btn" onclick="showFaq()" aria-label="راهنما" title="راهنما">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.5 0 1 1 3.3 2.4c-.8.3-1.3.9-1.3 1.7v.4M12 17h.01" stroke-linecap="round"/></svg>
       </button>
@@ -131,6 +134,15 @@
       <div id="figures"></div>
     </section>
 
+    <section class="trends-view" id="tech-view">
+      <div class="lede">
+        <span class="vf-badge">پشت صحنهٔ جان‌کلام</span>
+        <h1>فناوری و طراحی</h1>
+        <p>جان‌کلام چطور ساخته شده، داده‌ها از کجا می‌آیند و رابط فارسی آن از چه الگوهایی استفاده می‌کند.</p>
+      </div>
+      <div id="tech-content"></div>
+    </section>
+
     <section class="trends-view" id="faq-view">
       <div class="lede">
         <h1>راهنما — همه‌چیز چطور کار می‌کند</h1>
@@ -139,6 +151,13 @@
       <div class="faq" id="faq"></div>
     </section>
   </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>جان‌کلام · هوش خبری فارسی</p>
+      <div class="footer-links"><button onclick="showTech()">فناوری و طراحی</button><button onclick="showFaq()">روش کار</button><a href="https://vibefarsi.ir/" target="_blank" rel="noopener">VibeFarsi ↗</a></div>
+    </div>
+  </footer>
 
   <nav class="tabbar">
     <div class="inner">
