@@ -13,9 +13,20 @@ from app.models.news_person_statement import NewsPersonStatement
 
 _BY_NAME = {f.name_fa.replace("‌", " ").strip(): f for f in FIGURES}
 
+# Editorial hard block: never create a person/profile record for these names.
+# Matching is normalized and also covers names containing these tokens.
+_PROFILE_BLOCK_EXACT = {"خمینی", "خامنه‌ای", "خامنه ای", "سید علی خامنه‌ای", "سید علی خامنه ای",
+                        "سید مجتبی خامنه‌ای", "سید مجتبی خامنه ای", "پهلوی"}
+_PROFILE_BLOCK_TOKENS = ("خمینی", "خامنه", "پهلوی")
+
 
 def _norm_name(s: str) -> str:
     return " ".join((s or "").replace("‌", " ").split())
+
+
+def _profile_blocked(name: str) -> bool:
+    n = _norm_name(name)
+    return n in _PROFILE_BLOCK_EXACT or any(token in n for token in _PROFILE_BLOCK_TOKENS)
 
 
 def _quote_handle(name: str) -> str:
@@ -49,6 +60,8 @@ def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
         grouped[_norm_name(row.person_name_fa)].append(row)
 
     for name, items in grouped.items():
+        if _profile_blocked(name):
+            continue
         curated = _BY_NAME.get(name)
         handle = curated.handle if curated else _quote_handle(name)
         source_count = len({x.source_name for x in items})
