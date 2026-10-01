@@ -1061,6 +1061,12 @@ function socialLinks(links) {
 .home-fig-card .fig-foot{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .fig-profile-link{border:0;background:none;padding:0;color:#1a9d7e;font:inherit;cursor:pointer}
 .fig-profile-link:hover{text-decoration:underline}
+.fig-tl-controls{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin:0 0 12px}
+.fig-tl-controls .imp-filter{margin:0}
+.fig-field-select{font:inherit;color:inherit;background:transparent;border:1px solid rgba(143,168,155,.35);border-radius:999px;padding:6px 12px}
+.fig-follow{font:inherit;font-size:12px;border:1px solid rgba(143,168,155,.35);border-radius:999px;background:transparent;color:#8fa89b;padding:4px 9px;cursor:pointer;white-space:nowrap}
+.fig-follow.on{color:#e0b341;border-color:rgba(224,179,65,.5);background:rgba(224,179,65,.08)}
+.fig-follow.compact{font-size:11px;padding:3px 7px}
 @media(max-width:600px){.home-fig-card{padding:14px}.home-fig-card .v-h{align-items:flex-start}.home-fig-card .muted{font-size:11px}}`;
   document.head.appendChild(st);
 })();
@@ -1076,26 +1082,65 @@ function figureCard(p, withName) {
     <div class="fig-foot"><span class="muted">${relTime(p.published_at)}</span>
       <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a></div></div>`;
 }
+const FIG_FOLLOW_KEY = "jankalam-figure-follows";
+let _figTimelineMode = "all";
+let _figTimelineField = "all";
+function figureFollows() {
+  try { return new Set(JSON.parse(localStorage.getItem(FIG_FOLLOW_KEY) || "[]")); }
+  catch (e) { return new Set(); }
+}
+function isFigureFollowed(handle) { return figureFollows().has(String(handle).toLowerCase()); }
+function toggleFigureFollow(handle, ev) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
+  const key = String(handle).toLowerCase(), s = figureFollows();
+  s.has(key) ? s.delete(key) : s.add(key);
+  localStorage.setItem(FIG_FOLLOW_KEY, JSON.stringify([...s]));
+  renderFigureTimeline();
+  if (document.getElementById("figures-view").style.display === "block" && location.hash.startsWith("#/figure/")) openFigure(handle);
+}
+function figureFollowBtn(handle, compact) {
+  const on = isFigureFollowed(handle);
+  return `<button class="fig-follow ${on ? "on" : ""} ${compact ? "compact" : ""}" onclick="toggleFigureFollow('${esc(handle)}',event)" aria-label="${on ? "دنبال نکردن" : "دنبال کردن"}">${on ? "★ دنبال می‌کنم" : "☆ دنبال کن"}</button>`;
+}
+function setFigureTimelineMode(mode) { _figTimelineMode = mode; renderFigureTimeline(); }
+function setFigureTimelineField(field) { _figTimelineField = field; renderFigureTimeline(); }
 async function renderFigureTimeline() {
   const el = document.getElementById("figure-timeline");
   if (!el) return;
   const d = await loadFigures();
-  const posts = (d.figures || []).flatMap(f => (f.posts || []).map(p => ({
-    ...p,
+  const fields = d.fields || {};
+  let posts = (d.figures || []).flatMap(f => (f.posts || []).map(p => ({
+    ...p, field: f.field,
     name_fa: p.name_fa || f.name_fa,
     role_fa: p.role_fa || f.role_fa,
-    field_fa: f.field_fa || (d.fields || {})[f.field] || "",
+    field_fa: f.field_fa || fields[f.field] || "",
     avatar: p.avatar || f.avatar
   }))).sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
+  const follows = figureFollows();
+  if (_figTimelineMode === "following") posts = posts.filter(p => follows.has(String(p.handle).toLowerCase()));
+  if (_figTimelineField !== "all") posts = posts.filter(p => p.field === _figTimelineField);
+  const controls = `<div class="fig-tl-controls">
+    <div class="imp-filter">
+      <button class="fchip ${_figTimelineMode === "all" ? "on" : ""}" onclick="setFigureTimelineMode('all')">همه</button>
+      <button class="fchip ${_figTimelineMode === "following" ? "on" : ""}" onclick="setFigureTimelineMode('following')">★ دنبال‌شده‌ها ${follows.size ? '<span class="chip-n">'+faN(follows.size)+'</span>' : ""}</button>
+    </div>
+    <select class="fig-field-select" onchange="setFigureTimelineField(this.value)" aria-label="فیلتر حوزه">
+      <option value="all">همهٔ حوزه‌ها</option>
+      ${Object.entries(fields).map(([k,v]) => `<option value="${esc(k)}" ${_figTimelineField===k?"selected":""}>${esc(v)}</option>`).join("")}
+    </select>
+  </div>`;
   if (!posts.length) {
-    el.innerHTML = '<div class="state"><div class="big">هنوز دیدگاه تازه‌ای ثبت نشده</div></div>';
+    const msg = _figTimelineMode === "following" && !follows.size
+      ? "هنوز هیچ چهره‌ای را دنبال نکرده‌ای — روی ☆ کنار نام افراد بزن."
+      : "در این فیلتر دیدگاه تازه‌ای نیست.";
+    el.innerHTML = controls + `<div class="state"><div class="big">${msg}</div></div>`;
     return;
   }
-  el.innerHTML = posts.slice(0, 40).map(p => `<article class="home-fig-card">
+  el.innerHTML = controls + posts.slice(0, 40).map(p => `<article class="home-fig-card">
     <div class="v-h">${avatar(p, "sm")}<div class="fig-id">
       <a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a>
       <span class="fig-role">${esc(p.role_fa)}${p.field_fa ? " · " + esc(p.field_fa) : ""}</span>
-    </div><span class="spacer" style="flex:1"></span><span class="muted">${relTime(p.published_at)}</span></div>
+    </div><span class="spacer" style="flex:1"></span>${figureFollowBtn(p.handle,true)}<span class="muted">${relTime(p.published_at)}</span></div>
     ${p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : ""}
     <p class="kalam">${esc(p.summary_fa || "")}</p>
     <div class="fig-foot">
@@ -1145,7 +1190,7 @@ async function openFigure(handle) {
   const x = (d.figures || []).find(f => f.handle.toLowerCase() === String(handle).toLowerCase());
   if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
   el.innerHTML = `<button class="back" onclick="showFigures()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> همهٔ چهره‌ها</button>
-    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${socialLinks(x.social)}</div></div>
+    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${figureFollowBtn(x.handle,false)}${socialLinks(x.social)}</div></div>
     <div class="views">${x.posts.length ? x.posts.map(p => figureCard(p, false)).join("") : '<p class="muted">در هفتهٔ اخیر دیدگاهِ تازه‌ای ثبت نشده.</p>'}</div>
     <p class="muted fig-note">فقط تحلیل‌ها و نظرهای خودِ این شخص نمایش داده می‌شود؛ بازنشرِ خبر، تبلیغ و حاشیه کنار گذاشته می‌شود. خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
 }
