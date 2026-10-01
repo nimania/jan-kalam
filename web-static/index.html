@@ -37,13 +37,16 @@
   <main class="wrap">
     <section id="feed-view">
       <div class="lede">
-        <h1>مهم‌ترین‌های امروز، در چند جمله</h1>
+        <h1>چهره‌ها چه می‌گویند؟</h1>
+        <p class="muted">تازه‌ترین تحلیل‌ها و اظهارنظرها؛ جدیدترین مورد همیشه بالاتر است.</p>
         <p class="muted" id="built" style="margin-top:6px"></p>
       </div>
       <div class="home-stats" id="home-stats"></div>
       <div class="home-prices" id="home-prices"></div>
       <div class="home-prices" id="home-weather"></div>
-      <div class="rule"><span>خط خبری</span><span class="l"></span></div>
+      <div class="rule"><span>تایملاین چهره‌ها</span><span class="l"></span><button class="sortchip" onclick="showFigures()">همهٔ چهره‌ها</button></div>
+      <div class="figure-timeline" id="figure-timeline"><div class="spinner"></div></div>
+      <div class="rule"><span>خبرها</span><span class="l"></span></div>
       <div class="day-chips" id="day-chips"></div>
       <div class="imp-filter" id="imp-filter">
         <button class="fchip on" onclick="setTier('all')">همه</button>
