@@ -30,8 +30,7 @@ def run_ingestion_cycle() -> dict:
 
 
 def run_full_cycle() -> dict:
-    """The whole pipeline, once: ingest → cluster → rank → synthesize.
-    This is what the background worker runs on a schedule in production."""
+    """The whole pipeline, once: ingest → cluster → rank → synthesize."""
     from app.ai.pipeline import backfill_news_people, synthesize_drafts
     from app.clustering.service import cluster_articles
     from app.ranking.service import rank_stories
@@ -43,13 +42,12 @@ def run_full_cycle() -> dict:
         clustered = cluster_articles(db)
         ranked = rank_stories(db)
         synthed = synthesize_drafts(db)
-        tagged = tag_stories(db)  # assign topics by keyword (no AI cost)
-        # جان‌کلام چهره‌ها: label commentator posts. Optional — never break the build.
+        news_people = backfill_news_people(db, limit=8)
+        tagged = tag_stories(db)
         try:
             from app.figure_posts import classify_figure_posts
-
             figures = classify_figure_posts(db)
-        except Exception as exc:  # pragma: no cover - defensive
+        except Exception as exc:
             db.rollback()
             logger.warning("figures stage failed: %s", exc)
             figures = {"error": str(exc)[:200]}
@@ -57,7 +55,8 @@ def run_full_cycle() -> dict:
             "ingested_new": sum(r.new for r in ing),
             "clusters_new": clustered.get("new_stories", 0),
             "ranked": ranked.get("ranked", 0),
-            "published": synthed.get("published", 0),\n            "news_people_backfill": news_people,
+            "published": synthed.get("published", 0),
+            "news_people_backfill": news_people,
             "tagged": tagged.get("tagged", 0),
             "figures": figures,
         }
