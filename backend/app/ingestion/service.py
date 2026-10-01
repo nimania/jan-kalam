@@ -103,18 +103,31 @@ def ingest_source(
 
     result.fetched = len(items)
     since = datetime.now(timezone.utc) - timedelta(days=3)
-    existing_rows = db.execute(
-        select(Article.description, Article.title).where(
+    existing_articles = db.execute(
+        select(Article).where(
             Article.source_id == source.id,
             (Article.published_at.is_(None)) | (Article.published_at >= since),
         )
-    ).all()
-    mirror_keys = {_mirror_key(desc or title) for desc, title in existing_rows}
-    mirror_keys.discard("")
+    ).scalars().all()
+    mirror_articles = {
+        _mirror_key(a.description or a.title): a for a in existing_articles
+        if _mirror_key(a.description or a.title)
+    }
+    mirror_keys = set(mirror_articles)
 
     for item in items:
         mkey = _mirror_key(item.description or item.title)
         if mkey and mkey in mirror_keys:
+            # If Bale was available during an earlier Telegram outage, upgrade
+            # the mirrored record to Telegram as soon as Telegram returns.
+            prev = mirror_articles.get(mkey)
+            if (prev is not None and item.article_url.startswith("https://t.me/")
+                    and (prev.article_url or "").startswith("https://ble.ir/")):
+                prev.article_url = item.article_url
+                prev.title = item.title
+                prev.description = item.description
+                prev.published_at = item.published_at or prev.published_at
+                prev.author = item.author
             result.duplicates += 1
             continue
         h = content_hash(source.name, item.title, item.article_url)
@@ -146,6 +159,12 @@ def ingest_source(
         result.new += 1
         if mkey:
             mirror_keys.add(mkey)
+            # Keep the in-batch object so a later Telegram/Bale mirror can be
+            # resolved without another query.
+            mirror_articles[mkey] = next(
+                (a for a in db.new if isinstance(a, Article) and a.article_url == item.article_url),
+                mirror_articles.get(mkey),
+            )
 
     db.commit()
     _write_log(db, source, result, started)
