@@ -3,7 +3,18 @@ name: Build & Deploy Jan Kalam (static)
 # Runs OUTSIDE Iran on GitHub's servers, so it can reach news sources and the AI.
 # It generates the news and publishes a static site to GitHub Pages — free.
 on:
-  workflow_dispatch: {}            # manual "Run" button
+  workflow_dispatch:
+    inputs:
+      resolve_url:
+        description: "Recovery only: original Telegram post URL after checking the channel"
+        required: false
+        type: string
+      resolution:
+        description: "Recovery only: mark an uncertain delivery sent, or retry if absent"
+        required: false
+        default: mark_sent
+        type: choice
+        options: [mark_sent, retry]
   push:
     branches: [main]
   schedule:
@@ -35,6 +46,8 @@ jobs:
       - name: Install dependencies
         working-directory: backend
         run: pip install -r requirements.txt
+      - name: Check Telegram publishing
+        run: python -m unittest discover -s tests -p 'test_telegram_publish.py'
       # Persist the news DB between hourly runs so we DON'T re-synthesize the same
       # stories every hour (only new clusters cost an AI call). Restores the most
       # recent cache; always saves a fresh one (unique key + prefix restore-keys).
@@ -59,6 +72,13 @@ jobs:
           python -m scripts.seed
           python -c "from app.tasks.scheduler import run_full_cycle; print(run_full_cycle())"
           python -m scripts.export_static
+      - name: Save the figures published in this build
+        uses: actions/upload-artifact@v4
+        with:
+          name: published-figures
+          path: backend/public/data/figures.json
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload site
         uses: actions/upload-pages-artifact@v3
         with:
@@ -74,3 +94,34 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  telegram:
+    # Use the exact figures artifact that successfully reached GitHub Pages.
+    # The workflow's pages concurrency group also serializes delivery/state writes.
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Download the deployed figures
+        uses: actions/download-artifact@v4
+        with:
+          name: published-figures
+          path: telegram-export
+      - name: Publish new figures to Jane Kalaam
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_BOT_USERNAME: janekalaam_bot
+          TELEGRAM_CHAT_ID: "@jane_kalaam"
+          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_RESOLVE_URL: ${{ inputs.resolve_url }}
+          TELEGRAM_RESOLUTION: ${{ inputs.resolution }}
+        run: python backend/scripts/publish_figures.py --figures telegram-export/figures.json

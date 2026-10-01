@@ -4,6 +4,10 @@ AI-powered Persian-language news intelligence. This repo currently contains the
 **backend (Phases 0–4)**. See `PRODUCT_SPEC.md`, `ARCHITECTURE.md`,
 and `ROADMAP.md` for the full plan.
 
+Automatic publishing of newly deployed figure summaries to `@jane_kalaam` with
+`@janekalaam_bot` is configured in the Pages workflow. See [TELEGRAM.md](TELEGRAM.md)
+for the one-time bot permission and `TELEGRAM_BOT_TOKEN` secret setup.
+
 ## What exists today (Phases 1–4)
 
 - FastAPI app with a versioned API under `/api/v1`.
