@@ -74,6 +74,10 @@ def compute_trends(db: Session, *, top_topics: int = 12, top_stories: int = 8) -
             "source_coverage": t["coverage"],
             "story_ids": [x["id"] for x in t["stories"][:12]],
         }
+        # The browser dossier uses story_ids + stories.json. Shipping every
+        # historical story for every topic made trends.json tens of MB large.
+        # Keep only a tiny recent preview for diagnostics/future UI use.
+        t["stories"] = t["stories"][:12]
     topics.sort(key=lambda t: (t["score"], t["story_count"]), reverse=True)
     topics = topics[:top_topics]
     max_score = max((t["score"] for t in topics), default=1) or 1
