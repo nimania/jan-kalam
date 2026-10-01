@@ -79,6 +79,7 @@ async function route() {
   if (kind === "weather") return showWeather();
   if (kind === "faq") return showFaq();
   if (kind === "figures") return showFigures();
+  if (kind === "tech") return showTech();
   if (kind === "figure" && arg) return openFigure(arg);
   if (kind === "news-person" && arg) return openNewsPerson(arg);
   if (kind === "statement" && arg) return openStatement(arg);
@@ -1193,6 +1194,29 @@ async function loadNewsPeople() {
 function setFigureDirectoryMode(mode) {
   _figDirectoryMode = mode;
   renderFigures();
+}
+function showTech() {
+  show("tech"); setTab(""); setHash("#/tech");
+  const el = document.getElementById("tech-content");
+  el.innerHTML = `
+    <div class="tech-grid">
+      <article class="tech-card"><h2>رابط فارسی و RTL</h2><p>کامپوننت‌های رابط با الگوهای بومیِ راست‌چین طراحی شده‌اند؛ کارت، آمار، آواتار، تب‌ها، نشان‌ها، خط زمان، حالت خالی و بارگذاری.</p><div class="tech-tags"><span class="tech-tag">Card</span><span class="tech-tag">Stat</span><span class="tech-tag">Avatar</span><span class="tech-tag">Tabs</span><span class="tech-tag">Badge</span></div></article>
+      <article class="tech-card"><h2>VibeFarsi UI</h2><p>برای زبان بصری و رفتار کامپوننت‌های فارسی از VibeFarsi الهام گرفته‌ایم. جان‌کلام فعلاً پروژهٔ React/Tailwind نیست؛ بنابراین الگوها در CSS/JavaScript موجود بازپیاده‌سازی شده‌اند و خود کتابخانه dependency اجرایی سایت نیست.</p><div class="tech-tags"><a class="tech-tag" href="https://vibefarsi.ir/" target="_blank" rel="noopener">vibefarsi.ir ↗</a></div></article>
+      <article class="tech-card"><h2>خبر و تحلیل</h2><p>Backend پایتون خبرها را دریافت، خوشه‌بندی، رتبه‌بندی و برای خروجی استاتیک آماده می‌کند. واقعیت خبر، تحلیل رسانه و دیدگاه اشخاص در لایه‌های جدا نگهداری می‌شوند.</p><div class="tech-tags"><span class="tech-tag">Python</span><span class="tech-tag">SQLAlchemy</span><span class="tech-tag">JSON</span></div></article>
+      <article class="tech-card"><h2>انتشار استاتیک</h2><p>خروجی نهایی HTML/CSS/JavaScript است و با GitHub Actions ساخته و روی GitHub Pages منتشر می‌شود؛ بنابراین خواندن سایت به سرور اپلیکیشن دائمی وابسته نیست.</p><div class="tech-tags"><span class="tech-tag">GitHub Actions</span><span class="tech-tag">GitHub Pages</span><span class="tech-tag">PWA</span></div></article>
+    </div>
+    <div class="rule"><span>نقشهٔ فناوری</span><span class="l"></span></div>
+    <div class="tech-stack">
+      <div class="tech-row"><b>جمع‌آوری</b><span>منابع خبری، منابع عمومی چهره‌ها و داده‌های مکمل</span></div>
+      <div class="tech-row"><b>پردازش</b><span>Python · خوشه‌بندی خبر · استخراج گفته‌ها · رتبه‌بندی و synthesis</span></div>
+      <div class="tech-row"><b>داده</b><span>SQLAlchemy و خروجی‌های JSON برای رابط استاتیک</span></div>
+      <div class="tech-row"><b>رابط</b><span>HTML + Vanilla JavaScript + CSS؛ فارسی و RTL از ابتدا</span></div>
+      <div class="tech-row"><b>طراحی</b><span>Design tokens داخلی جان‌کلام + الگوهای سازگارشده از VibeFarsi UI</span></div>
+      <div class="tech-row"><b>انتشار</b><span>GitHub Actions → GitHub Pages</span></div>
+    </div>
+    <div class="rule"><span>VibeFarsi کجا اثر گذاشته؟</span><span class="l"></span></div>
+    <div class="tech-card"><p>در بازطراحی تدریجی جان‌کلام، الگوهای Card و Stat برای خلاصه‌ها و اعداد، Avatar برای چهره‌ها، Segmented Control/Tabs برای فیلترها، Badge برای وضعیت‌ها، Timeline برای زنجیرهٔ رویداد و Skeleton/Empty State برای وضعیت‌های بارگذاری و نبود داده مبنا قرار می‌گیرند. این تطبیق مرحله‌ای است تا معماری سبک فعلی حفظ شود.</p></div>
+  `;
 }
 function showFigures() { show("figures"); setTab(""); document.getElementById("figures-lede").style.display = ""; document.getElementById("figures").innerHTML = ""; renderFigureTimeline(); setHash("#/figures"); }
 function renderFiguresDirectory() {
