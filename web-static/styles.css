@@ -618,3 +618,14 @@
   background:var(--surface); border:1px solid var(--line); color:var(--ink-soft); font-size:13px; box-shadow:var(--shadow-soft)}
 .fig-social a:hover{color:var(--accent); border-color:var(--line-strong)}
 .fig-social svg{width:15px; height:15px}
+
+/* VibeFarsi-inspired RTL component language: adapted to the existing static stack. */
+.vf-badge{display:inline-flex;align-items:center;width:max-content;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--accent);font-size:11.5px;font-weight:700;margin-bottom:9px}
+.tech-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0 24px}
+.tech-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow-soft)}
+.tech-card h2{font-size:16px;margin:0 0 7px}.tech-card p{font-size:13.5px;color:var(--ink-soft);margin:0;line-height:1.8}
+.tech-tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}.tech-tag{padding:3px 9px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);font-size:11.5px;color:var(--ink-soft)}
+.tech-stack{display:grid;gap:0;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:4px 18px;margin:12px 0 24px}
+.tech-row{display:grid;grid-template-columns:145px 1fr;gap:14px;padding:13px 0;border-bottom:1px solid var(--line);font-size:13.5px}.tech-row:last-child{border-bottom:0}.tech-row b{color:var(--ink)}.tech-row span{color:var(--ink-soft)}
+.site-footer{margin:34px 0 64px;padding:18px 0;border-top:1px solid var(--line)}.site-footer .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.site-footer p{margin:0}.footer-links{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.footer-links button,.footer-links a{border:0;background:none;padding:0;font:inherit;font-size:12.5px;color:var(--ink-faint);cursor:pointer}.footer-links button:hover,.footer-links a:hover{color:var(--accent)}
+@media(max-width:600px){.tech-grid{grid-template-columns:1fr}.tech-row{grid-template-columns:1fr;gap:3px}.site-footer{margin-bottom:74px}}
