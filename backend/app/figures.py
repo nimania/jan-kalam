@@ -29,7 +29,7 @@ class Figure:
     # repeat it here. Only add links we have actually verified.
     social: tuple[tuple[str, str], ...] = ()
     gender: str = "m"  # "m" | "f" — used for balance / future comparison stats
-    bale: str | None = None  # verified public Bale channel handle (without @)  # "m" | "f" — used for balance / future comparison stats
+    bale: str | None = None  # verified public Bale channel handle (without @)
 
 
 FIGURES: list[Figure] = [
