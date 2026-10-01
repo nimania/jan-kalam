@@ -1160,7 +1160,7 @@ function figuresSection(list) {
   if (!list || !list.length) return "";
   return `<div class="layers"><h3 class="section-h">چهره‌ها چه می‌گویند <span class="n">دیدگاه شخصی — نه واقعیتِ خبر</span></h3>
     <div class="views">${list.map(p => figureCard(p, true)).join("")}</div>
-    <p class="muted fig-note">خلاصه‌ها را هوش مصنوعی از پست‌های عمومی تلگرام و بلهٔ خودِ این افراد نوشته؛ برای دقیق‌ترین روایت، متن کامل را بخوانید.
+    <p class="muted fig-note">دیدگاه‌های مستقیم از کانال‌های عمومی خود افراد و «گفته در خبر» از منابع خبری جدا برچسب می‌خورند؛ لینک هر مورد به منبع همان گفته می‌رود.
       <a href="#/figures" onclick="event.preventDefault();showFigures()">همهٔ چهره‌ها</a></p></div>`;
 }
 let _FIG = null;
@@ -1199,5 +1199,5 @@ async function openFigure(handle) {
   el.innerHTML = `<button class="back" onclick="showFigures()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> همهٔ چهره‌ها</button>
     <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${figureFollowBtn(x.handle,false)}${socialLinks(x.social)}</div></div>
     <div class="views">${x.posts.length ? x.posts.map(p => figureCard(p, false)).join("") : '<p class="muted">در هفتهٔ اخیر دیدگاهِ تازه‌ای ثبت نشده.</p>'}</div>
-    <p class="muted fig-note">فقط تحلیل‌ها و نظرهای خودِ این شخص نمایش داده می‌شود؛ بازنشرِ خبر، تبلیغ و حاشیه کنار گذاشته می‌شود. خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
+    <p class="muted fig-note">این صفحه دیدگاه‌های مستقیم شخص و گفته‌های منتسب به او در خبرها را جداگانه نشان می‌دهد. هر «گفته در خبر» به مقاله‌ای که آن را منتشر کرده لینک دارد؛ خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
 }
