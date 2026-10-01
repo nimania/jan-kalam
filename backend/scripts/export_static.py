@@ -491,6 +491,23 @@ def run() -> None:
                   if any(x["slug"] == ent["slug"] for x in c.get("entities", []))]
         _write_text(os.path.join(OUT, "e", ent["slug"], "index.html"), _entity_page(ent, ecards))
         urls.append(f"{SITE}/e/{ent['slug']}/")
+    # Permanent public pages for every commentator/news person and every statement.
+    for is_news, idx in ((False, figure_index), (True, news_people_index)):
+        for person in idx.get("figures", []):
+            handle = str(person.get("handle") or "")
+            if not handle:
+                continue
+            _write_text(os.path.join(OUT, "person", handle, "index.html"),
+                        _person_page(person, news=is_news))
+            urls.append(f"{SITE}/person/{handle}/")
+            for post in person.get("posts", []):
+                sid = str(post.get("id") or "")
+                if not sid:
+                    continue
+                safe_sid = sid.replace(":", "-")
+                _write_text(os.path.join(OUT, "statement", safe_sid, "index.html"),
+                            _statement_page(person, post, news=is_news))
+                urls.append(f"{SITE}/statement/{safe_sid}/")
     sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                + "".join(f"  <url><loc>{u}</loc></url>\n" for u in urls)
