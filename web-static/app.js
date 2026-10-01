@@ -851,6 +851,33 @@ async function renderHomePrices() {
   } catch (e) {}
 }
 
+// Homepage Jan-e Majra: a compact window into the strongest current topic dossiers.
+async function renderHomeMajra() {
+  const section = document.getElementById("home-majra");
+  const el = document.getElementById("home-majra-cards");
+  if (!section || !el) return;
+  try {
+    const t = await getJSON(`${DATA}/trends.json`, 18000);
+    const topics = (t.topics || []).filter(x => x && x.slug).slice(0, 5);
+    if (!topics.length) { section.style.display = "none"; return; }
+    el.innerHTML = topics.map((tp, i) => {
+      const d = tp.dossier || {};
+      const summary = d.summary_fa || "این پرونده از چند تحول خبری مرتبط ساخته شده است.";
+      return `<button class="hm-card hm-${(i % 5) + 1}" onclick="openTrendDossier('${esc(tp.slug)}')">
+        <div class="hm-top"><span class="hm-kicker">جانِ ماجرا</span><span class="hm-rank">۰${faN(i + 1)}</span></div>
+        <h3>${esc(tp.name_fa || tp.slug)}</h3>
+        <p>${esc(summary)}</p>
+        <div class="hm-meta"><span><b>${faN(d.development_count || tp.story_count || 0)}</b> تحول</span><span><b>${faN(d.source_coverage || tp.coverage || 0)}</b> پوشش منبع</span></div>
+        <span class="hm-open">باز کردن پرونده ‹</span>
+      </button>`;
+    }).join("");
+    section.style.display = "";
+  } catch (e) {
+    // Homepage must remain clean when trend data is temporarily unavailable.
+    section.style.display = "none";
+  }
+}
+
 // بازار — dedicated market page (full price board)
 function showMarket() { show("market"); setTab("feed"); renderMarket(); setHash("#/market"); }
 async function renderMarket() {
@@ -1140,6 +1167,7 @@ function statsBlock(st) {
 
 loadFeed().then(route);   // load the feed, then honor any deep link in the URL
 renderHomeStats();
+renderHomeMajra();
 renderHomePrices();
 renderHomeWeather();
 updateMineBadge();
