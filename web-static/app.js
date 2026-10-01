@@ -1147,7 +1147,7 @@ async function renderFigureTimeline() {
       <a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a>
       <span class="fig-role">${esc(p.role_fa)}${p.field_fa ? " · " + esc(p.field_fa) : ""}</span>
     </div><span class="spacer" style="flex:1"></span>${figureFollowBtn(p.handle,true)}<span class="muted">${relTime(p.published_at)}</span></div>
-    ${p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : ""}
+    ${p.kind === "news_statement" ? `<div class="news-statement-tag">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : (p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : "")}
     <p class="kalam">${esc(p.summary_fa || "")}</p>
     <div class="fig-foot">
       <button class="fig-profile-link" onclick="openFigure('${esc(p.handle)}')">پروفایل و دیدگاه‌های بیشتر</button>
