@@ -76,6 +76,7 @@ async function route() {
   if (kind === "story" && arg) return openStory(arg);
   if (kind === "person" && arg) return openEntity(arg);
   if (kind === "topic" && arg) return openTopic(arg);
+  if (kind === "trend" && arg) return openTrendDossier(arg);
   if (kind === "source" && arg) return openSource(arg);
   if (kind === "province" && arg) return openProvince(arg);
   if (kind === "day" && arg) return openDay(arg);
@@ -484,7 +485,7 @@ async function renderTrends() {
         ? `<div class="tp-chart cmp">${svgCompare(series, cmp.points.map(p => p.v))}</div>
            <div class="cmp-legend"><span class="lg a">جان‌کلام</span><span class="lg b">گوگل ترندز</span></div>`
         : `<div class="tp-chart">${svgSpark(series, { w: 150, h: 34 })}</div>`;
-      return `<button class="tp-row" onclick="openTopic('${tp.slug}')">
+      return `<button class="tp-row" onclick="openTrendDossier('${tp.slug}')">
         <div class="tp-head"><span class="tp-name">${esc(tp.name_fa)}</span>${growthTag(tp.growth)}
           <span class="tp-n">${faN(tp.story_count)} خبر · هفته: ${faN(tp.last7 == null ? tp.story_count : tp.last7)}</span></div>
         ${chart}</button>`;
@@ -656,6 +657,33 @@ function openDay(dateStr) {
   document.getElementById("ta-title").textContent = "خبرهای " + dayLabel(dateStr);
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر · " + dateStr;
   document.getElementById("ta-feed").innerHTML = groupedByCategory(items);
+}
+
+async function openTrendDossier(slug) {
+  if (!ALL.length) { try { ALL = await getJSON(`${DATA}/stories.json`); } catch (e) {} }
+  const t = await getJSON(`${DATA}/trends.json`).catch(() => ({ topics: [] }));
+  const tp = (t.topics || []).find(x => x.slug === slug);
+  if (!tp) return openTopic(slug);
+  setHash("#/trend/" + slug);
+  show("topicarchive"); setTab("trends");
+  document.getElementById("ta-back-t").textContent = "بازگشت به بورس اخبار";
+  document.getElementById("ta-back").onclick = showTrends;
+  document.getElementById("ta-title").textContent = "جانِ ماجرا: " + (tp.name_fa || slug);
+  const d = tp.dossier || {};
+  document.getElementById("ta-sub").textContent =
+    faN(d.development_count || tp.story_count || 0) + " تحول مستقل · " +
+    faN(d.source_coverage || tp.coverage || 0) + " پوشش منبع";
+  const ids = new Set(d.story_ids || []);
+  const items = ALL.filter(s => ids.has(s.id) || (s.topics || []).some(x => x.slug === slug));
+  const timeline = items.slice().sort((a,b) => String(b.published_at||"").localeCompare(String(a.published_at||"")));
+  document.getElementById("ta-feed").innerHTML =
+    `<div class="trend-dossier">
+      <div class="rule"><span>جانِ ماجرا</span><span class="l"></span></div>
+      <p class="kalam">${esc(d.summary_fa || "این پرونده از چند تحول خبری مستقل ساخته شده است.")}</p>
+      ${d.why_now_fa ? `<div class="rule"><span>چرا الان مهم است؟</span><span class="l"></span></div><p class="kalam">${esc(d.why_now_fa)}</p>` : ""}
+      <div class="trend-dossier-stats"><span><b>${faN(d.development_count || tp.story_count || 0)}</b> تحول مستقل</span><span><b>${faN(d.source_coverage || tp.coverage || 0)}</b> پوشش منبع</span>${tp.growth != null ? `<span><b>${faN(tp.growth)}٪</b> رشد</span>` : ""}</div>
+      <div class="rule"><span>مسیر ماجرا</span><span class="l"></span></div>
+    </div>` + groupedFeed(timeline);
 }
 
 function openTopic(slug) {
