@@ -58,11 +58,16 @@ def http_json(url, *, method="GET", data=None, headers=None):
 def post_key(url):
     parts = urlsplit(url)
     path = parts.path.rstrip("/")
-    if (parts.scheme != "https" or parts.netloc.lower() != "t.me"
-            or not re.fullmatch(r"/[A-Za-z0-9_]+/[0-9]+", path)):
-        raise ValueError("A figure post must link to its original Telegram message")
-    handle, number = path.strip("/").split("/")
-    return f"https://t.me/{handle.lower()}/{int(number)}"
+    host = parts.netloc.lower()
+    if parts.scheme != "https":
+        raise ValueError("A figure post must use an HTTPS public source URL")
+    if host == "t.me" and re.fullmatch(r"/[A-Za-z0-9_]+/[0-9]+", path):
+        handle, number = path.strip("/").split("/")
+        return f"https://t.me/{handle.lower()}/{int(number)}"
+    if host == "ble.ir" and re.fullmatch(r"/[A-Za-z0-9_-]+/[A-Za-z0-9_-]+", path):
+        handle, rid = path.strip("/").split("/")
+        return f"https://ble.ir/{handle.lower()}/{rid}"
+    raise ValueError("A figure post must link to its original Telegram or Bale message")
 
 
 def shown_posts(export):
@@ -81,7 +86,7 @@ def shown_posts(export):
             if not summary:
                 continue
             key = post_key(row.get("url") or "")
-            handle = key.split("/")[-2]
+            handle = str(row.get("handle") or figure.get("handle") or key.split("/")[-2])
             posts[key] = {
                 "url": key, "handle": handle,
                 "name_fa": str(row.get("name_fa") or figure.get("name_fa") or handle),
