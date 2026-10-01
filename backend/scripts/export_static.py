@@ -414,6 +414,29 @@ def run() -> None:
 
     _write(os.path.join(DATA, "stories.json"), cards)
 
+    # Keep deep links durable beyond the 60-card home feed. Export a larger
+    # read-only story archive as individual JSON files; these do not inflate
+    # stories.json or the homepage.
+    archive_feed = story_svc.get_feed(db, limit=500, offset=0, category=None)
+    archive_cards = [x.model_dump(mode="json") for x in archive_feed.items]
+    current_ids = set(details)
+    for old in archive_cards:
+        sid = old["id"]
+        if sid in current_ids:
+            continue
+        try:
+            od = story_svc.get_detail(db, sid).model_dump(mode="json")
+            od["person_statements"] = [{
+                "person_name_fa": q.person_name_fa, "role_fa": q.role_fa or "",
+                "statement_fa": q.statement_fa, "source_name": q.source_name,
+                "article_url": q.article_url, "direct_quote": bool(q.direct_quote),
+                "published_at": q.published_at.isoformat() if q.published_at else None,
+            } for q in db.query(NewsPersonStatement).filter_by(story_id=sid).all()]
+            od["credibility"] = compute_credibility(od)
+            _write(os.path.join(DATA, "story", f"{sid}.json"), od)
+        except Exception as exc:
+            print(f"archive story skipped {sid}: {exc}")
+
     topics = topic_repo.list_all(db)
     _write(os.path.join(DATA, "topics.json"),
            [{"id": t.id, "slug": t.slug, "name_fa": t.name_fa, "name_en": t.name_en}
