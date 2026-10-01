@@ -16,6 +16,11 @@ on:
         default: mark_sent
         type: choice
         options: [mark_sent, retry]
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/build.yml"
   schedule:
     - cron: "*/15 * * * *"            # every 15 minutes (the build DB is cached, so each
                                     # run only synthesizes genuinely NEW stories)
