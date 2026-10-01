@@ -968,13 +968,19 @@ async function renderHomeStats() {
   const el = document.getElementById("home-stats");
   if (!el) return;
   try {
-    const st = await getJSON(`${DATA}/stats.json`);
+    const [st, figs] = await Promise.all([
+      getJSON(`${DATA}/stats.json`),
+      getJSON(`${DATA}/figures.json`).catch(() => ({ figures: [] }))
+    ]);
     STATS = st;
     const roll = liveRolling(st);
     const daily = (st.activity_daily || []).map(x => x.n);
+    const opinionCount = (figs.figures || []).reduce((n, f) => n + ((f.posts || []).length), 0);
     const today = utcDayISO(0), yday = utcDayISO(-1);
     el.innerHTML = `<div class="statbar">
       <span class="sb-item sb-click" onclick="showTrends()"><b>${faN(st.total || 0)}</b><span>کل خبرها</span></span>
+      <span class="sb-sep"></span>
+      <span class="sb-item sb-click sb-opinions" onclick="showFigures()"><b>${faN(opinionCount)}</b><span>نظرها</span></span>
       <span class="sb-sep"></span>
       <span class="sb-item sb-click" onclick="openDay('${today}')"><b>${faN(st.calendar ? st.calendar.today : 0)}</b><span>امروز ›</span></span>
       <span class="sb-item sb-click" onclick="openDay('${yday}')"><b>${faN(st.calendar ? st.calendar.yesterday : 0)}</b><span>دیروز ›</span></span>
