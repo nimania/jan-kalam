@@ -102,7 +102,20 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - name: Check this build is still current
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current_sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq '.sha')"
+          if [ "$current_sha" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping stale Pages deploy: build=$GITHUB_SHA current=$current_sha"
+          fi
       - name: Deploy to GitHub Pages
+        if: steps.current.outputs.deploy == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
 
@@ -110,6 +123,7 @@ jobs:
     # Use the exact figures artifact that successfully reached GitHub Pages.
     # The workflow's pages concurrency group also serializes delivery/state writes.
     needs: [build, deploy]
+    if: needs.deploy.result == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
