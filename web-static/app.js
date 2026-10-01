@@ -860,20 +860,23 @@ async function renderHomeMajra() {
     const t = await getJSON(`${DATA}/trends.json`, 18000);
     const topics = (t.topics || []).filter(x => x && x.slug).slice(0, 5);
     if (!topics.length) { section.style.display = "none"; return; }
-    el.innerHTML = topics.map((tp, i) => {
+    const card = (tp, i) => {
       const d = tp.dossier || {};
-      const summary = d.summary_fa || "این پرونده از چند تحول خبری مرتبط ساخته شده است.";
-      return `<button class="hm-card hm-${(i % 5) + 1}" onclick="openTrendDossier('${esc(tp.slug)}')">
-        <div class="hm-top"><span class="hm-kicker">جانِ ماجرا</span><span class="hm-rank">۰${faN(i + 1)}</span></div>
-        <h3>${esc(tp.name_fa || tp.slug)}</h3>
-        <p>${esc(summary)}</p>
-        <div class="hm-meta"><span><b>${faN(d.development_count || tp.story_count || 0)}</b> تحول</span><span><b>${faN(d.source_coverage || tp.coverage || 0)}</b> پوشش منبع</span></div>
-        <span class="hm-open">باز کردن پرونده ‹</span>
+      const summary = d.summary_fa || "چند تحول خبری مرتبط در این پرونده دنبال می‌شود.";
+      const dev = d.development_count || tp.story_count || 0;
+      const cov = d.source_coverage || tp.coverage || 0;
+      return `<button class="hm-card ${i === 0 ? "hm-lead" : "hm-side"}" onclick="openTrendDossier('${esc(tp.slug)}')">
+        <div class="hm-card-body">
+          ${i === 0 ? '<span class="hm-kicker">پروندهٔ اصلی</span>' : ""}
+          <h3>${esc(tp.name_fa || tp.slug)}</h3>
+          <p>${esc(summary)}</p>
+        </div>
+        <div class="hm-foot"><span>${faN(dev)} تحول · ${faN(cov)} منبع</span><span class="hm-arrow">‹</span></div>
       </button>`;
-    }).join("");
+    };
+    el.innerHTML = topics.map(card).join("");
     section.style.display = "";
   } catch (e) {
-    // Homepage must remain clean when trend data is temporarily unavailable.
     section.style.display = "none";
   }
 }
