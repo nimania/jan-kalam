@@ -81,6 +81,11 @@ def refresh_avatars(db, *, now: datetime | None = None, fetcher=_fetch_avatar) -
     return summary
 
 
+def avatar_paths(db) -> dict[str, str]:
+    """Return the stable self-hosted paths for all cached figure assets."""
+    return {a.handle: f"figures/{a.handle}.{a.ext}" for a in db.query(FigureAsset).all()}
+
+
 def write_avatars(db, out_dir: str) -> dict[str, str]:
     """Write cached avatars into <out_dir>/figures/ and return {handle: rel_path}."""
     dest = os.path.join(out_dir, "figures")
