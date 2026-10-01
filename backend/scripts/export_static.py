@@ -28,6 +28,7 @@ from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
 from app import figure_posts as figure_svc
 from app.news_people import merge_news_people
+from app.models.news_person_statement import NewsPersonStatement
 from app.figure_assets import export_avatars
 from app.geo import countries as countries_svc
 from app.geo import service as geo_svc
@@ -279,6 +280,12 @@ def run() -> None:
         story = story_repo.get(db, card["id"])
         d = detail.model_dump(mode="json")
         d["asks"] = [{"q": q, "a": ask_svc.answer(story, q).answer_fa} for q in QUESTIONS]
+        d["person_statements"] = [{
+            "person_name_fa": q.person_name_fa, "role_fa": q.role_fa or "",
+            "statement_fa": q.statement_fa, "source_name": q.source_name,
+            "article_url": q.article_url, "direct_quote": bool(q.direct_quote),
+            "published_at": q.published_at.isoformat() if q.published_at else None,
+        } for q in db.query(NewsPersonStatement).filter_by(story_id=card["id"]).all()]
 
         cred = compute_credibility(d)
         d["credibility"] = cred
