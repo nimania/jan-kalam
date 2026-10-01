@@ -1083,6 +1083,9 @@ function socialLinks(links) {
 .fig-follow.on{color:#e0b341;border-color:rgba(224,179,65,.5);background:rgba(224,179,65,.08)}
 .fig-follow.compact{font-size:11px;padding:3px 7px}
 .news-statement-tag{display:inline-block;margin:9px 0 0;font-size:12px;color:#8fa89b;background:rgba(143,168,155,.10);border-radius:999px;padding:3px 9px}
+.fig-source-stats{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:7px 0 10px;font-size:13px;color:#8fa89b}
+.fig-source-stats b{color:var(--text)}
+.fig-profile-filters{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 16px}
 @media(max-width:600px){.home-fig-card{padding:14px}.home-fig-card .v-h{align-items:flex-start}.home-fig-card .muted{font-size:11px}}`;
   document.head.appendChild(st);
 })();
@@ -1203,7 +1206,13 @@ async function openFigureByName(name) {
   const x = (d.figures || []).find(f => norm(f.name_fa) === norm(name));
   if (x) return openFigure(x.handle);
 }
-async function openFigure(handle) {
+let _figureProfileFilter = "all";
+function setFigureProfileFilter(handle, mode) {
+  _figureProfileFilter = mode;
+  openFigure(handle, false);
+}
+async function openFigure(handle, resetFilter = true) {
+  if (resetFilter) _figureProfileFilter = "all";
   setHash("#/figure/" + handle);
   show("figures"); setTab("");
   document.getElementById("figures-lede").style.display = "none";
@@ -1212,8 +1221,22 @@ async function openFigure(handle) {
   const d = await loadFigures();
   const x = (d.figures || []).find(f => f.handle.toLowerCase() === String(handle).toLowerCase());
   if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
+  const direct = (x.posts || []).filter(p => p.kind !== "news_statement");
+  const news = (x.posts || []).filter(p => p.kind === "news_statement");
+  const shown = _figureProfileFilter === "direct" ? direct : _figureProfileFilter === "news" ? news : (x.posts || []);
+  const statline = `<div class="fig-source-stats">
+    <span><b>${faN(direct.length)}</b> دیدگاه مستقیم</span>
+    <span class="dot"></span>
+    <span><b>${faN(news.length)}</b> گفته در خبر</span>
+  </div>`;
+  const filters = `<div class="fig-profile-filters">
+    <button class="fchip ${_figureProfileFilter==="all"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','all')">همه <span class="chip-n">${faN((x.posts||[]).length)}</span></button>
+    <button class="fchip ${_figureProfileFilter==="direct"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','direct')">دیدگاه مستقیم <span class="chip-n">${faN(direct.length)}</span></button>
+    <button class="fchip ${_figureProfileFilter==="news"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','news')">گفته در خبر <span class="chip-n">${faN(news.length)}</span></button>
+  </div>`;
   el.innerHTML = `<button class="back" onclick="showFigures()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> همهٔ چهره‌ها</button>
-    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${figureFollowBtn(x.handle,false)}${socialLinks(x.social)}</div></div>
-    <div class="views">${x.posts.length ? x.posts.map(p => figureCard(p, false)).join("") : '<p class="muted">در هفتهٔ اخیر دیدگاهِ تازه‌ای ثبت نشده.</p>'}</div>
-    <p class="muted fig-note">این صفحه دیدگاه‌های مستقیم شخص و گفته‌های منتسب به او در خبرها را جداگانه نشان می‌دهد. هر «گفته در خبر» به مقاله‌ای که آن را منتشر کرده لینک دارد؛ خلاصه‌ها را هوش مصنوعی نوشته است.</p>`;
+    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${statline}${figureFollowBtn(x.handle,false)}${socialLinks(x.social)}</div></div>
+    ${filters}
+    <div class="views">${shown.length ? shown.map(p => figureCard(p, false)).join("") : '<div class="state"><div class="big">در این بخش موردی ثبت نشده.</div></div>'}</div>
+    <p class="muted fig-note">«دیدگاه مستقیم» از منابع عمومی خود شخص می‌آید؛ «گفته در خبر» حرفی است که یک رسانه به او نسبت داده و لینک آن به همان مقاله می‌رود.</p>`;
 }
