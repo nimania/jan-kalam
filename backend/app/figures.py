@@ -83,6 +83,8 @@ FIGURES: list[Figure] = [
     Figure("dr_bokharaei", "احمد بخارایی", "جامعه‌شناس", "society"),
     Figure("drsiminkazemi", "سیمین کاظمی", "پزشک و جامعه‌شناس", "society", (), "f"),
     Figure("hamidrezajalaeipour", "حمیدرضا جلایی‌پور", "جامعه‌شناس سیاسی", "society"),
+    Figure("Renani_Mohsen", "محسن رنانی", "اقتصاددان و پژوهشگر توسعه", "society",
+           (("website", "https://renani.net"),)),
 
     # ══════════════════════════════════════════════════════════════════════
     #  اقتصاد
@@ -94,6 +96,8 @@ FIGURES: list[Figure] = [
     Figure("MohammadTabibian", "محمد طبیبیان", "اقتصاددان و استاد دانشگاه", "economy"),
     Figure("economics_and_finance", "پویا ناظران", "اقتصاددان", "economy"),
     Figure("ahemmati", "عبدالناصر همتی", "اقتصاددان و رئیس سابق بانک مرکزی", "economy"),
+    Figure("ali_sarzaeem", "علی سرزعیم", "اقتصاددان", "economy",
+           (("website", "https://sarzaeem.ir"),)),
 
     # ══════════════════════════════════════════════════════════════════════
     #  محیط‌زیست
