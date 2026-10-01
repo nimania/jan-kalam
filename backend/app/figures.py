@@ -107,6 +107,7 @@ FIGURES: list[Figure] = [
     Figure("MohammadTabibian", "محمد طبیبیان", "اقتصاددان و استاد دانشگاه", "economy"),
     Figure("economics_and_finance", "پویا ناظران", "اقتصاددان", "economy"),
     Figure("ahemmati", "عبدالناصر همتی", "اقتصاددان و رئیس سابق بانک مرکزی", "economy"),
+    Figure("mohsenjalalpour", "محسن جلال‌پور", "فعال بخش خصوصی و تحلیلگر اقتصادی", "economy"),
     Figure("Sadegh_Alhosseini", "صادق الحسینی", "پژوهشگر اقتصاد و سیاست‌گذاری", "economy",
            (("x", "https://x.com/alhosseini"),
             ("instagram", "https://instagram.com/sadegh_alhosseini"))),
