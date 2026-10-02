@@ -840,3 +840,10 @@
 .telegram-embed-video iframe{height:560px}
 .telegram-embed-photo iframe{height:500px}
 @media(max-width:620px){.telegram-embed{width:100%;margin:8px 0 10px}.telegram-embed iframe,.telegram-embed-video iframe,.telegram-embed-photo iframe{height:460px}}
+
+/* Related people inside a story — profile discovery without leaving the article context */
+.story-people-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:9px;margin-top:8px}
+.story-person-card{display:flex;align-items:center;gap:8px;padding:10px 11px;border:1px solid var(--line);border-radius:14px;background:var(--surface);min-width:0}
+.story-person-main{appearance:none;border:0;background:none;color:inherit;font:inherit;display:flex;align-items:center;gap:10px;text-align:right;min-width:0;flex:1;cursor:pointer;padding:0}
+.story-person-main:hover b{color:var(--accent)}.story-person-copy{display:flex;flex-direction:column;min-width:0;line-height:1.45}.story-person-copy b{font-size:14px}.story-person-copy small{font-size:11.5px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.story-person-copy em{font-style:normal;font-size:10.5px;color:var(--accent);margin-top:2px}.story-person-card .fig-follow.compact{flex:0 0 auto}
+@media(max-width:560px){.story-people-grid{grid-template-columns:1fr}}
