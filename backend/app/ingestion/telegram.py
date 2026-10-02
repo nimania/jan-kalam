@@ -77,6 +77,16 @@ def parse_telegram_channel(raw: str | bytes, source: Source) -> list[NormalizedI
             origin = fwd.get_text(" ").replace("Forwarded from", "").strip()
             author = FORWARD_PREFIX + (origin or "نامشخص")
 
+        # Preserve only the fact that Telegram has media; never copy/rehost the
+        # media URL. The UI can then use Telegram's official post embed.
+        media_type = None
+        if msg.select_one("video, .tgme_widget_message_video_player, .tgme_widget_message_video_thumb"):
+            media_type = "video"
+        elif msg.select_one(".tgme_widget_message_photo_wrap, .tgme_widget_message_photo"):
+            media_type = "photo"
+        elif msg.select_one(".tgme_widget_message_document, .tgme_widget_message_voice_player, audio"):
+            media_type = "media"
+
         items.append(
             NormalizedItem(
                 title=_clip(strip_html(first_line) or text, TITLE_MAX),
@@ -85,7 +95,7 @@ def parse_telegram_channel(raw: str | bytes, source: Source) -> list[NormalizedI
                 published_at=published,
                 author=author[:300],
                 language=source.language,
-                image_url=None,          # never keep channel media
+                image_url=f"telegram-media:{media_type}" if media_type else None,  # metadata only
                 raw_content=None,        # never keep full post text
             )
         )
