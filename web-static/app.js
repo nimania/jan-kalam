@@ -1387,18 +1387,23 @@ async function renderFigureTimeline() {
     el.innerHTML = controls + `<div class="state"><div class="big">${msg}</div></div>`;
     return;
   }
-  el.innerHTML = controls + posts.slice(0, 40).map(p => `<article class="home-fig-card">
-    <div class="v-h">${avatar(p, "sm")}<div class="fig-id">
-      <a class="v-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();openFigure('${esc(p.handle)}')">${esc(p.name_fa)}</a>
-      <span class="fig-role">${esc(p.role_fa)}${p.field_fa ? " · " + esc(p.field_fa) : ""}</span>
-    </div><span class="spacer" style="flex:1"></span>${figureFollowBtn(p.handle,true)}<span class="muted">${relTime(p.published_at)}</span></div>
-    ${p.kind === "news_statement" ? `<div class="news-statement-tag">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : (p.topic_fa ? `<h2 class="home-fig-topic">${esc(p.topic_fa)}</h2>` : "")}
-    <p class="kalam">${esc(p.summary_fa || "")}</p>
-    <div class="fig-foot">
-      <button class="fig-profile-link" onclick="${p._newsPerson ? "openNewsPerson" : "openFigure"}('${esc(p.handle)}')">پروفایل و دیدگاه‌های بیشتر</button>
-      <a href="${esc(p.url)}" target="_blank" rel="noopener">متن کامل در ${String(p.url || "").includes("ble.ir/") ? "بله" : "تلگرام"} ↗</a>
+  el.innerHTML = controls + `<div class="x-figure-stream">` + posts.slice(0, 40).map(p => `<article class="x-figure-post">
+    <div class="x-figure-avatar">${avatar(p, "sm")}</div>
+    <div class="x-figure-content">
+      <div class="x-figure-head">
+        <div class="x-figure-identity"><a class="x-figure-name" href="#/figure/${esc(p.handle)}" onclick="event.preventDefault();${p._newsPerson ? "openNewsPerson" : "openFigure"}('${esc(p.handle)}')">${esc(p.name_fa)}</a><span class="x-figure-role">${esc(p.role_fa || p.field_fa || "")}</span><span class="x-figure-dot">·</span><time>${relTime(p.published_at)}</time></div>
+        ${figureFollowBtn(p.handle,true)}
+      </div>
+      ${p.kind === "news_statement" ? `<div class="x-figure-context">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : ""}
+      ${p.topic_fa ? `<h2 class="x-figure-topic">${esc(p.topic_fa)}</h2>` : ""}
+      <p class="x-figure-text">${esc(p.summary_fa || "")}</p>
+      <div class="x-figure-actions">
+        <button onclick="${p._newsPerson ? "openNewsPerson" : "openFigure"}('${esc(p.handle)}')">◯ <span>پروفایل</span></button>
+        <button onclick="openStatement('${statementKey(p)}')">▢ <span>صفحهٔ گفته</span></button>
+        <a href="${esc(p.url)}" target="_blank" rel="noopener">↗ <span>متن اصلی</span></a>
+      </div>
     </div>
-  </article>`).join("");
+  </article>`).join("") + `</div>`;
 }
 
 function figuresSection(list) {
