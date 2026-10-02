@@ -870,7 +870,21 @@ async function renderHomeMajra() {
       getJSON(`${DATA}/stories.json`).catch(() => [])
     ]);
     const byId = new Map((stories || []).map(s => [String(s.id), s]));
-    const topics = (t.topics || []).filter(x => x && x.slug).slice(0, 8);
+    // A single story can be attached to several topic/trend slugs. On the
+    // homepage that used to render the same event more than once. Keep the
+    // highest-ranked topic for each lead story; topics without a resolvable
+    // lead story get a stable dossier key instead.
+    const seenMajra = new Set();
+    const topics = [];
+    for (const tp of (t.topics || []).filter(x => x && x.slug)) {
+      const ids = (tp.dossier && tp.dossier.story_ids) || [];
+      const story = ids.map(id => byId.get(String(id))).find(Boolean);
+      const key = story ? `story:${story.id}` : `dossier:${tp.slug}`;
+      if (seenMajra.has(key)) continue;
+      seenMajra.add(key);
+      topics.push(tp);
+      if (topics.length >= 8) break;
+    }
     if (!topics.length) { section.style.display = "none"; return; }
     el.innerHTML = topics.map(tp => {
       const d = tp.dossier || {};
