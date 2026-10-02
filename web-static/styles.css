@@ -720,3 +720,12 @@
 .press-body p{font-size:1.05rem;line-height:2.15;margin:0 0 1.25em}
 .press-copyright-note{margin-top:32px;padding:14px 16px;border:1px solid var(--border);border-radius:12px;color:var(--muted);font-size:.88rem}
 .press-source-link{display:inline-block;margin-top:18px;font-weight:800}
+
+/* Home at-a-glance: market + selected weather */
+.home-glance{margin:10px 0 18px}
+.hg-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+.hg-cell{appearance:none;border:0;border-inline-start:1px solid var(--line);background:transparent;color:inherit;padding:11px 10px;min-width:0;text-align:center;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px;align-items:center}
+.hg-cell:first-child{border-inline-start:0}.hg-cell:hover{background:var(--surface-2)}
+.hg-label{font-size:.72rem;color:var(--ink-faint);white-space:nowrap}.hg-cell b{font-size:1.05rem;color:var(--accent);font-variant-numeric:tabular-nums}.hg-cell small{font-size:.66rem;color:var(--ink-faint);white-space:nowrap}
+@media(max-width:760px){.hg-grid{grid-template-columns:repeat(3,1fr)}.hg-cell:nth-child(4){border-inline-start:0;border-top:1px solid var(--line)}.hg-cell:nth-child(5),.hg-cell:nth-child(6){border-top:1px solid var(--line)}}
+@media(max-width:430px){.hg-grid{grid-template-columns:repeat(2,1fr)}.hg-cell{border-top:1px solid var(--line)}.hg-cell:nth-child(-n+2){border-top:0}.hg-cell:nth-child(odd){border-inline-start:0}}
