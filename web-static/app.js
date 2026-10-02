@@ -1486,11 +1486,36 @@ async function openNewsPerson(handle) {
   const d = await loadNewsPeople();
   const x = (d.figures || []).find(f => String(f.handle).toLowerCase() === String(handle).toLowerCase());
   if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
-  el.innerHTML = `<button class="back" onclick="renderFiguresDirectory()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> فهرست چهره‌ها</button>
-    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa||"چهرهٔ حاضر در خبر")}</p></div></div>
-    <div class="news-statement-tag">چهرهٔ خبر</div>
-    <div class="views">${(x.posts||[]).length ? (x.posts||[]).map(p=>figureCard(p,false)).join("") : '<div class="state"><div class="big">گفته‌ای ثبت نشده.</div></div>'}</div>
-    <p class="muted fig-note">این موارد از گزارش رسانه‌ها استخراج شده‌اند و لینک هر مورد به همان خبر منبع می‌رود.</p>`;
+  const posts = x.posts || [];
+  const latest = posts.map(p => p.published_at).filter(Boolean).sort().pop();
+  const postRow = p => `<article class="x-post">
+    <div class="x-post-rail">${avatar(x,"sm")}</div>
+    <div class="x-post-body">
+      <div class="x-post-meta"><b>${esc(x.name_fa)}</b><span>·</span><time>${relTime(p.published_at)}</time></div>
+      ${p.source_name ? `<div class="x-post-context">${esc(p.source_name)}</div>` : ""}
+      <p>${esc(p.summary_fa || "")}</p>
+      <div class="x-post-actions">
+        <button onclick="openStatement(' ${statementKey(p)}'.trim())" title="صفحهٔ این گفته">◯ <span>صفحهٔ گفته</span></button>
+        <a href="${esc(p.url)}" target="_blank" rel="noopener" title="منبع">↗ <span>منبع</span></a>
+      </div>
+    </div>
+  </article>`;
+  el.innerHTML = `<div class="x-profile">
+    <div class="x-profile-top"><button class="x-back" onclick="showFigures()" aria-label="بازگشت">←</button><div><b>${esc(x.name_fa)}</b><small>${faN(posts.length)} گفته</small></div></div>
+    <div class="x-cover"></div>
+    <div class="x-profile-main">
+      <div class="x-avatar-wrap">${avatar(x,"lg")}</div>
+      <div class="x-profile-actions">${figureFollowBtn(x.handle,false)}</div>
+      <h1>${esc(x.name_fa)}</h1>
+      <div class="x-handle">@${esc(x.handle)}</div>
+      <p class="x-bio">${esc(x.role_fa || "")}</p>
+      ${socialLinks(x.social)}
+      <div class="x-profile-stats"><span><b>${faN(posts.length)}</b> گفته</span>${latest ? `<span>آخرین فعالیت ${relTime(latest)}</span>` : ""}</div>
+    </div>
+    <nav class="x-profile-tabs" aria-label="بخش‌های پروفایل"><button class="on">گفته‌ها</button></nav>
+    <div class="x-profile-feed">${posts.length ? posts.map(postRow).join("") : '<div class="state"><div class="big">گفته‌ای ثبت نشده.</div></div>'}</div>
+    <p class="muted fig-note x-profile-note">گفته‌های این صفحه از گزارش رسانه‌ها استخراج شده‌اند و هر مورد به منبع اصلی پیوند دارد.</p>
+  </div>`;
 }
 async function openFigureByName(name) {
   const d = await loadFigures();
