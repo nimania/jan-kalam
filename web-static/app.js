@@ -1537,19 +1537,37 @@ async function openFigure(handle, resetFilter = true) {
   const direct = (x.posts || []).filter(p => p.kind !== "news_statement");
   const news = (x.posts || []).filter(p => p.kind === "news_statement");
   const shown = _figureProfileFilter === "direct" ? direct : _figureProfileFilter === "news" ? news : (x.posts || []);
-  const statline = `<div class="fig-source-stats">
-    <span><b>${faN(direct.length)}</b> دیدگاه مستقیم</span>
-    <span class="dot"></span>
-    <span><b>${faN(news.length)}</b> گفته در خبر</span>
+  const latest = (x.posts || []).map(p => p.published_at).filter(Boolean).sort().pop();
+  const postRow = p => `<article class="x-post">
+    <div class="x-post-rail">${avatar(x,"sm")}</div>
+    <div class="x-post-body">
+      <div class="x-post-meta"><b>${esc(x.name_fa)}</b><span>·</span><time>${relTime(p.published_at)}</time></div>
+      ${p.kind === "news_statement" ? `<div class="x-post-context">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : (p.topic_fa ? `<div class="x-post-topic">${esc(p.topic_fa)}</div>` : "")}
+      <p>${esc(p.summary_fa || "")}</p>
+      <div class="x-post-actions">
+        <button onclick="openStatement(' ${statementKey(p)}'.trim())" title="صفحهٔ این گفته">◯ <span>صفحهٔ گفته</span></button>
+        <a href="${esc(p.url)}" target="_blank" rel="noopener" title="متن اصلی">↗ <span>متن اصلی</span></a>
+      </div>
+    </div>
+  </article>`;
+  el.innerHTML = `<div class="x-profile">
+    <div class="x-profile-top"><button class="x-back" onclick="showFigures()" aria-label="بازگشت">←</button><div><b>${esc(x.name_fa)}</b><small>${faN((x.posts||[]).length)} گفته</small></div></div>
+    <div class="x-cover"></div>
+    <div class="x-profile-main">
+      <div class="x-avatar-wrap">${avatar(x,"lg")}</div>
+      <div class="x-profile-actions">${figureFollowBtn(x.handle,false)}</div>
+      <h1>${esc(x.name_fa)}</h1>
+      <div class="x-handle">@${esc(x.handle)}</div>
+      <p class="x-bio">${esc(x.role_fa || "")}</p>
+      ${socialLinks(x.social)}
+      <div class="x-profile-stats"><span><b>${faN(direct.length)}</b> دیدگاه مستقیم</span><span><b>${faN(news.length)}</b> گفته در خبر</span>${latest ? `<span>آخرین فعالیت ${relTime(latest)}</span>` : ""}</div>
+    </div>
+    <nav class="x-profile-tabs" aria-label="بخش‌های پروفایل">
+      <button class="${_figureProfileFilter==="all"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','all')">همه</button>
+      <button class="${_figureProfileFilter==="direct"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','direct')">دیدگاه‌ها</button>
+      <button class="${_figureProfileFilter==="news"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','news')">در خبرها</button>
+    </nav>
+    <div class="x-profile-feed">${shown.length ? shown.map(postRow).join("") : '<div class="state"><div class="big">در این بخش موردی ثبت نشده.</div></div>'}</div>
+    <p class="muted fig-note x-profile-note">دیدگاه‌ها از منابع عمومی خود شخص می‌آیند؛ موارد «در خبرها» گفته‌هایی هستند که رسانه‌ها به او نسبت داده‌اند.</p>
   </div>`;
-  const filters = `<div class="fig-profile-filters">
-    <button class="fchip ${_figureProfileFilter==="all"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','all')">همه <span class="chip-n">${faN((x.posts||[]).length)}</span></button>
-    <button class="fchip ${_figureProfileFilter==="direct"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','direct')">دیدگاه مستقیم <span class="chip-n">${faN(direct.length)}</span></button>
-    <button class="fchip ${_figureProfileFilter==="news"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','news')">گفته در خبر <span class="chip-n">${faN(news.length)}</span></button>
-  </div>`;
-  el.innerHTML = `<button class="back" onclick="showFigures()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> همهٔ چهره‌ها</button>
-    <div class="fig-head">${avatar(x, "lg")}<div class="fig-head-body"><h1>${esc(x.name_fa)}</h1><p class="muted">${esc(x.role_fa)}</p>${statline}${figureFollowBtn(x.handle,false)}${socialLinks(x.social)}</div></div>
-    ${filters}
-    <div class="views">${shown.length ? shown.map(p => figureCard(p, false)).join("") : '<div class="state"><div class="big">در این بخش موردی ثبت نشده.</div></div>'}</div>
-    <p class="muted fig-note">«دیدگاه مستقیم» از منابع عمومی خود شخص می‌آید؛ «گفته در خبر» حرفی است که یک رسانه به او نسبت داده و لینک آن به همان مقاله می‌رود.</p>`;
 }
