@@ -120,7 +120,8 @@ async function route() {
   if (kind === "faq") return showFaq();
   if (kind === "figures") return showFigures();
   if (kind === "press") return showPress();
-  if (kind === "press-source" && arg) return showPress(arg);\n  if (kind === "press-article" && arg) return openPressArticle(arg);
+  if (kind === "press-source" && arg) return showPress(arg);
+  if (kind === "press-article" && arg) return openPressArticle(arg);
   if (kind === "tech") return showTech();
   if (kind === "figure" && arg) return openFigure(arg);
   if (kind === "news-person" && arg) return openNewsPerson(arg);
