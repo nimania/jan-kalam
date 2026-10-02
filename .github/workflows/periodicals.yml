@@ -1,4 +1,4 @@
-name: Collect Telegram periodicals
+name: Collect & publish periodicals
 
 on:
   workflow_dispatch:
@@ -7,35 +7,87 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+  actions: read
 
 concurrency:
-  group: telegram-periodicals
+  group: pages
   cancel-in-progress: false
 
 jobs:
-  collect:
+  publish:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install collector dependencies
+      - name: Install dependencies
         working-directory: backend
-        run: pip install "pypdf>=5.0"
-      - name: Restore collector state
+        run: pip install -r requirements.txt
+
+      - name: Restore periodical state and archive
         uses: actions/cache@v4
         with:
-          path: backend/periodicals/state.json
-          key: periodicals-state-${{ github.run_id }}
+          path: |
+            backend/periodicals/state.json
+            backend/periodicals/archive.json
+          key: periodicals-v2-${{ github.run_id }}
           restore-keys: |
-            periodicals-state-
-      - name: Collect new PDFs from public Telegram previews\n        working-directory: backend\n        run: python -m scripts.collect_periodicals
-      - name: Save extracted candidates
+            periodicals-v2-
+
+      - name: Collect public Telegram PDFs
+        working-directory: backend
+        run: python -m scripts.collect_periodicals
+
+      - name: Build Persian periodical cards
+        working-directory: backend
+        env:
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_MODEL_STRONG: ${{ secrets.AI_MODEL_STRONG }}
+        run: python -m scripts.publish_periodicals
+
+      - name: Find latest successful full site build
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_ID="$(gh run list --workflow build.yml --status success --limit 1 --json databaseId --jq '.[0].databaseId')"
+          test -n "$RUN_ID"
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Download latest static site
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download "${{ steps.base.outputs.run_id }}" -n latest-static-site -D site
+
+      - name: Overlay Jan-e Jarayed data
+        run: |
+          mkdir -p site/data
+          cp backend/public/data/periodicals.json site/data/periodicals.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Save diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: periodical-candidates-${{ github.run_id }}
-          path: |\n            backend/periodicals/articles.json\n            backend/periodicals/quarantine.json
+          name: periodical-diagnostics-${{ github.run_id }}
+          path: |
+            backend/periodicals/articles.json
+            backend/periodicals/quarantine.json
+            backend/periodicals/archive.json
           if-no-files-found: ignore
           retention-days: 3
