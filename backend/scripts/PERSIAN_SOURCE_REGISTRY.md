@@ -29,7 +29,7 @@ Akhbar Rooz, Radio Zamaneh, Center for Human Rights in Iran.
 - Iran Online — http://www.ion.ir/
 - Iran Briefing — https://irbr.news/
 - Iranshahr News Agency — http://iranshahrnewsagency.com/
-- IranWire Persian — https://iranwire.com/fa/
+- IranWire Persian — ACTIVE via publisher RSS: https://iranwire.com/feed/
 - ISCA News — http://iscanews.ir/
 - ILNA — http://www.ilna.ir/
 - Independent Persian — https://www.independentpersian.com/
@@ -45,7 +45,7 @@ Akhbar Rooz, Radio Zamaneh, Center for Human Rights in Iran.
 - Iranian Diplomacy — http://www.irdiplomacy.ir/
 - RFI Persian — http://fa.rfi.fr/
 - Raja News — http://rajanews.com/
-- Radio Farda — http://www.radiofarda.com/
+- Radio Farda — ACTIVE via official RSS: https://www.radiofarda.com/rssfeeds
 - Roozno — http://www.roozno.com/
 - Hengaw — https://hengaw.net/fa
 - Salam Cinema — http://www.salamcinama.ir/
@@ -94,3 +94,11 @@ Akhbar Rooz, Radio Zamaneh, Center for Human Rights in Iran.
 
 Do not guess RSS URLs. A candidate moves into production only after its endpoint returns
 parseable, current items from the deployment environment.
+
+
+## Rollback discipline
+Every source batch is shipped on its own branch and pull request, then squash-merged.
+The squash commit is the rollback checkpoint: revert that one commit to remove the
+whole batch without disturbing earlier source batches. Never replace a known-good
+feed with an unverified guessed endpoint. HTML adapters ship separately from RSS
+source additions so either layer can be reverted independently.

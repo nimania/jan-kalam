@@ -78,6 +78,9 @@ SOURCES = [
     ("سلامت نیوز", "https://www.salamatnews.com", "http://salamatnews.com/rss.xml", "iran-health", 0.5),
     ("اخبار روز", "https://akhbar-rooz.com", "https://akhbar-rooz.com/feed/", "iran-intl", 0.5),
     ("رادیو زمانه", "https://www.radiozamaneh.com", "http://radiozamaneh.com/rss.xml", "iran-intl", 0.6),
+    # Official RSS endpoints verified from each publisher's own RSS surface.
+    ("رادیو فردا", "https://www.radiofarda.com", "https://www.radiofarda.com/api/zrttpol-vomx-tpeoogpi", "iran-intl", 0.7),
+    ("ایران‌وایر", "https://iranwire.com/fa/", "https://iranwire.com/feed/", "iran-intl", 0.65),
     ("مرکز حقوق بشر در ایران", "https://iranhumanrights.org", "https://iranhumanrights.org/feed/", "iran-intl-rights", 0.65),
 
 
