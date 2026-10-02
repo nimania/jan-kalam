@@ -75,12 +75,14 @@ def fetch_prices(timeout: float = 20.0) -> list[dict]:
             val = round(val / 10)
         dt = node.get("dt", "")
         direction = "up" if dt == "high" else "down" if dt == "low" else "flat"
+        dp = _num(node.get("dp")) or 0
+        # TGJU exposes the percentage move; derive an approximate absolute
+        # 24h move in the displayed unit so the compact strip can show both.
+        prev = (val / (1 + dp / 100)) if dp and (1 + dp / 100) else val
+        delta24 = round(val - prev)
         out.append({
-            "label_fa": label,
-            "value": val,
-            "unit_fa": unit,
-            "dp": node.get("dp", 0),
-            "dir": direction,
+            "label_fa": label, "value": val, "unit_fa": unit,
+            "dp": dp, "dir": direction, "delta24": delta24,
         })
     logger.info("fetched %d price rows", len(out))
     return out
