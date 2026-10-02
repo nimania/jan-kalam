@@ -254,3 +254,16 @@ def test_figures_index_carries_avatar_and_social(db, tmp_path):
     me = next(x for x in idx["figures"] if x["handle"] == f.handle)
     assert me["avatar"] == f"figures/{f.handle}.jpg"
     assert me["social"][0]["kind"] == "telegram"
+
+
+# --- news people: explicit-name guard -----------------------------------------
+from app.news_people import is_named_person_name  # noqa: E402
+
+
+def test_news_people_require_real_personal_name():
+    assert is_named_person_name("مسعود پزشکیان")
+    assert is_named_person_name("غلامرضا نوری قزلجه")
+    assert not is_named_person_name("رئیس سازمان امور مالیاتی")
+    assert not is_named_person_name("سخنگوی وزارت کشور")
+    assert not is_named_person_name("یک مقام")
+    assert not is_named_person_name("پزشکیان")
