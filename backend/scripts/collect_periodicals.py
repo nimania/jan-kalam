@@ -12,7 +12,7 @@ import hashlib, html, json, re, urllib.parse, urllib.request
 from pathlib import Path
 from pypdf import PdfReader
 
-CHANNELS = ("dailynewspaper88", "the_wall_street_journal_epaper", "dailynewspaper88magzine")
+CHANNELS = ("dailynewspaper88", "dailynewspaper88magzine")
 OUT = Path("periodicals")
 STATE = OUT / "state.json"
 UA = "Mozilla/5.0 (compatible; JanKalamPeriodicals/1.0; +https://nimania.github.io/jan-kalam/)"
@@ -56,7 +56,10 @@ def public_posts(channel: str) -> list[dict]:
         pdf_names = re.findall(r'([^<>"/]{2,180}\.pdf)\b', text, re.I)
         hrefs = [html.unescape(x) for x in re.findall(r'href="([^"]+)"', block)]
         direct = next((u for u in hrefs if ".pdf" in u.lower() or "telegram-cdn" in u.lower()), None)
-        rows.append({"id": mid, "text": text[:2000], "filename": pdf_names[0] if pdf_names else "", "download_url": direct})
+        photos = re.findall(r'background-image:url\\([\'"]?([^\'")]+)', block)
+        photo = html.unescape(photos[0]) if photos else None
+        rows.append({"id": mid, "text": text[:2000], "filename": pdf_names[0] if pdf_names else "",
+                     "download_url": direct, "cover_url": photo})
     return rows
 
 def _page_image(page, pdf: Path, page_no: int) -> str | None:
@@ -129,6 +132,16 @@ def main() -> None:
                 continue
             url = post["download_url"]
             if not url:
+                # Standalone image posts are often issue covers. Keep them so the
+                # publisher can attach the nearest preceding cover to the next PDF issue.
+                if post.get("cover_url"):
+                    output.append({
+                        "id": f"cover:{channel}:{mid}", "kind": "issue_cover",
+                        "publisher": publisher, "transport": f"telegram-public:@{channel}",
+                        "telegram_message_id": mid, "telegram_post_url": f"https://t.me/{channel}/{mid}",
+                        "cover_url": post["cover_url"], "text": post["text"][:500],
+                    })
+                    continue
                 quarantine.append({"channel": channel, "message_id": mid, "reason": "pdf_not_publicly_exposed", "publisher": publisher, "label": filename})
                 continue
             pdf = OUT / f"{channel}-{mid}.pdf"
