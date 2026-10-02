@@ -66,10 +66,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh run download "${{ steps.base.outputs.run_id }}" -n latest-static-site -D site
 
-      - name: Overlay Jan-e Jarayed data
+      - name: Overlay Jan-e Jarayed data and extracted PDF images
         run: |
           mkdir -p site/data
           cp backend/public/data/periodicals.json site/data/periodicals.json
+          if [ -d backend/web-static/assets/periodicals ]; then
+            mkdir -p site/assets/periodicals
+            cp -R backend/web-static/assets/periodicals/. site/assets/periodicals/
+          fi
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
