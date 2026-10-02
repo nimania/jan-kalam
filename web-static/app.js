@@ -286,6 +286,7 @@ function feedCard(s) {
 
 let ALL = [];
 let tier = "all";
+let feedRange = "all";
 async function loadFeed() {
   const el = document.getElementById("feed");
   try {
@@ -338,7 +339,11 @@ function renderFeed() {
     return;
   }
   let items = feedFilter(tier);
+  if (feedRange !== "all") { const cut = Date.now() - Number(feedRange) * 3600e3; items = items.filter(s => s.published_at && new Date(s.published_at).getTime() >= cut); }
   if (sortMode === "new") items = items.slice().sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
+  else if (sortMode === "sources") items = items.slice().sort((a,b)=>(b.source_count||0)-(a.source_count||0));
+  else if (sortMode === "views") items = items.slice().sort((a,b)=>(b.figure_count||0)-(a.figure_count||0) || (b.source_count||0)-(a.source_count||0));
+  else if (sortMode === "rising") items = items.slice().sort((a,b)=>((b.trend&&b.trend.velocity)||0)-((a.trend&&a.trend.velocity)||0));
   const empty = { rising: "الان خبری در حالِ رشد نیست", hot: "الان خبرِ داغی نداریم",
     mine: "هنوز خبری از دنبال‌شده‌هایت نیست" }[tier] || "خبری در این نما نیست";
   el.innerHTML = items.length ? items.map(feedCard).join("")
@@ -350,11 +355,11 @@ function setTier(t) {
     c.classList.toggle("on", (c.getAttribute("onclick") || "").indexOf("'" + t + "'") >= 0));
   renderFeed();
 }
+function setFeedRange(r) { feedRange = r; document.querySelectorAll(".day-range-chips > .day-chip[data-range]").forEach(b => b.classList.toggle("on", String(b.dataset.range) === String(r))); renderFeed(); }
 let sortMode = "imp";
 function setSort(m) {
   sortMode = m;
-  document.getElementById("sort-imp").classList.toggle("on", m === "imp");
-  document.getElementById("sort-new").classList.toggle("on", m === "new");
+  ["imp","new","sources","views","rising"].forEach(x => { const b=document.getElementById("sort-"+x); if(b) b.classList.toggle("on",m===x); });
   renderFeed();
 }
 
