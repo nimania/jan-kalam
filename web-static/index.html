@@ -31,6 +31,9 @@
       <button class="icon-btn" onclick="showFigures()" aria-label="چهره‌ها" title="چهره‌ها — دیدگاه تحلیلگران">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" stroke-linecap="round"/><path d="M15.5 5.2a3 3 0 0 1 0 5.6M17.5 14.3c1.7.6 2.8 2.2 3.1 4.7" stroke-linecap="round"/></svg>
       </button>
+      <button class="icon-btn" onclick="showPress()" aria-label="جان جراید" title="جانِ جراید — گزیدهٔ فارسی مطبوعات جهان">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4Z"/><path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round"/></svg>
+      </button>
       <button class="icon-btn" onclick="showTech()" aria-label="فناوری و طراحی" title="فناوری و طراحی">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
@@ -143,6 +146,16 @@
       <div class="rule"><span>تایملاین چهره‌ها</span><span class="l"></span><button class="sortchip" onclick="renderFiguresDirectory()">فهرست همهٔ چهره‌ها</button></div>
       <div class="figure-timeline" id="figure-timeline"><div class="spinner"></div></div>
       <div id="figures"></div>
+    </section>
+
+    <section class="trends-view" id="press-view">
+      <button class="back" onclick="showFeed()">بازگشت به خط خبری</button>
+      <div class="lede press-lede">
+        <span class="press-kicker">مطبوعات جهان، به فارسی</span>
+        <h1>جانِ جراید</h1>
+        <p>گزیدهٔ فارسی مطالب روزنامه‌ها و مجلات؛ هر مطلب به نام خودِ نشریه منتشر می‌شود، نه کانال گردآوری.</p>
+      </div>
+      <div id="press-content"><div class="spinner"></div></div>
     </section>
 
     <section class="trends-view" id="tech-view">
