@@ -1,4 +1,4 @@
-name: Fast Deploy Jan Kalam UI
+name: Fast Deploy Jan Kalam UI\n# Also publishes seeded Jan-e Jaraid data under web-static/data.
 
 on:
   workflow_dispatch:
