@@ -261,6 +261,7 @@ button.tl-item:hover .tl-h{color:#1a9d7e}
 
 function feedCard(s) {
   const imp = impInfo(s.importance_score);
+  const peopleSuggestions = await storyPeopleSuggestions(s);
   const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge clickable" data-src="${esc(x)}" onclick="event.stopPropagation();openSource(this.dataset.src)">${esc(x)}</span>`).join("");
   // Show the article's image when the outlet's RSS provided one; otherwise
   // fall back to the mini-map (so every card has a visual anchor).
@@ -394,6 +395,25 @@ function timelineSection(s, related) {
     <div class="timeline">${rows}</div></div>`;
 }
 
+async function storyPeopleSuggestions(s) {
+  const d = await loadFigures();
+  const norm = v => String(v || "").replace(/‌/g," ").replace(/\s+/g," ").trim();
+  const names = new Set((s.person_statements || []).map(q => norm(q.person_name_fa)).filter(Boolean));
+  (s.entities || []).forEach(e => {
+    const n = norm(e.name_fa || e.name || e.label_fa);
+    if (n) names.add(n);
+  });
+  const people = (d.figures || []).filter(f => names.has(norm(f.name_fa))).slice(0, 8);
+  if (!people.length) return "";
+  return `<div class="layers story-people"><h3 class="section-h">چهره‌های مرتبط <span class="n">پروفایل و گفته‌های بیشتر</span></h3>
+    <div class="story-people-grid">${people.map(p => `<article class="story-person-card">
+      <button class="story-person-main" onclick="openFigure('${esc(p.handle)}')">
+        ${avatar(p,"md")}<span class="story-person-copy"><b>${esc(p.name_fa)}</b><small>${esc(p.role_fa||p.field_fa||"")}</small><em>${faN((p.posts||[]).length)} گفته</em></span>
+      </button>
+      ${figureFollowBtn(p.handle,true)}
+    </article>`).join("")}</div></div>`;
+}
+
 async function openStory(id) {
   setHash("#/story/" + id);
   show("detail"); setTab("feed");
@@ -475,6 +495,7 @@ async function openStory(id) {
     <div class="kalam-box"><span class="eyebrow">جان‌کلام <span class="ai">ترکیب هوش مصنوعی</span></span><p>${esc(s.summary_fa || "")}</p></div>
     ${detailGeoStrip(s)}
     ${peopleRow(s.entities)}
+    ${peopleSuggestions}
     <div class="twocol"><div class="qa"><h3>چه اتفاقی افتاد؟</h3><p>${esc(s.what_happened_fa || "—")}</p></div>
       <div class="qa"><h3>چرا اهمیت دارد؟</h3><p>${esc(s.why_it_matters_fa || "—")}</p></div></div>
     ${known}
