@@ -885,6 +885,30 @@ async function renderHomePrices() {
   } catch (e) {}
 }
 
+// Compact market + weather table directly below the home stats.
+async function renderHomeGlance() {
+  const el = document.getElementById("home-glance");
+  if (!el) return;
+  try {
+    const [prices, weather] = await Promise.all([
+      getJSON(`${DATA}/prices.json`).catch(() => []),
+      getJSON(`${DATA}/weather.json`).catch(() => [])
+    ]);
+    const usd = (prices || []).find(p => p.label_fa === "دلار آمریکا");
+    const tr = (prices || []).find(p => p.label_fa === "لیر ترکیه");
+    const cities = ["نوشهر", "چالوس", "کرمان", "تهران"]
+      .map(name => (weather || []).find(w => w.city_fa === name)).filter(Boolean);
+    const market = [usd, tr].filter(Boolean).map(p =>
+      `<button class="hg-cell" onclick="showMarket()"><span class="hg-label">${esc(p.label_fa)}</span><b>${faN(grp(p.value))}</b><small>تومان</small></button>`
+    ).join("");
+    const wx = cities.map(c =>
+      `<button class="hg-cell" onclick="showWeather()"><span class="hg-label">${c.icon || "🌡️"} ${esc(c.city_fa)}</span><b>${faN(c.temp)}°</b><small>${esc(c.cond_fa || "")} · ${faN(c.min)}°/${faN(c.max)}°</small></button>`
+    ).join("");
+    if (!market && !wx) return;
+    el.innerHTML = `<div class="hg-grid">${market}${wx}</div>`;
+  } catch (_) {}
+}
+
 // Homepage Jan-e Majra: a compact window into the strongest current topic dossiers.
 function scrollHomeMajra(dir) {
   const el = document.getElementById("home-majra-cards");
