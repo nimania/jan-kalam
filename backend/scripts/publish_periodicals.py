@@ -16,10 +16,17 @@ ARCHIVE=ROOT/"archive.json"
 PUBLIC=Path("public/data/periodicals.json")
 MAX_ITEMS=300
 
-SYSTEM="""You are a Persian news editor. Return JSON only. Do not reproduce the source article.
-Create a faithful Persian headline and concise original summary from the supplied page candidate.
-Do not add facts. If the page is not a coherent article/news item, set publish=false.
-Output: {"publish":true|false,"headline_fa":"","summary_fa":"","key_points_fa":["",""]}."""
+SYSTEM="""You are a meticulous Persian periodical editor. Return JSON only.
+From the supplied PDF page candidate, determine whether it contains a coherent article.
+If it does, create a faithful Persian rendering that preserves the article's claims,
+qualifications, sequence and attribution without adding facts. It must read naturally in
+Persian and must not invent missing text. When a page is only a fragment that clearly
+continues elsewhere, be conservative. Classify it into one useful section such as
+سیاست، اقتصاد، جهان، ایران، فناوری، فرهنگ، جامعه، علم، کسب‌وکار or سبک زندگی.
+Output:
+{"publish":true|false,"headline_fa":"","summary_fa":"","body_fa":"",
+ "section_fa":"","key_points_fa":["",""]}.
+body_fa should be a detailed Persian rendering of the available article text, not a short card."""
 
 def main():
     rows=json.loads(IN.read_text(encoding="utf-8")) if IN.exists() else []
@@ -30,7 +37,9 @@ def main():
         fresh=[]
     else:
         fresh=[]
-        for x in rows[:40]:
+        covers=[x for x in rows if x.get("kind")=="issue_cover"]
+        article_rows=[x for x in rows if x.get("kind")!="issue_cover"]
+        for x in article_rows[:40]:
             try:
                 r=provider.generate(system=SYSTEM,user=("Publisher: "+x["publisher"]+"\nText:\n"+x["text"][:10000]),context={"articles":[]}).data
                 if not r.get("publish") or not r.get("headline_fa") or not r.get("summary_fa"):
@@ -39,9 +48,14 @@ def main():
                     "id":x["id"],"publisher":x["publisher"],
                     "headline_fa":str(r["headline_fa"]).strip(),
                     "summary_fa":str(r["summary_fa"]).strip(),
+                    "body_fa":str(r.get("body_fa") or "").strip(),
+                    "section_fa":str(r.get("section_fa") or "سایر").strip(),
                     "key_points_fa":[str(v).strip() for v in (r.get("key_points_fa") or [])[:4] if str(v).strip()],
                     "telegram_post_url":x.get("telegram_post_url"),
                     "transport":x.get("transport"),"page":x.get("page"),
+                    "image_url":x.get("image_url"),
+                    "issue_key":f'{x.get("publisher","")}:{x.get("transport","")}:{x.get("telegram_message_id","")}',
+                    "cover_url":next((v.get("cover_url") for v in sorted(covers,key=lambda z:abs(int(z.get("telegram_message_id",0))-int(x.get("telegram_message_id",0)))) if v.get("publisher")==x.get("publisher") and abs(int(v.get("telegram_message_id",0))-int(x.get("telegram_message_id",0)))<=3),None),
                     "published_at":datetime.now(timezone.utc).isoformat(),
                 })
             except Exception as exc:
