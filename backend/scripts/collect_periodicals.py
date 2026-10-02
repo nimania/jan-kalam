@@ -1,21 +1,21 @@
-"""Best-effort Telegram periodical PDF collector.
+"""Public Telegram periodical collector (no Telegram login required).
 
-The Telegram channels are transport only. Publisher identity is inferred from
-the document filename and stored separately, so @dailynewspaper88 never becomes
-the visible news source.
+Reads public t.me/s/<channel> preview pages. Telegram is transport only:
+the visible source is inferred from the publication filename/title.
 
-Requires TELEGRAM_API_ID, TELEGRAM_API_HASH and TELEGRAM_SESSION. With any
-credential missing, exits successfully and leaves the normal news build alone.
+This collector deliberately fails soft. If Telegram exposes a post but not a
+publicly downloadable PDF URL, the item is recorded in quarantine rather than
+breaking the site's normal build.
 """
 from __future__ import annotations
-import asyncio, hashlib, json, os, re
+import hashlib, html, json, re, urllib.parse, urllib.request
 from pathlib import Path
 from pypdf import PdfReader
-from telethon import TelegramClient
 
 CHANNELS = ("dailynewspaper88", "the_wall_street_journal_epaper", "dailynewspaper88magzine")
 OUT = Path("periodicals")
 STATE = OUT / "state.json"
+UA = "Mozilla/5.0 (compatible; JanKalamPeriodicals/1.0; +https://nimania.github.io/jan-kalam/)"
 
 PUBLISHERS = [
     (re.compile(r"\b(?:the\s+)?wall\s*street\s+journal|\bwsj\b", re.I), "وال‌استریت ژورنال"),
@@ -35,9 +35,31 @@ def publisher_for(filename: str) -> str | None:
             return name
     return None
 
+def fetch(url: str, binary: bool = False):
+    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = r.read()
+        return data if binary else data.decode("utf-8", "replace")
+
+def public_posts(channel: str) -> list[dict]:
+    """Parse message ids, document names and any public file/CDN URLs."""
+    raw = fetch(f"https://t.me/s/{channel}")
+    blocks = re.split(r'(?=<div class="tgme_widget_message_wrap)', raw)
+    rows = []
+    for block in blocks:
+        m = re.search(r'data-post="' + re.escape(channel) + r'/(\d+)"', block)
+        if not m:
+            continue
+        mid = int(m.group(1))
+        text = html.unescape(re.sub(r"<[^>]+>", " ", block))
+        text = re.sub(r"\s+", " ", text).strip()
+        pdf_names = re.findall(r'([^<>"/]{2,180}\.pdf)\b', text, re.I)
+        hrefs = [html.unescape(x) for x in re.findall(r'href="([^"]+)"', block)]
+        direct = next((u for u in hrefs if ".pdf" in u.lower() or "telegram-cdn" in u.lower()), None)
+        rows.append({"id": mid, "text": text[:2000], "filename": pdf_names[0] if pdf_names else "", "download_url": direct})
+    return rows
+
 def page_articles(pdf: Path, publisher: str, origin: str, message_id: int) -> list[dict]:
-    """Conservative extraction: one page = one candidate, later clustering
-    collapses continuations/duplicates. We never publish/store the PDF itself."""
     rows = []
     reader = PdfReader(str(pdf))
     for page_no, page in enumerate(reader.pages, 1):
@@ -48,52 +70,56 @@ def page_articles(pdf: Path, publisher: str, origin: str, message_id: int) -> li
         rows.append({
             "id": hashlib.sha1(f"{origin}:{message_id}:{page_no}".encode()).hexdigest(),
             "publisher": publisher,
-            "transport": f"telegram:@{origin}",
+            "transport": f"telegram-public:@{origin}",
             "telegram_message_id": message_id,
+            "telegram_post_url": f"https://t.me/{origin}/{message_id}",
             "page": page_no,
             "title_original": title,
             "text": text[:12000],
         })
     return rows
 
-async def main() -> None:
-    api_id=os.getenv("TELEGRAM_API_ID"); api_hash=os.getenv("TELEGRAM_API_HASH"); session=os.getenv("TELEGRAM_SESSION")
-    if not (api_id and api_hash and session):
-        print("periodicals: Telegram credentials absent; safe skip")
-        return
+def main() -> None:
     OUT.mkdir(exist_ok=True)
-    state=json.loads(STATE.read_text() if STATE.exists() else "{}")
-    client=TelegramClient(StringSession(session), int(api_id), api_hash)
-    await client.connect()
-    if not await client.is_user_authorized():
-        raise RuntimeError("TELEGRAM_SESSION is not authorized")
-    output=[]
-    try:
-        for channel in CHANNELS:
-            after=int(state.get(channel, 0))
-            newest=after
-            async for msg in client.iter_messages(channel, limit=30):
-                newest=max(newest, msg.id)
-                if msg.id <= after or not msg.document:
-                    continue
-                filename=getattr(msg.file, "name", "") or ""
-                if not filename.lower().endswith(".pdf"):
-                    continue
-                publisher=publisher_for(filename)
-                if not publisher:
-                    print(f"periodicals: unknown publisher, quarantined: {filename}")
-                    continue
-                path=await client.download_media(msg, file=str(OUT / f"{channel}-{msg.id}.pdf"))
-                pdf=Path(path)
-                try: output.extend(page_articles(pdf,publisher,channel,msg.id))
-                finally: pdf.unlink(missing_ok=True)
-            state[channel]=newest
-    finally:
-        await client.disconnect()
-    (OUT/"articles.json").write_text(json.dumps(output,ensure_ascii=False),encoding="utf-8")
-    STATE.write_text(json.dumps(state),encoding="utf-8")
-    print(f"periodicals: extracted {len(output)} page candidates")
+    state = json.loads(STATE.read_text() if STATE.exists() else "{}")
+    output, quarantine = [], []
+    for channel in CHANNELS:
+        after = int(state.get(channel, 0))
+        newest = after
+        try:
+            posts = public_posts(channel)
+        except Exception as exc:
+            print(f"periodicals: preview failed @{channel}: {exc}")
+            continue
+        for post in sorted(posts, key=lambda x: x["id"]):
+            mid = post["id"]; newest = max(newest, mid)
+            if mid <= after:
+                continue
+            filename = post["filename"]
+            publisher = publisher_for(filename or post["text"])
+            if not publisher:
+                quarantine.append({"channel": channel, "message_id": mid, "reason": "unknown_publisher", "label": filename or post["text"][:240]})
+                continue
+            url = post["download_url"]
+            if not url:
+                quarantine.append({"channel": channel, "message_id": mid, "reason": "pdf_not_publicly_exposed", "publisher": publisher, "label": filename})
+                continue
+            pdf = OUT / f"{channel}-{mid}.pdf"
+            try:
+                data = fetch(urllib.parse.urljoin("https://t.me/", url), binary=True)
+                if not data.startswith(b"%PDF"):
+                    raise ValueError("download target is not a PDF")
+                pdf.write_bytes(data)
+                output.extend(page_articles(pdf, publisher, channel, mid))
+            except Exception as exc:
+                quarantine.append({"channel": channel, "message_id": mid, "reason": "download_or_parse_failed", "publisher": publisher, "error": str(exc)[:240]})
+            finally:
+                pdf.unlink(missing_ok=True)
+        state[channel] = newest
+    (OUT / "articles.json").write_text(json.dumps(output, ensure_ascii=False), encoding="utf-8")
+    (OUT / "quarantine.json").write_text(json.dumps(quarantine, ensure_ascii=False), encoding="utf-8")
+    STATE.write_text(json.dumps(state), encoding="utf-8")
+    print(f"periodicals: extracted {len(output)} page candidates; quarantined {len(quarantine)}")
 
 if __name__ == "__main__":
-    from telethon.sessions import StringSession
-    asyncio.run(main())
+    main()
