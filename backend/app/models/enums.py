@@ -13,6 +13,10 @@ class Category(str, enum.Enum):
     technology = "technology"
     ai = "ai"
     culture = "culture"
+    sport = "sport"
+    science = "science"
+    environment = "environment"
+    entertainment = "entertainment"
 
 
 class FeedType(str, enum.Enum):

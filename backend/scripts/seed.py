@@ -68,8 +68,12 @@ SOURCES = [
     ("آفتاب‌نیوز", "https://aftabnews.ir", "https://aftabnews.ir/fa/rss/allnews", "iran", 0.5),
     ("مشرق نیوز", "https://www.mashreghnews.ir", "https://www.mashreghnews.ir/rss", "iran", 0.5),
     ("انصاف نیوز", "https://www.ensafnews.com", "https://www.ensafnews.com/feed", "iran", 0.5),
-    ("روزنامه پیام‌ما", "https://payamema.ir", "https://payamema.ir/feed", "iran", 0.55),
+    ("روزنامه پیام‌ما", "https://payamema.ir", "https://payamema.ir/feed", "iran-environment", 0.55),
     ("ورزش سه", "https://www.varzesh3.com", "https://www.varzesh3.com/rss/all", "iran", 0.45),
+    # --- Persian specialist / vertical media ---
+    # These broaden the feed beyond politics: technology and digital economy.
+    ("دیجیاتو", "https://digiato.com", "https://digiato.com/feed", "iran-tech", 0.6),
+
 
     # --- Persian-language: international / diaspora ---
     ("بی‌بی‌سی فارسی (BBC Persian)", "https://www.bbc.com/persian", "https://feeds.bbci.co.uk/persian/rss.xml", "iran-intl", 0.75),
@@ -79,6 +83,13 @@ SOURCES = [
     ("کیهان لندن", "https://kayhan.london", "https://kayhan.london/feed/", "iran-intl", 0.55),
     ("زیتون", "https://www.zeitoons.com", "https://www.zeitoons.com/feed", "iran-intl", 0.5),
 ]
+
+SOURCE_CATEGORIES = {
+    "The Verge": Category.technology,
+    "ورزش سه": Category.sport,
+    "روزنامه پیام‌ما": Category.environment,
+    "دیجیاتو": Category.technology,
+}
 
 TOPICS = [
     ("iran", "ایران", "Iran"),
@@ -104,7 +115,7 @@ def run() -> None:
         wanted: set[str] = set()
         for name, home, feed, region, rel in SOURCES:
             wanted.add(name)
-            lang = "fa" if region in ("iran", "iran-intl") else "en"
+            lang = "fa" if region.startswith("iran") else "en"
             existing = db.query(Source).filter_by(name=name).one_or_none()
             if existing:
                 existing.homepage_url = home
@@ -113,6 +124,7 @@ def run() -> None:
                 existing.language = lang
                 existing.reliability_score = rel
                 existing.enabled = True
+                existing.default_category = SOURCE_CATEGORIES.get(name)
                 # RSS thumbnails (media:thumbnail / media:content) are published by
                 # the outlet FOR redistribution — safe to keep. We still never
                 # store full article body or scraped page images.
@@ -127,6 +139,7 @@ def run() -> None:
                 region=region,
                 language=lang,
                 reliability_score=rel,
+                default_category=SOURCE_CATEGORIES.get(name),
                 attribution_required=True,
                 allow_image=True,
             )
