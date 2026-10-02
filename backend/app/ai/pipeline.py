@@ -22,6 +22,7 @@ from app.core.logging import get_logger
 from app.models.enums import IranRelevance, StatementKind, StoryStatus
 from app.models.story import SourceView, Statement, Story, StoryArticle
 from app.models.news_person_statement import NewsPersonStatement
+from app.news_people import is_named_person_name
 from app.models.usage_log import UsageLog
 
 NEWS_PEOPLE_BACKFILL_STAGE = "news_people_v1"
@@ -161,7 +162,7 @@ def _apply(db: Session, story: Story, out: JanKalamOutput, articles: list) -> No
     # no source evidence => no profile item.
     for ps in out.person_statements:
         a = by_name.get(ps.source_name)
-        if not a or not a.article_url:
+        if not a or not a.article_url or not is_named_person_name(ps.person_name_fa):
             continue
         db.add(NewsPersonStatement(
             story_id=story.id,
