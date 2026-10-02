@@ -35,7 +35,7 @@ def _profile_blocked(name: str) -> bool:
 
 # Generic titles are not people. If the model could not supply a real personal
 # name, the item must never become a profile (or even survive export).
-_ROLE_PREFIX_RE = re.compile(r"^(?:رئیس|رییس|معاون|مدیر|مسئول|سخنگو|وزیر|استاندار|فرماندار|نماینده|عضو|دبیر|مشاور|کارشناس|مقام|منبع)\\b")
+_ROLE_PREFIX_RE = re.compile(r"^(?:(?:یک|یکی از)\\s+)?(?:رئیس|رییس|معاون|مدیر|مسئول|سخنگو|وزیر|استاندار|فرماندار|نماینده|عضو|دبیر|مشاور|کارشناس|مقام|منبع)\\b")
 _ORG_ONLY_RE = re.compile(r"(?:سازمان|وزارت|اداره|نهاد|شرکت|بانک|دانشگاه|کمیسیون|شورا|ستاد|دفتر|مرکز|خبرگزاری)")
 
 
