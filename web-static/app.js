@@ -57,36 +57,35 @@ function showTrends() { show("trends"); setTab("trends"); renderTrends(); setHas
 function showFactchecks() { show("factchecks"); setTab("factchecks"); renderFactchecks(); setHash("#/fact"); }
 function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); }
 
+let periodicalRows = [];
 function showPress(sourceName) {
   show("press"); setTab("press");
   renderPress(sourceName || "");
   setHash(sourceName ? "#/press-source/" + encodeURIComponent(sourceName) : "#/press");
 }
+async function loadPeriodicals() {
+  if (periodicalRows.length) return periodicalRows;
+  let rows=[]; try { rows=await getJSON(`${DATA}/periodicals.json`); } catch (_) {}
+  periodicalRows=Array.isArray(rows)?rows:(rows.articles||[]);
+  return periodicalRows;
+}
 async function renderPress(sourceName) {
-  const el = document.getElementById("press-content");
-  el.innerHTML = '<div class="spinner"></div>';
-  let rows = [];
-  try { rows = await getJSON(`${DATA}/periodicals.json`); } catch (_) {}
-  rows = Array.isArray(rows) ? rows : (rows.articles || []);
-  if (!rows.length) {
-    el.innerHTML = `<div class="state press-empty"><div class="big">جانِ جراید در حال آماده‌سازی است</div>
-      <p class="muted">به‌محض پردازش نخستین شماره‌ها، نشریات و مطالب فارسی‌شده اینجا ظاهر می‌شوند.</p></div>`;
-    return;
-  }
-  const groups = new Map();
-  rows.forEach(x => { const n=x.publisher || "نشریه"; if(!groups.has(n)) groups.set(n,[]); groups.get(n).push(x); });
-  if (!sourceName) {
-    el.innerHTML = '<div class="press-grid">' + [...groups.entries()].map(([name,items]) =>
-      `<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span>
-       <strong>${esc(name)}</strong><small>${faN(items.length)} مطلب</small></button>`).join("") + '</div>';
-    return;
-  }
+  const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
+  const rows=await loadPeriodicals();
+  if(!rows.length){el.innerHTML=`<div class="state press-empty"><div class="big">جانِ جراید در حال آماده‌سازی است</div><p class="muted">به‌محض پردازش نخستین شماره‌ها، نشریات و مطالب فارسی‌شده اینجا ظاهر می‌شوند.</p></div>`;return;}
+  const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
+  if(!sourceName){el.innerHTML='<div class="press-grid">'+[...groups.entries()].map(([name,items])=>`<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span><strong>${esc(name)}</strong><small>${faN(items.length)} مطلب</small></button>`).join("")+'</div>';return;}
   const items=groups.get(sourceName)||[];
-  el.innerHTML = `<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ نشریات</button><h2>${esc(sourceName)}</h2></div>
-    <div class="press-list">${items.map(x => `<article class="press-article"><span class="chip">${esc(sourceName)}</span>
-      <h2>${esc(x.headline_fa || x.title_fa || x.title_original || "")}</h2>
-      ${x.summary_fa ? `<p>${esc(x.summary_fa)}</p>` : ""}
-      ${x.published_at ? `<small>${relTime(x.published_at)}</small>` : ""}</article>`).join("")}</div>`;
+  el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ نشریات</button><h2>${esc(sourceName)}</h2></div><div class="press-list">${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle('${esc(x.id)}')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`;
+}
+async function openPressArticle(id) {
+  show("press"); setTab("press"); const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
+  const rows=await loadPeriodicals(); const x=rows.find(r=>String(r.id)===String(id));
+  if(!x){el.innerHTML='<div class="state"><div class="big">مطلب پیدا نشد</div></div>';return;}
+  const body=x.body_fa||x.longform_fa||"";
+  const points=(x.key_points_fa||[]).map(p=>`<li>${esc(p)}</li>`).join("");
+  el.innerHTML=`<article class="press-detail"><button class="back" onclick="showPress('${esc(x.publisher||"")}')">بازگشت به ${esc(x.publisher||"نشریه")}</button><div class="press-detail-meta"><span class="chip">${esc(x.publisher||"نشریه")}</span>${x.issue?`<span>شماره ${esc(x.issue)}</span>`:""}</div><h1>${esc(x.headline_fa||x.title_original||"")}</h1>${x.title_original?`<div class="press-original">${esc(x.title_original)}</div>`:""}${x.summary_fa?`<p class="press-deck">${esc(x.summary_fa)}</p>`:""}${points?`<section class="press-points"><h2>جانِ مطلب</h2><ul>${points}</ul></section>`:""}<section class="press-body"><h2>بازگویی تفصیلی فارسی</h2>${body?body.split(/\\n{2,}/).map(p=>`<p>${esc(p)}</p>`).join(""):`<p class="muted">نسخهٔ تفصیلی این مطلب هنوز آماده نشده است؛ خلاصه و نکات اصلی بالا در دسترس است.</p>`}</section><div class="press-copyright-note">این متن بازگویی فارسی و وفادارانهٔ محتوای منبع است، نه ترجمهٔ خط‌به‌خط یا جایگزین متن اصلی.</div>${x.source_url?`<a class="press-source-link" href="${esc(x.source_url)}" target="_blank" rel="noopener">مشاهدهٔ منبع اصلی ↗</a>`:""}</article>`;
+  setHash("#/press-article/"+encodeURIComponent(id));
 }
 
 /* ---- hash routing: shareable URLs + working Back button ----
@@ -121,7 +120,7 @@ async function route() {
   if (kind === "faq") return showFaq();
   if (kind === "figures") return showFigures();
   if (kind === "press") return showPress();
-  if (kind === "press-source" && arg) return showPress(arg);
+  if (kind === "press-source" && arg) return showPress(arg);\n  if (kind === "press-article" && arg) return openPressArticle(arg);
   if (kind === "tech") return showTech();
   if (kind === "figure" && arg) return openFigure(arg);
   if (kind === "news-person" && arg) return openNewsPerson(arg);
