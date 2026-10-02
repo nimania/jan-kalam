@@ -302,6 +302,11 @@ def recent_shown_posts(db: Session, *, now: datetime | None = None,
             "topic_fa": fp.topic_fa or "",
             "summary_fa": fp.summary_fa or "",
             "url": art.article_url,
+            "telegram_media": (
+                art.image_url_if_permitted.removeprefix("telegram-media:")
+                if (art.image_url_if_permitted or "").startswith("telegram-media:")
+                else None
+            ),
             "published_at": fp.published_at.isoformat() if fp.published_at else None,
             "_tokens": _mtokens(fp.topic_fa, fp.summary_fa, art.description),
             "_time": fp.published_at,
