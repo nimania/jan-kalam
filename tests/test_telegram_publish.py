@@ -59,14 +59,17 @@ class PublisherTests(unittest.TestCase):
         self.assertEqual(self.run_posts(post(1), post(2))["sent"], 0)
         self.bot.send.assert_not_called()
 
-    def test_only_new_posts_send_in_chronological_order_then_never_repeat(self):
+    def test_new_posts_queue_and_only_one_sends_per_run_in_chronological_order(self):
         self.run_posts(post(1))
-        self.assertEqual(self.run_posts(post(3), post(1), post(2))["sent"], 2)
+        self.assertEqual(self.run_posts(post(3), post(1), post(2))["sent"], 1)
+        self.assertEqual(self.bot.send.call_args.args[0]["url"], post(2)["url"])
+        self.assertEqual(self.ledger.state["posts"][post(3)["url"]]["status"], "pending")
+        self.assertEqual(self.run_posts(post(2), post(3))["sent"], 1)
         self.assertEqual([c.args[0]["url"] for c in self.bot.send.call_args_list],
                          [post(2)["url"], post(3)["url"]])
         self.assertEqual(self.run_posts(post(2), post(3))["sent"], 0)
         self.assertEqual(self.bot.send.call_count, 2)
-        self.sleep.assert_called_once_with(3.1)
+        self.sleep.assert_not_called()
         for key in [post(2)["url"], post(3)["url"]]:
             self.assertTrue(any(h["posts"][key]["status"] == "sending"
                                 for h in self.ledger.history if key in h["posts"]))

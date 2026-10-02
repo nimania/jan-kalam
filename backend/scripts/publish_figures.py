@@ -270,10 +270,12 @@ def publish(posts, ledger, telegram, chat_id, *, sleep=time.sleep,
         ledger.save(state)  # persist the queue before any network delivery
     pending = sorted(((key, entry) for key, entry in entries.items() if entry["status"] == "pending"),
                      key=lambda item: (item[1]["post"].get("published_at") or "", item[0]))
+    # Deliberately drain at most one queued figure post per workflow run.
+    # build.yml runs every 15 minutes, so a large ingestion/backfill becomes a
+    # paced stream instead of a Telegram burst. Nothing is dropped: remaining
+    # pending entries stay on the persistent telegram-state branch.
     sent = 0
-    for key, entry in pending:
-        if sent:
-            sleep(3.1)  # conservative per-channel rate; also handles explicit 429s
+    for key, entry in pending[:1]:
         entry["status"] = "sending"
         ledger.save(state)  # a crash/timeout must not cause an automatic duplicate
         try:
@@ -287,7 +289,7 @@ def publish(posts, ledger, telegram, chat_id, *, sleep=time.sleep,
             raise
         entry.update(status="sent", message_id=message_id, sent_at=utc_now())
         entry.pop("post", None)
-        ledger.save(state)  # checkpoint each successful message, not just the batch
+        ledger.save(state)  # checkpoint each successful message
         sent += 1
     uncertain = sum(e["status"] == "sending" for e in entries.values())
     for key, entry in entries.items():
