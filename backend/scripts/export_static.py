@@ -27,7 +27,7 @@ from app.db.session import SessionLocal
 from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
 from app import figure_posts as figure_svc
-from app.news_people import merge_news_people
+from app.news_people import merge_news_people, is_named_person_name
 from app.models.news_person_statement import NewsPersonStatement
 from app.figure_assets import export_avatars
 from app.geo import countries as countries_svc
@@ -329,7 +329,8 @@ def run() -> None:
             "statement_fa": q.statement_fa, "source_name": q.source_name,
             "article_url": q.article_url, "direct_quote": bool(q.direct_quote),
             "published_at": q.published_at.isoformat() if q.published_at else None,
-        } for q in db.query(NewsPersonStatement).filter_by(story_id=card["id"]).all()]
+        } for q in db.query(NewsPersonStatement).filter_by(story_id=card["id"]).all()
+          if is_named_person_name(q.person_name_fa)]
 
         cred = compute_credibility(d)
         d["credibility"] = cred
@@ -431,7 +432,8 @@ def run() -> None:
                 "statement_fa": q.statement_fa, "source_name": q.source_name,
                 "article_url": q.article_url, "direct_quote": bool(q.direct_quote),
                 "published_at": q.published_at.isoformat() if q.published_at else None,
-            } for q in db.query(NewsPersonStatement).filter_by(story_id=sid).all()]
+            } for q in db.query(NewsPersonStatement).filter_by(story_id=sid).all()
+              if is_named_person_name(q.person_name_fa)]
             od["credibility"] = compute_credibility(od)
             _write(os.path.join(DATA, "story", f"{sid}.json"), od)
         except Exception as exc:
