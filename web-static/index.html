@@ -56,7 +56,15 @@
       <div class="home-glance" id="home-glance" aria-label="بازار و آب‌وهوای امروز"></div>
       <div class="rule"><span>خط خبری</span><span class="l"></span></div>
       <div class="feed-controls">
-        <div class="feed-control-row feed-days"><span class="fc-label">روز</span><div class="day-chips" id="day-chips"></div></div>
+        <div class="feed-control-row feed-days"><span class="fc-label">بازه</span><div class="day-chips day-range-chips">
+  <button class="day-chip on" data-range="all" onclick="setFeedRange('all')">همه</button>
+  <button class="day-chip" data-range="4" onclick="setFeedRange(4)">۴ ساعت</button>
+  <button class="day-chip" data-range="8" onclick="setFeedRange(8)">۸ ساعت</button>
+  <button class="day-chip" data-range="12" onclick="setFeedRange(12)">۱۲ ساعت</button>
+  <button class="day-chip" data-range="24" onclick="setFeedRange(24)">۲۴ ساعت</button>
+  <button class="day-chip" data-range="48" onclick="setFeedRange(48)">۴۸ ساعت</button>
+  <span class="fchip-sep"></span><div id="day-chips"></div>
+</div></div>
         <div class="feed-control-row">
           <span class="fc-label">فیلتر</span>
           <div class="imp-filter" id="imp-filter">
@@ -75,6 +83,9 @@
           <div class="sortbar">
             <button class="sortchip on" id="sort-imp" onclick="setSort('imp')">مهم‌ترین</button>
             <button class="sortchip" id="sort-new" onclick="setSort('new')">تازه‌ترین</button>
+            <button class="sortchip" id="sort-sources" onclick="setSort('sources')">پرمصدرترین</button>
+            <button class="sortchip" id="sort-views" onclick="setSort('views')">پربحث‌ترین</button>
+            <button class="sortchip" id="sort-rising" onclick="setSort('rising')">سریع‌ترین رشد</button>
           </div>
         </div>
       </div>
