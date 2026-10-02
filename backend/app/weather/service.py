@@ -60,8 +60,9 @@ def fetch_weather(timeout: float = 20.0) -> list[dict]:
     params = {
         "latitude": lats, "longitude": lons,
         "current": "temperature_2m,weather_code",
+        "hourly": "temperature_2m",
         "daily": "temperature_2m_max,temperature_2m_min",
-        "timezone": "auto", "forecast_days": 1,
+        "timezone": "auto", "forecast_days": 2, "past_days": 1,
     }
     try:
         resp = httpx.get(URL, params=params, timeout=timeout,
@@ -80,13 +81,20 @@ def fetch_weather(timeout: float = 20.0) -> list[dict]:
             cur = loc.get("current", {})
             daily = loc.get("daily", {})
             cond_fa, icon = _cond(cur.get("weather_code"))
+            temp = round(cur.get("temperature_2m"))
+            delta24 = None
+            times = loc.get("hourly", {}).get("time", [])
+            temps = loc.get("hourly", {}).get("temperature_2m", [])
+            current_time = cur.get("time")
+            if current_time in times:
+                idx = times.index(current_time)
+                if idx >= 24 and idx < len(temps) and temps[idx - 24] is not None:
+                    delta24 = round(float(cur.get("temperature_2m")) - float(temps[idx - 24]), 1)
             out.append({
-                "city_fa": name,
-                "temp": round(cur.get("temperature_2m")),
-                "max": round(daily.get("temperature_2m_max", [None])[0]),
-                "min": round(daily.get("temperature_2m_min", [None])[0]),
-                "cond_fa": cond_fa,
-                "icon": icon,
+                "city_fa": name, "temp": temp,
+                "max": round(daily.get("temperature_2m_max", [None])[-1]),
+                "min": round(daily.get("temperature_2m_min", [None])[-1]),
+                "cond_fa": cond_fa, "icon": icon, "delta24": delta24,
             })
         except (TypeError, ValueError, IndexError):
             continue
