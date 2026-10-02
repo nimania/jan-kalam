@@ -798,3 +798,25 @@
 .x-figure-context{font-size:11px;color:var(--ink-faint);margin:4px 0}.x-figure-topic{font-size:16px;line-height:1.5;margin:6px 0 2px}.x-figure-text{font-size:15px;line-height:1.9;margin:3px 0 8px}
 .x-figure-actions{display:flex;justify-content:space-between;max-width:390px}.x-figure-actions button,.x-figure-actions a{border:0;background:transparent;color:var(--ink-faint);font:inherit;font-size:11px;text-decoration:none;padding:3px 0;cursor:pointer}.x-figure-actions button:hover,.x-figure-actions a:hover{color:var(--accent)}
 @media(max-width:620px){.x-figure-stream{margin-inline:-14px;border-inline:0;border-radius:0}.x-figure-post{grid-template-columns:40px minmax(0,1fr);gap:9px;padding:11px 12px}.x-figure-avatar .fig-avatar{width:38px;height:38px}.x-figure-role{max-width:105px}.x-figure-actions span{display:none}}
+
+/* Flatten figure profile hero: profile identity should not consume a full viewport */
+.x-profile .x-cover{height:34px;border-bottom:1px solid var(--line);background:linear-gradient(90deg,color-mix(in srgb,var(--accent) 9%,var(--card)),var(--card))}
+.x-profile .x-profile-main{padding:18px 18px 13px;min-height:0;display:grid;grid-template-columns:82px minmax(0,1fr) auto;grid-template-areas:"avatar identity action" "avatar bio action" "avatar social action" "stats stats stats";column-gap:14px;align-items:start}
+.x-profile .x-avatar-wrap{grid-area:avatar;position:static;width:78px;height:78px;border:2px solid var(--line);margin:0}
+.x-profile .x-profile-actions{grid-area:action;position:static;align-self:start}
+.x-profile .x-profile-main h1{grid-area:identity;margin:1px 0 0;font-size:20px}
+.x-profile .x-handle{grid-area:identity;margin-top:30px;text-align:right;font-size:12px;align-self:start}
+.x-profile .x-bio{grid-area:bio;margin:7px 0 2px;font-size:13px;line-height:1.55}
+.x-profile .x-profile-main .fig-social{grid-area:social;margin:4px 0 0}
+.x-profile .x-profile-stats{grid-area:stats;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--line);gap:16px}
+.x-profile .x-profile-tabs{height:44px}
+@media(max-width:620px){
+  .x-profile .x-cover{height:24px}
+  .x-profile .x-profile-main{padding:13px 12px 10px;grid-template-columns:64px minmax(0,1fr) auto;column-gap:10px}
+  .x-profile .x-avatar-wrap{width:60px;height:60px}
+  .x-profile .x-profile-main h1{font-size:18px}
+  .x-profile .x-handle{margin-top:27px;font-size:11px}
+  .x-profile .x-bio{font-size:12px;margin-top:5px}
+  .x-profile .x-profile-actions .fig-follow{padding:5px 9px;font-size:11px}
+  .x-profile .x-profile-stats{margin-top:9px;padding-top:8px;gap:9px;font-size:10.5px}
+}
