@@ -261,7 +261,6 @@ button.tl-item:hover .tl-h{color:#1a9d7e}
 
 function feedCard(s) {
   const imp = impInfo(s.importance_score);
-  const peopleSuggestions = await storyPeopleSuggestions(s);
   const badges = (s.source_names || []).slice(0, 4).map(x => `<span class="src-badge clickable" data-src="${esc(x)}" onclick="event.stopPropagation();openSource(this.dataset.src)">${esc(x)}</span>`).join("");
   // Show the article's image when the outlet's RSS provided one; otherwise
   // fall back to the mini-map (so every card has a visual anchor).
@@ -424,6 +423,7 @@ async function openStory(id) {
   catch (e) { v.innerHTML = `<div class="state"><div class="big">خبر بارگذاری نشد</div></div>`; return; }
 
   const imp = impInfo(s.importance_score);
+  const peopleSuggestions = await storyPeopleSuggestions(s);
   const li = a => (a || []).map(x => `<li>${esc(x)}</li>`).join("");
   const views = (s.source_views || []).map(sv => `<div class="view"><div class="v-h"><span class="v-name">${esc(sv.source_name)}</span></div><p>${esc(sv.viewpoint_fa || "")}</p></div>`).join("");
   const cites = (s.sources || []).map(c => `<a class="cite" href="${c.article_url || "#"}" target="_blank" rel="noopener">
