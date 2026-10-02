@@ -84,6 +84,13 @@ SOURCES = [
     ("زیتون", "https://www.zeitoons.com", "https://www.zeitoons.com/feed", "iran-intl", 0.5),
 ]
 
+SOURCE_CATEGORIES = {
+    "The Verge": Category.technology,
+    "ورزش سه": Category.sport,
+    "روزنامه پیام‌ما": Category.environment,
+    "دیجیاتو": Category.technology,
+}
+
 TOPICS = [
     ("iran", "ایران", "Iran"),
     ("us-politics", "سیاست آمریکا", "US Politics"),
@@ -117,6 +124,7 @@ def run() -> None:
                 existing.language = lang
                 existing.reliability_score = rel
                 existing.enabled = True
+                existing.default_category = SOURCE_CATEGORIES.get(name)
                 # RSS thumbnails (media:thumbnail / media:content) are published by
                 # the outlet FOR redistribution — safe to keep. We still never
                 # store full article body or scraped page images.
@@ -131,6 +139,7 @@ def run() -> None:
                 region=region,
                 language=lang,
                 reliability_score=rel,
+                default_category=SOURCE_CATEGORIES.get(name),
                 attribution_required=True,
                 allow_image=True,
             )
