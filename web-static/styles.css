@@ -762,3 +762,26 @@
 .x-post-actions{display:flex;justify-content:space-between;max-width:360px}.x-post-actions button,.x-post-actions a{border:0;background:transparent;color:var(--ink-faint);font:inherit;font-size:11px;text-decoration:none;cursor:pointer;padding:4px 0}.x-post-actions button:hover,.x-post-actions a:hover{color:var(--accent)}
 .x-profile-note{padding:14px 18px;margin:0}
 @media(max-width:620px){.x-profile{margin-inline:-14px;border-inline:0}.x-cover{height:145px}.x-profile-main{padding:62px 16px 14px}.x-avatar-wrap{width:116px;height:116px;top:-59px;right:16px;border-width:4px}.x-profile-actions{left:16px;top:12px}.x-profile-main h1{font-size:21px}.x-post{grid-template-columns:40px minmax(0,1fr);padding:12px}.x-post-rail .fig-avatar{width:38px;height:38px}.x-post-actions span{display:none}}
+
+/* Compact figure profile header: remove dead cover/profile space */
+.x-cover{height:104px}
+.x-profile-main{padding:54px 18px 14px;min-height:0}
+.x-avatar-wrap{width:104px;height:104px;top:-52px;right:18px;border-width:4px}
+.x-avatar-wrap .fig-avatar{font-size:32px}
+.x-profile-actions{top:12px;left:18px}
+.x-profile-actions .fig-follow{padding:7px 14px;font-size:13px}
+.x-profile-main h1{font-size:22px;margin-top:0}
+.x-bio{margin:9px 0 5px;line-height:1.6}
+.x-profile-main .fig-social{margin:4px 0 7px}
+.x-profile-stats{margin-top:8px;gap:14px}
+.x-profile-tabs{height:46px}
+@media(max-width:620px){
+  .x-cover{height:82px}
+  .x-profile-main{padding:45px 14px 11px}
+  .x-avatar-wrap{width:88px;height:88px;top:-44px;right:14px}
+  .x-profile-actions{top:9px;left:14px}
+  .x-profile-main h1{font-size:20px}
+  .x-bio{margin-top:7px}
+  .x-profile-stats{gap:10px;margin-top:7px}
+  .x-profile-tabs{height:44px}
+}
