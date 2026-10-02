@@ -17,6 +17,7 @@ class Category(str, enum.Enum):
     science = "science"
     environment = "environment"
     entertainment = "entertainment"
+    health = "health"
 
 
 class FeedType(str, enum.Enum):
