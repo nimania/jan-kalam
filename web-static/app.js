@@ -1397,6 +1397,7 @@ async function renderFigureTimeline() {
       ${p.kind === "news_statement" ? `<div class="x-figure-context">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : ""}
       ${p.topic_fa ? `<h2 class="x-figure-topic">${esc(p.topic_fa)}</h2>` : ""}
       <p class="x-figure-text">${esc(p.summary_fa || "")}</p>
+      ${telegramEmbed(p)}
       <div class="x-figure-actions">
         <button onclick="${p._newsPerson ? "openNewsPerson" : "openFigure"}('${esc(p.handle)}')">◯ <span>پروفایل</span></button>
         <button onclick="openStatement('${statementKey(p)}')">▢ <span>صفحهٔ گفته</span></button>
@@ -1528,6 +1529,14 @@ async function openStatement(id) {
       post.related_people.map(r => `<button class="fig-person" onclick="openNewsPerson('${esc(r.handle)}')"><span class="fp-body"><span class="fp-name">${esc(r.name_fa)}</span><span class="fp-role">${r.relation === "response" ? "پاسخ / واکنش مرتبط" : "شخص نام‌برده در این گفته"}</span></span></button>`).join("") + '</div>' : '') +
     '<p class="muted fig-note">این صفحه نشانی مستقل دارد و می‌توان مستقیماً به همین گفته ارجاع داد.</p>';
 }
+function telegramEmbed(post) {
+  if (!post || !post.telegram_media || !String(post.url || "").startsWith("https://t.me/")) return "";
+  const m = String(post.url).match(/^https:\/\/t\.me\/([^/?#]+)\/(\d+)/);
+  if (!m) return "";
+  const src = `https://t.me/${encodeURIComponent(m[1])}/${m[2]}?embed=1&mode=tme`;
+  return `<div class="telegram-embed telegram-embed-${esc(post.telegram_media)}"><iframe src="${src}" loading="lazy" frameborder="0" scrolling="no" allow="autoplay; encrypted-media; picture-in-picture" title="رسانهٔ پست تلگرام"></iframe></div>`;
+}
+
 async function openFigure(handle, resetFilter = true) {
   if (resetFilter) _figureProfileFilter = "all";
   setHash("#/figure/" + handle);
@@ -1549,6 +1558,7 @@ async function openFigure(handle, resetFilter = true) {
       <div class="x-post-meta"><b>${esc(x.name_fa)}</b><span>·</span><time>${relTime(p.published_at)}</time></div>
       ${p.kind === "news_statement" ? `<div class="x-post-context">گفته در خبر · ${esc(p.source_name || "منبع خبری")}</div>` : (p.topic_fa ? `<div class="x-post-topic">${esc(p.topic_fa)}</div>` : "")}
       <p>${esc(p.summary_fa || "")}</p>
+      ${telegramEmbed(p)}
       <div class="x-post-actions">
         <button onclick="openStatement(' ${statementKey(p)}'.trim())" title="صفحهٔ این گفته">◯ <span>صفحهٔ گفته</span></button>
         <a href="${esc(p.url)}" target="_blank" rel="noopener" title="متن اصلی">↗ <span>متن اصلی</span></a>

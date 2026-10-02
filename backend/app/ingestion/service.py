@@ -128,6 +128,8 @@ def ingest_source(
                 prev.description = item.description
                 prev.published_at = item.published_at or prev.published_at
                 prev.author = item.author
+                if item.image_url and item.image_url.startswith("telegram-media:"):
+                    prev.image_url_if_permitted = item.image_url
             result.duplicates += 1
             continue
         h = content_hash(source.name, item.title, item.article_url)
@@ -137,6 +139,15 @@ def ingest_source(
             )
         ).first()
         if exists:
+            # Existing Telegram figure posts can gain media metadata on a later
+            # parse (e.g. after this feature ships) without creating duplicates.
+            if item.image_url and item.image_url.startswith("telegram-media:"):
+                prev = db.execute(select(Article).where(
+                    (Article.hash == h) | (Article.article_url == item.article_url)
+                )).scalars().first()
+                if prev is not None:
+                    prev.image_url_if_permitted = item.image_url
+                    db.commit()
             result.duplicates += 1
             continue
         db.add(
