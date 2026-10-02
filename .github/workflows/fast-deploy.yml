@@ -37,7 +37,12 @@ jobs:
           RUN_ID: ${{ steps.refresh.outputs.run_id }}
         run: |
           mkdir -p site
-          gh run download "$RUN_ID" -n latest-static-site -D site
+          # Prefer the latest complete data artifact, but do not block a UI
+          # hotfix if GitHub has already expired/removed that artifact.
+          if ! gh run download "$RUN_ID" -n latest-static-site -D site; then
+            echo "::warning::Could not download latest-static-site; deploying repository UI/data fallback."
+            cp -a web-static/. site/
+          fi
       - name: Overlay current UI
         run: |
           cp -a web-static/. site/
