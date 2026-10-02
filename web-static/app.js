@@ -2,7 +2,7 @@
 const DATA = "data";
 
 const CAT_FA = { iran: "ایران", world: "جهان", politics: "سیاست", economy: "اقتصاد",
-  technology: "فناوری", ai: "هوش مصنوعی", culture: "فرهنگ", sport: "ورزش", science: "علم" };
+  technology: "فناوری", ai: "هوش مصنوعی", culture: "فرهنگ", sport: "ورزش", science: "علم", environment: "محیط‌زیست", entertainment: "سرگرمی" };
 const IRAN_FA = { high: "ارتباط بالا با ایران", medium: "ارتباط با ایران",
   low: "ارتباط کم با ایران", none: "بدون ارتباط مستقیم با ایران" };
 const CRED_FA = { high: "اعتبار بالا", medium: "چند منبع", low: "تک‌منبع" };
