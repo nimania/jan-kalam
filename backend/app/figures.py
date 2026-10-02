@@ -147,6 +147,21 @@ FIGURES: list[Figure] = [
            (("x", "https://x.com/KambizGhafouri"),
             ("instagram", "https://instagram.com/kambiz.ghafouri.public"))),
     Figure("mohamadaliabtahi", "محمدعلی ابطحی", "روحانی و فعال سیاسی", "media"),
+    Figure("DrMahdiKhazali", "مهدی خزعلی", "پزشک و فعال سیاسی", "politics",
+           (("x", "https://twitter.com/mahdi_khazali"),
+            ("instagram", "https://instagram.com/mahdikhazali"))),
+    Figure("vahidBahman1", "وحید بهمن", "پژوهشگر و تحلیلگر مسائل ایران و منطقه", "politics"),
+    Figure("shahinnajafimusic", "شاهین نجفی", "خواننده و ترانه‌سرا", "culture"),
+    Figure("Imansoleymaniamiri", "ایمان سلیمانی امیری", "نویسنده و منتقد دین", "religion",
+           (("instagram", "https://instagram.com/imansoleimaniamiri"),
+            ("youtube", "https://www.youtube.com/channel/UCTeJ9xtTseVNYCRnmV7Mtdw"))),
+    Figure("FahimehKhezr", "فهیمه خضر حیدری", "روزنامه‌نگار و مجری", "media", (), "f"),
+    Figure("MoradVaisi_Live", "مراد ویسی", "روزنامه‌نگار و تحلیلگر", "media"),
+    Figure("farhoodi", "بیژن فرهودی", "روزنامه‌نگار و مصاحبه‌گر", "media"),
+    Figure("mahdiehgolroo", "مهدیه گلرو", "فعال سیاسی", "politics", (), "f"),
+    Figure("masih_alinejad", "مسیح علینژاد", "روزنامه‌نگار و فعال سیاسی", "media",
+           (("x", "https://twitter.com/AlinejadMasih"),
+            ("instagram", "https://instagram.com/masih.alinejad")), "f"),
 
     # ══════════════════════════════════════════════════════════════════════
     #  دین و اندیشهٔ دینی
