@@ -852,6 +852,14 @@ async function renderHomePrices() {
 }
 
 // Homepage Jan-e Majra: a compact window into the strongest current topic dossiers.
+function scrollHomeMajra(dir) {
+  const el = document.getElementById("home-majra-cards");
+  if (!el) return;
+  const card = el.querySelector(".hm-strip-card");
+  const step = card ? card.getBoundingClientRect().width + 10 : 300;
+  el.scrollBy({ left: dir * step, behavior: "smooth" });
+}
+
 async function renderHomeMajra() {
   const section = document.getElementById("home-majra");
   const el = document.getElementById("home-majra-cards");
@@ -862,7 +870,7 @@ async function renderHomeMajra() {
       getJSON(`${DATA}/stories.json`).catch(() => [])
     ]);
     const byId = new Map((stories || []).map(s => [String(s.id), s]));
-    const topics = (t.topics || []).filter(x => x && x.slug).slice(0, 6);
+    const topics = (t.topics || []).filter(x => x && x.slug).slice(0, 8);
     if (!topics.length) { section.style.display = "none"; return; }
     el.innerHTML = topics.map(tp => {
       const d = tp.dossier || {};
@@ -870,12 +878,24 @@ async function renderHomeMajra() {
       const image = story && story.image_url
         ? `<img loading="lazy" src="${esc(story.image_url)}" alt="" onerror="this.parentElement.classList.add('no-img');this.remove()">`
         : "";
-      const latestHeadline = story && story.headline_fa ? story.headline_fa : (tp.name_fa || tp.slug);
+      const dossierName = tp.name_fa || tp.slug;
+      const latestHeadline = story && story.headline_fa ? story.headline_fa : "";
+      const when = story && story.published_at ? relTime(story.published_at) : "";
       return `<button class="hm-strip-card ${image ? "" : "no-img"}" onclick="openTrendDossier('${esc(tp.slug)}')">
         <span class="hm-strip-media">${image}</span>
-        <span class="hm-strip-copy"><strong>${esc(latestHeadline)}</strong></span>
+        <span class="hm-strip-copy">
+          <span class="hm-dossier-name">${esc(dossierName)}</span>
+          ${latestHeadline ? `<strong>${esc(latestHeadline)}</strong>` : ""}
+          ${when ? `<small>${esc(when)}</small>` : ""}
+        </span>
       </button>`;
     }).join("");
+    if (!section.querySelector(".hm-scroll-controls")) {
+      section.insertAdjacentHTML("beforeend", `<div class="hm-scroll-controls" aria-label="مرور جان ماجرا">
+        <button onclick="scrollHomeMajra(1)" aria-label="قبلی">›</button>
+        <button onclick="scrollHomeMajra(-1)" aria-label="بعدی">‹</button>
+      </div>`);
+    }
     section.style.display = "";
   } catch (e) {
     section.style.display = "none";
