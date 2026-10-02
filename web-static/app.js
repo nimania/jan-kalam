@@ -1354,9 +1354,8 @@ function setFigureTimelineField(field) { _figTimelineField = field; renderFigure
 async function renderFigureTimeline() {
   const el = document.getElementById("figure-timeline");
   if (!el) return;
-  const [direct, news] = await Promise.all([loadFigures(), loadNewsPeople()]);
+  const d = await loadFigures();
   const isNewsMode = _figTimelineMode === "news";
-  const d = isNewsMode ? news : direct;
   const fields = d.fields || {};
   let posts = (d.figures || []).flatMap(f => (f.posts || []).map(p => ({
     ...p, field: f.field,
@@ -1367,6 +1366,7 @@ async function renderFigureTimeline() {
     _newsPerson: isNewsMode
   }))).sort((a, b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
   const follows = figureFollows();
+  if (isNewsMode) posts = posts.filter(p => p.kind === "news_statement");
   if (_figTimelineMode === "following") posts = posts.filter(p => follows.has(String(p.handle).toLowerCase()));
   if (_figTimelineField !== "all" && !isNewsMode) posts = posts.filter(p => p.field === _figTimelineField);
   const controls = `<div class="fig-tl-controls">
@@ -1462,61 +1462,17 @@ async function renderFigures() {
   document.getElementById("figures-lede").style.display = "";
   const el = document.getElementById("figures");
   el.innerHTML = `<div class="spinner"></div>`;
-  const d = _figDirectoryMode === "news" ? await loadNewsPeople() : await loadFigures();
-  const tabs = `<div class="fig-profile-filters">
-    <button class="fchip ${_figDirectoryMode==="direct"?"on":""}" onclick="setFigureDirectoryMode('direct')">چهره‌های دیدگاه</button>
-    <button class="fchip ${_figDirectoryMode==="news"?"on":""}" onclick="setFigureDirectoryMode('news')">چهره‌های خبر</button>
-  </div>
-  <p class="muted">${_figDirectoryMode==="direct" ? "نویسندگان، تحلیلگران و صاحب‌نظرانی که منابع مستقیمشان در جان‌کلام دنبال می‌شود." : "مقام‌ها، کارشناسان و اشخاصی که اظهارنظرشان از داخل خبرها استخراج شده است."}</p>`;
+  const d = await loadFigures();
   const people = (d.figures || []).filter(x => x.directory !== false)
     .sort((a,b) => (b.count||0)-(a.count||0) || String(a.name_fa||"").localeCompare(String(b.name_fa||""),"fa"));
-  el.innerHTML = tabs + (people.length ? `<div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="${_figDirectoryMode==="news" ? "openNewsPerson" : "openFigure"}('${esc(x.handle)}')">
-    ${avatar(x, "md")}
-    <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa||"")}</span>
-    <span class="fp-count">${faN(x.count||0)} ${_figDirectoryMode==="news" ? "گفته در خبر" : "دیدگاه اخیر"}</span></span></button>`).join("")}</div>`
-    : `<div class="state"><div class="big">هنوز شخصی در این بخش ثبت نشده</div></div>`);
+  el.innerHTML = `<p class="muted">چهره‌ها در یک فهرست واحد؛ دیدگاه‌های مستقیم و گفته‌های منتسب در خبرها داخل همان پروفایل جمع می‌شوند.</p>` +
+    (people.length ? `<div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="openFigure('${esc(x.handle)}')">
+      ${avatar(x, "md")}
+      <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa||"")}</span>
+      <span class="fp-count">${faN(x.count||0)} گفته</span></span></button>`).join("")}</div>`
+    : `<div class="state"><div class="big">هنوز شخصی ثبت نشده</div></div>`);
 }
-async function openNewsPerson(handle) {
-  setHash("#/news-person/" + encodeURIComponent(handle));
-  show("figures"); setTab("");
-  document.getElementById("figures-lede").style.display = "none";
-  document.getElementById("figure-timeline").innerHTML = "";
-  const el = document.getElementById("figures");
-  el.innerHTML = `<div class="spinner"></div>`;
-  const d = await loadNewsPeople();
-  const x = (d.figures || []).find(f => String(f.handle).toLowerCase() === String(handle).toLowerCase());
-  if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
-  const posts = x.posts || [];
-  const latest = posts.map(p => p.published_at).filter(Boolean).sort().pop();
-  const postRow = p => `<article class="x-post">
-    <div class="x-post-rail">${avatar(x,"sm")}</div>
-    <div class="x-post-body">
-      <div class="x-post-meta"><b>${esc(x.name_fa)}</b><span>·</span><time>${relTime(p.published_at)}</time></div>
-      ${p.source_name ? `<div class="x-post-context">${esc(p.source_name)}</div>` : ""}
-      <p>${esc(p.summary_fa || "")}</p>
-      <div class="x-post-actions">
-        <button onclick="openStatement(' ${statementKey(p)}'.trim())" title="صفحهٔ این گفته">◯ <span>صفحهٔ گفته</span></button>
-        <a href="${esc(p.url)}" target="_blank" rel="noopener" title="منبع">↗ <span>منبع</span></a>
-      </div>
-    </div>
-  </article>`;
-  el.innerHTML = `<div class="x-profile">
-    <div class="x-profile-top"><button class="x-back" onclick="showFigures()" aria-label="بازگشت">←</button><div><b>${esc(x.name_fa)}</b><small>${faN(posts.length)} گفته</small></div></div>
-    <div class="x-cover"></div>
-    <div class="x-profile-main">
-      <div class="x-avatar-wrap">${avatar(x,"lg")}</div>
-      <div class="x-profile-actions">${figureFollowBtn(x.handle,false)}</div>
-      <h1>${esc(x.name_fa)}</h1>
-      <div class="x-handle">@${esc(x.handle)}</div>
-      <p class="x-bio">${esc(x.role_fa || "")}</p>
-      ${socialLinks(x.social)}
-      <div class="x-profile-stats"><span><b>${faN(posts.length)}</b> گفته</span>${latest ? `<span>آخرین فعالیت ${relTime(latest)}</span>` : ""}</div>
-    </div>
-    <nav class="x-profile-tabs" aria-label="بخش‌های پروفایل"><button class="on">گفته‌ها</button></nav>
-    <div class="x-profile-feed">${posts.length ? posts.map(postRow).join("") : '<div class="state"><div class="big">گفته‌ای ثبت نشده.</div></div>'}</div>
-    <p class="muted fig-note x-profile-note">گفته‌های این صفحه از گزارش رسانه‌ها استخراج شده‌اند و هر مورد به منبع اصلی پیوند دارد.</p>
-  </div>`;
-}
+async function openNewsPerson(handle) { return openFigure(handle); }
 async function openFigureByName(name) {
   const d = await loadFigures();
   const norm = s => String(s || "").replace(/‌/g, " ").replace(/\s+/g, " ").trim();
@@ -1530,16 +1486,13 @@ function setFigureProfileFilter(handle, mode) {
 }
 async function openStatement(id) {
   const raw = decodeURIComponent(id);
-  const [direct, news] = await Promise.all([loadFigures(), loadNewsPeople()]);
+  const direct = await loadFigures();
   let person = null, post = null, isNews = false;
   for (const f of (direct.figures || [])) {
     const p = (f.posts || []).find(x => String(x.id) === raw);
     if (p) { person = f; post = p; break; }
   }
-  if (!post) for (const f of (news.figures || [])) {
-    const p = (f.posts || []).find(x => String(x.id) === raw);
-    if (p) { person = f; post = p; isNews = true; break; }
-  }
+  if (post) isNews = post.kind === "news_statement";
   show("figures"); setTab("");
   document.getElementById("figures-lede").style.display = "none";
   document.getElementById("figure-timeline").innerHTML = "";
@@ -1551,7 +1504,7 @@ async function openStatement(id) {
     '<div class="rule"><span>' + (isNews ? "گفته در خبر" : "دیدگاه") + '</span><span class="l"></span></div>' +
     figureCard(post,false) +
     ((post.related_people || []).length ? '<div class="rule"><span>ارتباط این گفته</span><span class="l"></span></div><div class="views">' +
-      post.related_people.map(r => `<button class="fig-person" onclick="openNewsPerson('${esc(r.handle)}')"><span class="fp-body"><span class="fp-name">${esc(r.name_fa)}</span><span class="fp-role">${r.relation === "response" ? "پاسخ / واکنش مرتبط" : "شخص نام‌برده در این گفته"}</span></span></button>`).join("") + '</div>' : '') +
+      post.related_people.map(r => `<button class="fig-person" onclick="openFigure('${esc(r.handle)}')"><span class="fp-body"><span class="fp-name">${esc(r.name_fa)}</span><span class="fp-role">${r.relation === "response" ? "پاسخ / واکنش مرتبط" : "شخص نام‌برده در این گفته"}</span></span></button>`).join("") + '</div>' : '') +
     '<p class="muted fig-note">این صفحه نشانی مستقل دارد و می‌توان مستقیماً به همین گفته ارجاع داد.</p>';
 }
 function telegramEmbed(post) {
