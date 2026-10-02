@@ -2,6 +2,10 @@
 from __future__ import annotations
 
 import hashlib
+import re
+from urllib.parse import quote
+
+import httpx
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 
@@ -27,6 +31,44 @@ def _norm_name(s: str) -> str:
 def _profile_blocked(name: str) -> bool:
     n = _norm_name(name)
     return n in _PROFILE_BLOCK_EXACT or any(token in n for token in _PROFILE_BLOCK_TOKENS)
+
+
+# Generic titles are not people. If the model could not supply a real personal
+# name, the item must never become a profile (or even survive export).
+_ROLE_PREFIX_RE = re.compile(r"^(?:رئیس|رییس|معاون|مدیر|مسئول|سخنگو|وزیر|استاندار|فرماندار|نماینده|عضو|دبیر|مشاور|کارشناس|مقام|منبع)\\b")
+_ORG_ONLY_RE = re.compile(r"(?:سازمان|وزارت|اداره|نهاد|شرکت|بانک|دانشگاه|کمیسیون|شورا|ستاد|دفتر|مرکز|خبرگزاری)")
+
+
+def is_named_person_name(name: str) -> bool:
+    """True only for a plausible explicit personal name, never a bare job title."""
+    n = _norm_name(name)
+    if not n or _profile_blocked(n) or _ROLE_PREFIX_RE.search(n):
+        return False
+    words = [w for w in n.split() if len(w) > 1]
+    if len(words) < 2:
+        return False
+    if _ORG_ONLY_RE.search(n) and any(w in n for w in ("رئیس", "رییس", "مدیر", "مسئول", "سخنگو")):
+        return False
+    return True
+
+
+def _public_avatar(name: str) -> str | None:
+    """Best-effort exact Persian-Wikipedia portrait URL for news-only people."""
+    try:
+        r = httpx.get(
+            "https://fa.wikipedia.org/api/rest_v1/page/summary/" + quote(name, safe=""),
+            headers={"User-Agent": "JanKalam/1.0 (public profile thumbnails)"},
+            timeout=8.0,
+            follow_redirects=True,
+        )
+        if r.status_code != 200:
+            return None
+        d = r.json()
+        if d.get("type") == "disambiguation":
+            return None
+        return (d.get("thumbnail") or {}).get("source")
+    except Exception:
+        return None
 
 
 def _quote_handle(name: str) -> str:
@@ -62,7 +104,7 @@ def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
         grouped[_norm_name(row.person_name_fa)].append(row)
 
     for name, items in grouped.items():
-        if _profile_blocked(name):
+        if not is_named_person_name(name):
             continue
         curated = _BY_NAME.get(name)
         handle = curated.handle if curated else _quote_handle(name)
@@ -73,7 +115,7 @@ def merge_news_people(index: dict, db: Session, *, now: datetime | None = None,
                 "handle": handle, "name_fa": items[0].person_name_fa,
                 "role_fa": newest_role, "field": "news", "field_fa": "گفته‌ها در خبر",
                 "gender": "", "channel_url": None,
-                "avatar": avatars.get(handle) if curated else None, "social": [],
+                "avatar": avatars.get(handle) or (None if curated else _public_avatar(name)), "social": [],
                 "count": 0, "posts": [], "directory": source_count >= 2,
                 "news_source_count": source_count,
             }
