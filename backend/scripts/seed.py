@@ -73,6 +73,12 @@ SOURCES = [
     # --- Persian specialist / vertical media ---
     # These broaden the feed beyond politics: technology and digital economy.
     ("دیجیاتو", "https://digiato.com", "https://digiato.com/feed", "iran-tech", 0.6),
+    ("زومیت", "https://www.zoomit.ir", "https://www.zoomit.ir/feed", "iran-tech", 0.65),
+    ("گیمفا", "https://gamefa.com", "https://gamefa.com/feed/", "iran-entertainment", 0.5),
+    ("سلامت نیوز", "https://www.salamatnews.com", "http://salamatnews.com/rss.xml", "iran-health", 0.5),
+    ("اخبار روز", "https://akhbar-rooz.com", "https://akhbar-rooz.com/feed/", "iran-intl", 0.5),
+    ("رادیو زمانه", "https://www.radiozamaneh.com", "http://radiozamaneh.com/rss.xml", "iran-intl", 0.6),
+    ("مرکز حقوق بشر در ایران", "https://iranhumanrights.org", "https://iranhumanrights.org/feed/", "iran-intl-rights", 0.65),
 
 
     # --- Persian-language: international / diaspora ---
@@ -89,6 +95,9 @@ SOURCE_CATEGORIES = {
     "ورزش سه": Category.sport,
     "روزنامه پیام‌ما": Category.environment,
     "دیجیاتو": Category.technology,
+    "زومیت": Category.technology,
+    "گیمفا": Category.entertainment,
+    "سلامت نیوز": Category.health,
 }
 
 TOPICS = [
