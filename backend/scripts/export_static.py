@@ -471,12 +471,14 @@ def run() -> None:
     trends["google"] = gt_svc.fetch([(e["slug"], e["name_fa"]) for e in series[:5]])
     _write(os.path.join(DATA, "trends.json"), trends)
 
-    # Keep direct commentators and people discovered in news as separate products.
-    # The main figure timeline must never mix news-attributed statements into direct views.
+    # One people layer: curated commentators and people discovered in news share
+    # the same profile whenever their normalized Persian name matches. News-only
+    # people are appended to the same index, so the UI never creates duplicate identities.
     figure_index = figure_svc.figures_index(fig_posts, avatars=fig_avatars)
+    figure_index = merge_news_people(figure_index, db, now=now, avatars=fig_avatars)
     _write(os.path.join(DATA, "figures.json"), figure_index)
-    news_people_index = merge_news_people({"figures": [], "fields": {}}, db, now=now, avatars=fig_avatars)
-    _write(os.path.join(DATA, "news-people.json"), news_people_index)
+    # Compatibility file for older cached clients; all new UI reads figures.json.
+    _write(os.path.join(DATA, "news-people.json"), {"figures": [], "fields": {}})
     _write(os.path.join(DATA, "stats.json"), analytics_svc.stats(db, now=now))
     _write(os.path.join(DATA, "factchecks.json"), factchecks)
     _write(os.path.join(DATA, "prices.json"), price_svc.fetch_prices())
@@ -518,23 +520,23 @@ def run() -> None:
                   if any(x["slug"] == ent["slug"] for x in c.get("entities", []))]
         _write_text(os.path.join(OUT, "e", ent["slug"], "index.html"), _entity_page(ent, ecards))
         urls.append(f"{SITE}/e/{ent['slug']}/")
-    # Permanent public pages for every commentator/news person and every statement.
-    for is_news, idx in ((False, figure_index), (True, news_people_index)):
-        for person in idx.get("figures", []):
-            handle = str(person.get("handle") or "")
-            if not handle:
+    # Permanent public pages use the same unified person identity as the app.
+    for person in figure_index.get("figures", []):
+        handle = str(person.get("handle") or "")
+        if not handle:
+            continue
+        _write_text(os.path.join(OUT, "person", handle, "index.html"),
+                    _person_page(person, news=False))
+        urls.append(f"{SITE}/person/{handle}/")
+        for post in person.get("posts", []):
+            sid = str(post.get("id") or "")
+            if not sid:
                 continue
-            _write_text(os.path.join(OUT, "person", handle, "index.html"),
-                        _person_page(person, news=is_news))
-            urls.append(f"{SITE}/person/{handle}/")
-            for post in person.get("posts", []):
-                sid = str(post.get("id") or "")
-                if not sid:
-                    continue
-                safe_sid = sid.replace(":", "-")
-                _write_text(os.path.join(OUT, "statement", safe_sid, "index.html"),
-                            _statement_page(person, post, news=is_news))
-                urls.append(f"{SITE}/statement/{safe_sid}/")
+            safe_sid = sid.replace(":", "-")
+            is_news = post.get("kind") == "news_statement"
+            _write_text(os.path.join(OUT, "statement", safe_sid, "index.html"),
+                        _statement_page(person, post, news=is_news))
+            urls.append(f"{SITE}/statement/{safe_sid}/")
     sitemap = ('<?xml version="1.0" encoding="UTF-8"?>\n'
                '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                + "".join(f"  <url><loc>{u}</loc></url>\n" for u in urls)
