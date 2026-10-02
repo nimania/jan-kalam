@@ -42,7 +42,7 @@ async function getJSON(path, timeoutMs = 12000) {
 const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
   factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
   weather: "weather-view", iran: "iran-view", faq: "faq-view", market: "market-view",
-  figures: "figures-view", tech: "tech-view" };
+  figures: "figures-view", press: "press-view", tech: "tech-view" };
 const TABS = ["feed", "trends", "factchecks", "iran", "topics"];
 const SCOPE_FA = { local: "استانی", national: "کشوری", international: "بین‌المللی" };
 function setTab(w) { for (const t of TABS) document.getElementById("tab-" + t).classList.toggle("active", w === t); }
@@ -56,6 +56,38 @@ function showTopics() { show("topics"); setTab("topics"); renderTopics(); setHas
 function showTrends() { show("trends"); setTab("trends"); renderTrends(); setHash("#/trends"); }
 function showFactchecks() { show("factchecks"); setTab("factchecks"); renderFactchecks(); setHash("#/fact"); }
 function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); }
+
+function showPress(sourceName) {
+  show("press"); setTab("press");
+  renderPress(sourceName || "");
+  setHash(sourceName ? "#/press-source/" + encodeURIComponent(sourceName) : "#/press");
+}
+async function renderPress(sourceName) {
+  const el = document.getElementById("press-content");
+  el.innerHTML = '<div class="spinner"></div>';
+  let rows = [];
+  try { rows = await getJSON(`${DATA}/periodicals.json`); } catch (_) {}
+  rows = Array.isArray(rows) ? rows : (rows.articles || []);
+  if (!rows.length) {
+    el.innerHTML = `<div class="state press-empty"><div class="big">جانِ جراید در حال آماده‌سازی است</div>
+      <p class="muted">به‌محض پردازش نخستین شماره‌ها، نشریات و مطالب فارسی‌شده اینجا ظاهر می‌شوند.</p></div>`;
+    return;
+  }
+  const groups = new Map();
+  rows.forEach(x => { const n=x.publisher || "نشریه"; if(!groups.has(n)) groups.set(n,[]); groups.get(n).push(x); });
+  if (!sourceName) {
+    el.innerHTML = '<div class="press-grid">' + [...groups.entries()].map(([name,items]) =>
+      `<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span>
+       <strong>${esc(name)}</strong><small>${faN(items.length)} مطلب</small></button>`).join("") + '</div>';
+    return;
+  }
+  const items=groups.get(sourceName)||[];
+  el.innerHTML = `<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ نشریات</button><h2>${esc(sourceName)}</h2></div>
+    <div class="press-list">${items.map(x => `<article class="press-article"><span class="chip">${esc(sourceName)}</span>
+      <h2>${esc(x.headline_fa || x.title_fa || x.title_original || "")}</h2>
+      ${x.summary_fa ? `<p>${esc(x.summary_fa)}</p>` : ""}
+      ${x.published_at ? `<small>${relTime(x.published_at)}</small>` : ""}</article>`).join("")}</div>`;
+}
 
 /* ---- hash routing: shareable URLs + working Back button ----
    Each view/story gets its own #/… URL. Deep links and Back/Forward work.
@@ -88,6 +120,8 @@ async function route() {
   if (kind === "weather") return showWeather();
   if (kind === "faq") return showFaq();
   if (kind === "figures") return showFigures();
+  if (kind === "press") return showPress();
+  if (kind === "press-source" && arg) return showPress(arg);
   if (kind === "tech") return showTech();
   if (kind === "figure" && arg) return openFigure(arg);
   if (kind === "news-person" && arg) return openNewsPerson(arg);
