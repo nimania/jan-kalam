@@ -72,7 +72,7 @@ jobs:
         run: |
           python -m scripts.seed
           python -c "from app.tasks.scheduler import run_full_cycle; print(run_full_cycle())"
-          python -m scripts.export_static
+          python -m scripts.export_static\n          python -m scripts.export_periodicals
       - name: Save the figures published in this build
         uses: actions/upload-artifact@v4
         with:

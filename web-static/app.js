@@ -62,31 +62,32 @@ function showPress(sourceName) {
   renderPress(sourceName || "");
   setHash(sourceName ? "#/press-source/" + encodeURIComponent(sourceName) : "#/press");
 }
+function pressId(x, i) { return String(x.id || ((x.publisher || "periodical") + "-" + i)); }
+async function periodicalRows() {
+  let rows=[]; try { rows=await getJSON(`${DATA}/periodicals.json`); } catch (_) {}
+  return Array.isArray(rows) ? rows : (rows.articles || []);
+}
 async function renderPress(sourceName) {
-  const el = document.getElementById("press-content");
-  el.innerHTML = '<div class="spinner"></div>';
-  let rows = [];
-  try { rows = await getJSON(`${DATA}/periodicals.json`); } catch (_) {}
-  rows = Array.isArray(rows) ? rows : (rows.articles || []);
-  if (!rows.length) {
-    el.innerHTML = `<div class="state press-empty"><div class="big">جانِ جراید در حال آماده‌سازی است</div>
-      <p class="muted">به‌محض پردازش نخستین شماره‌ها، نشریات و مطالب فارسی‌شده اینجا ظاهر می‌شوند.</p></div>`;
-    return;
-  }
-  const groups = new Map();
-  rows.forEach(x => { const n=x.publisher || "نشریه"; if(!groups.has(n)) groups.set(n,[]); groups.get(n).push(x); });
-  if (!sourceName) {
-    el.innerHTML = '<div class="press-grid">' + [...groups.entries()].map(([name,items]) =>
-      `<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span>
-       <strong>${esc(name)}</strong><small>${faN(items.length)} مطلب</small></button>`).join("") + '</div>';
-    return;
-  }
+  const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
+  const rows=await periodicalRows();
+  if(!rows.length){el.innerHTML=`<div class="state press-empty"><div class="big">جانِ جراید در حال آماده‌سازی است</div><p class="muted">به‌محض پردازش نخستین شماره‌ها، نشریات و مطالب فارسی‌شده اینجا ظاهر می‌شوند.</p></div>`;return;}
+  const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
+  if(!sourceName){el.innerHTML='<div class="press-grid">'+[...groups.entries()].map(([name,items])=>`<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span><strong>${esc(name)}</strong><small>${faN(items.length)} مطلب</small></button>`).join("")+'</div>';return;}
   const items=groups.get(sourceName)||[];
-  el.innerHTML = `<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ نشریات</button><h2>${esc(sourceName)}</h2></div>
-    <div class="press-list">${items.map(x => `<article class="press-article"><span class="chip">${esc(sourceName)}</span>
-      <h2>${esc(x.headline_fa || x.title_fa || x.title_original || "")}</h2>
-      ${x.summary_fa ? `<p>${esc(x.summary_fa)}</p>` : ""}
-      ${x.published_at ? `<small>${relTime(x.published_at)}</small>` : ""}</article>`).join("")}</div>`;
+  el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ نشریات</button><h2>${esc(sourceName)}</h2></div><div class="press-list">${items.map((x,i)=>`<article class="press-article press-click" onclick="openPressArticle('${esc(pressId(x,i))}')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-meta"><span>بازگویی تفصیلی فارسی</span>${x.published_at?`<small>${relTime(x.published_at)}</small>`:""}</div></article>`).join("")}</div>`;
+}
+async function openPressArticle(id) {
+  show("press"); setTab("press");
+  const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
+  const rows=await periodicalRows();
+  const x=rows.find((r,i)=>pressId(r,i)===String(id));
+  if(!x){el.innerHTML='<div class="state">مطلب پیدا نشد.</div>';return;}
+  const title=x.headline_fa||x.title_fa||x.title_original||"";
+  const paras=String(x.body_fa||x.longform_fa||"").split(/\n{2,}/).filter(Boolean);
+  const sections=Array.isArray(x.sections_fa)?x.sections_fa:[];
+  const body=paras.length?paras.map(p=>`<p>${esc(p)}</p>`).join(""):sections.map(s=>`<section><h2>${esc(s.heading||"")}</h2><p>${esc(s.body||"")}</p></section>`).join("");
+  el.innerHTML=`<article class="press-longform"><button class="back" onclick="showPress('${esc(x.publisher||"")}')">بازگشت به ${esc(x.publisher||"نشریه")}</button><div class="press-kicker">جانِ جراید · بازگویی تفصیلی فارسی</div><h1>${esc(title)}</h1>${x.title_original?`<div class="press-original">${esc(x.title_original)}</div>`:""}${x.summary_fa?`<p class="press-deck">${esc(x.summary_fa)}</p>`:""}<div class="press-note">این متن بازگویی تفصیلی و وفادارانهٔ مطلب منبع است، نه ترجمهٔ خط‌به‌خط یا جایگزین متن اصلی.</div><div class="press-body">${body||'<p>'+esc(x.summary_fa||"متن تفصیلی هنوز آماده نشده است.")+'</p>'}</div>${x.source_url?`<a class="press-source-link" href="${esc(x.source_url)}" target="_blank" rel="noopener">مشاهدهٔ منبع اصلی ↗</a>`:""}</article>`;
+  setHash("#/press-article/"+encodeURIComponent(id));
 }
 
 /* ---- hash routing: shareable URLs + working Back button ----
@@ -121,7 +122,7 @@ async function route() {
   if (kind === "faq") return showFaq();
   if (kind === "figures") return showFigures();
   if (kind === "press") return showPress();
-  if (kind === "press-source" && arg) return showPress(arg);
+  if (kind === "press-source" && arg) return showPress(arg);\n  if (kind === "press-article" && arg) return openPressArticle(arg);
   if (kind === "tech") return showTech();
   if (kind === "figure" && arg) return openFigure(arg);
   if (kind === "news-person" && arg) return openNewsPerson(arg);
