@@ -904,11 +904,16 @@ async function renderHomeGlance() {
     const tr = (prices || []).find(p => p.label_fa === "لیر ترکیه");
     const cities = ["نوشهر", "چالوس", "کرمان", "تهران"]
       .map(name => (weather || []).find(w => w.city_fa === name)).filter(Boolean);
+    const delta = (n, unit="") => {
+      if (n === null || n === undefined || Number.isNaN(Number(n))) return "";
+      const v=Number(n), cls=v>0?"up":v<0?"down":"flat", sign=v>0?"+":v<0?"−":"";
+      return `<span class="hg-delta ${cls}">${sign}${faN(grp(Math.abs(v)))}${unit} <i>۲۴ساعت</i></span>`;
+    };
     const market = [usd, tr].filter(Boolean).map(p =>
-      `<button class="hg-cell" onclick="showMarket()"><span class="hg-label">${esc(p.label_fa)}</span><b>${faN(grp(p.value))}</b><small>تومان</small></button>`
+      `<button class="hg-cell" onclick="showMarket()"><span class="hg-label">${esc(p.label_fa)}</span><b>${faN(grp(p.value))}</b>${delta(p.delta24,"")}<small>تومان · ${p.dp ? faN(Math.abs(p.dp))+"٪" : "بدون تغییر"}</small></button>`
     ).join("");
     const wx = cities.map(c =>
-      `<button class="hg-cell" onclick="showWeather()"><span class="hg-label">${c.icon || "🌡️"} ${esc(c.city_fa)}</span><b>${faN(c.temp)}°</b><small>${esc(c.cond_fa || "")} · ${faN(c.min)}°/${faN(c.max)}°</small></button>`
+      `<button class="hg-cell" onclick="showWeather()"><span class="hg-label">${c.icon || "🌡️"} ${esc(c.city_fa)}</span><b>${faN(c.temp)}°</b>${delta(c.delta24,"°")}<small>${esc(c.cond_fa || "")} · ${faN(c.min)}°/${faN(c.max)}°</small></button>`
     ).join("");
     if (!market && !wx) return;
     el.innerHTML = `<div class="hg-grid">${market}${wx}</div>`;
