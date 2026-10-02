@@ -59,6 +59,32 @@ def public_posts(channel: str) -> list[dict]:
         rows.append({"id": mid, "text": text[:2000], "filename": pdf_names[0] if pdf_names else "", "download_url": direct})
     return rows
 
+def _page_image(page, pdf: Path, page_no: int) -> str | None:
+    """Extract the largest embedded raster image from a PDF page for article artwork."""
+    try:
+        images = list(getattr(page, "images", []) or [])
+        if not images:
+            return None
+        def area(im):
+            obj = getattr(im, "image", None)
+            size = getattr(obj, "size", (0, 0))
+            return int(size[0] or 0) * int(size[1] or 0)
+        best = max(images, key=area)
+        if area(best) < 120000:
+            return None
+        ext = Path(getattr(best, "name", "") or "").suffix.lower()
+        if ext not in {".jpg", ".jpeg", ".png", ".webp"}:
+            ext = ".jpg"
+        rel = Path("assets") / "periodicals" / f"{pdf.stem}-p{page_no}{ext}"
+        out = Path("web-static") / rel
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_bytes(best.data)
+        return "/" + rel.as_posix()
+    except Exception as exc:
+        print(f"periodicals: image extraction failed {pdf.name} p{page_no}: {exc}")
+        return None
+
+
 def page_articles(pdf: Path, publisher: str, origin: str, message_id: int) -> list[dict]:
     rows = []
     reader = PdfReader(str(pdf))
@@ -76,6 +102,7 @@ def page_articles(pdf: Path, publisher: str, origin: str, message_id: int) -> li
             "page": page_no,
             "title_original": title,
             "text": text[:12000],
+            "image_url": _page_image(page, pdf, page_no),
         })
     return rows
 
