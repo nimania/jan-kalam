@@ -68,9 +68,9 @@ jobs:
           # (comma-separated) — the provider rotates through them on rate limits.
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          AI_MODEL_STRONG: ${{ secrets.AI_MODEL_STRONG }}
+          AI_MODEL_STRONG: ${{ secrets.AI_MODEL_STRONG }}\n          TELEGRAM_API_ID: ${{ secrets.TELEGRAM_API_ID }}\n          TELEGRAM_API_HASH: ${{ secrets.TELEGRAM_API_HASH }}\n          TELEGRAM_SESSION: ${{ secrets.TELEGRAM_SESSION }}
         run: |
-          python -m scripts.seed
+          python -m scripts.seed\n          python -m scripts.ingest_periodicals_telegram
           python -c "from app.tasks.scheduler import run_full_cycle; print(run_full_cycle())"
           python -m scripts.export_static
       - name: Save the figures published in this build
