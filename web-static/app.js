@@ -1263,6 +1263,7 @@ function statsBlock(st) {
 
 loadFeed().then(route);   // load the feed, then honor any deep link in the URL
 renderHomeStats();
+renderHomeGlance();
 renderHomeMajra();
 renderHomePrices();
 renderHomeWeather();
