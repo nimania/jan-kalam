@@ -1210,18 +1210,35 @@ async function renderHomeStats() {
     ]);
     STATS = st;
     const roll = liveRolling(st);
+    const people = (figs.figures || []);
+    const allPosts = people.flatMap(f => (f.posts || []).map(p => ({...p, _person:f})));
+    const now = Date.now(), countPosts = h => allPosts.filter(p => p.published_at && new Date(p.published_at).getTime() >= now-h*3600e3).length;
+    const activePeople = h => new Set(allPosts.filter(p => p.published_at && new Date(p.published_at).getTime() >= now-h*3600e3).map(p => p._person.handle || p._person.name_fa)).size;
+    const opinionCount = allPosts.length;
     const daily = (st.activity_daily || []).map(x => x.n);
-    const opinionCount = (figs.figures || []).reduce((n, f) => n + ((f.posts || []).length), 0);
+    const figDaily = Array.from({length:7},(_,i)=>{
+      const a=now-(6-i)*86400e3, b=a+86400e3;
+      return allPosts.filter(p=>{const t=p.published_at?new Date(p.published_at).getTime():0;return t>=a&&t<b}).length;
+    });
     const today = utcDayISO(0), yday = utcDayISO(-1);
-    el.innerHTML = `<div class="statbar">
-      <span class="sb-item sb-click" onclick="showTrends()"><b>${faN(st.total || 0)}</b><span>کل خبرها</span></span>
-      <span class="sb-sep"></span>
-      <span class="sb-item sb-click sb-opinions" onclick="showFigures()"><b>${faN(opinionCount)}</b><span>نظرها</span></span>
-      <span class="sb-sep"></span>
-      <span class="sb-item sb-click" onclick="openDay('${today}')"><b>${faN(st.calendar ? st.calendar.today : 0)}</b><span>امروز ›</span></span>
-      <span class="sb-item sb-click" onclick="openDay('${yday}')"><b>${faN(st.calendar ? st.calendar.yesterday : 0)}</b><span>دیروز ›</span></span>
-      <span class="sb-item sb-click" onclick="showTrends()"><b>${faN(roll.h24)}</b><span>۲۴ ساعت</span></span>
-      <span class="sb-spark sb-click" onclick="showTrends()">${svgSpark(daily, { w: 90, h: 26 })}</span>
+    el.innerHTML = `<div class="statbar statbar-rich">
+      <div class="sb-metrics">
+        <span class="sb-item sb-click" onclick="showTrends()"><b>${faN(st.total || 0)}</b><span>کل خبرها</span></span>
+        <span class="sb-sep"></span>
+        <span class="sb-item sb-click" onclick="showFigures()"><b>${faN(people.length)}</b><span>چهره‌ها</span></span>
+        <span class="sb-sep"></span>
+        <span class="sb-item sb-click sb-opinions" onclick="showFigures()"><b>${faN(opinionCount)}</b><span>کل اظهارنظرها</span></span>
+        <span class="sb-sep"></span>
+        <span class="sb-item sb-click" onclick="showFigures()"><b>${faN(countPosts(24))}</b><span>نظر · ۲۴ساعت</span></span>
+        <span class="sb-item sb-click" onclick="showFigures()"><b>${faN(activePeople(24))}</b><span>چهرهٔ فعال · ۲۴ساعت</span></span>
+        <span class="sb-sep"></span>
+        <span class="sb-item sb-click" onclick="openDay('${today}')"><b>${faN(st.calendar ? st.calendar.today : 0)}</b><span>خبر امروز ›</span></span>
+        <span class="sb-item sb-click" onclick="showTrends()"><b>${faN(roll.h24)}</b><span>خبر · ۲۴ساعت</span></span>
+      </div>
+      <div class="sb-charts">
+        <div class="sb-mini sb-click" onclick="showTrends()"><span>خبر · ۱۴ روز</span>${svgSpark(daily, { w: 150, h: 34 })}</div>
+        <div class="sb-mini sb-click" onclick="showFigures()"><span>اظهارنظر · ۷ روز</span>${svgSpark(figDaily, { w: 120, h: 34, cls:"b" })}</div>
+      </div>
     </div>`;
   } catch (e) {}
 }
