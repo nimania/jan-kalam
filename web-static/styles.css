@@ -887,3 +887,7 @@
 .curated-poem-no{position:absolute;right:20px;top:29px;width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:var(--surface);border:1px solid var(--line);font:700 11px/1 system-ui;color:var(--ink-faint)}
 .curated-poem-text{font-size:20px;line-height:2.05;font-weight:500;white-space:normal;max-width:680px}
 @media(max-width:640px){.curated-poems-head{padding:18px 16px 13px}.curated-poem{padding:22px 48px 24px 16px}.curated-poem-no{right:14px;top:25px}.curated-poem-text{font-size:18px;line-height:1.95}}
+
+.weather-expert{margin-top:20px;padding:18px 20px;border:1px solid var(--line);border-radius:16px;display:flex;align-items:center;justify-content:space-between;gap:18px;background:var(--surface-2)}
+.weather-expert>div{display:grid;gap:4px}.weather-expert-kicker{font-size:11px;font-weight:800;color:var(--accent)}.weather-expert strong{font-size:19px}.weather-expert p{margin:0;color:var(--ink-faint);font-size:13px}.weather-expert button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:9px 13px;white-space:nowrap;cursor:pointer}
+@media(max-width:640px){.weather-expert{align-items:flex-start;flex-direction:column}.weather-expert button{width:100%}}
