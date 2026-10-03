@@ -15,7 +15,11 @@ from sqlalchemy.orm import Session
 from app.figures import FIGURES
 from app.models.news_person_statement import NewsPersonStatement
 
-_BY_NAME = {f.name_fa.replace("‌", " ").strip(): f for f in FIGURES}
+_BY_NAME = {}
+for _f in FIGURES:
+    _BY_NAME[_f.name_fa.replace("‌", " ").strip()] = _f
+    for _alias in getattr(_f, "aliases", ()):
+        _BY_NAME[_alias.replace("‌", " ").strip()] = _f
 
 # Editorial hard block: never create a person/profile record for these names.
 # Matching is normalized and also covers names containing these tokens.
