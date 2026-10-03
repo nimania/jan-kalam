@@ -148,6 +148,22 @@ const PRESS_SOURCES = [
   {name:"The Washington Post", domain:"washingtonpost.com", scope:"world", lang:"en", type:"روزنامه"},
   {name:"CNN", domain:"cnn.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
   {name:"Al Jazeera English", aliases:["Al Jazeera"], domain:"aljazeera.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
+  // جهان — اسپانیایی
+  {name:"El País", domain:"elpais.com", scope:"world", lang:"es", type:"روزنامه"},
+  {name:"Agencia EFE", domain:"efe.com", scope:"world", lang:"es", type:"خبرگزاری"},
+  {name:"RTVE Noticias", domain:"rtve.es", scope:"world", lang:"es", type:"رسانه عمومی"},
+  {name:"BBC Mundo", domain:"bbc.com", scope:"world", lang:"es", type:"رسانه بین‌المللی"},
+  {name:"CNN en Español", domain:"cnnespanol.cnn.com", scope:"world", lang:"es", type:"تلویزیون/آنلاین"},
+  {name:"DW Español", domain:"dw.com", scope:"world", lang:"es", type:"رسانه بین‌المللی"},
+  {name:"France 24 Español", domain:"france24.com", scope:"world", lang:"es", type:"تلویزیون/آنلاین"},
+  {name:"El Mundo", domain:"elmundo.es", scope:"world", lang:"es", type:"روزنامه"},
+  {name:"La Vanguardia", domain:"lavanguardia.com", scope:"world", lang:"es", type:"روزنامه"},
+  {name:"ABC España", domain:"abc.es", scope:"world", lang:"es", type:"روزنامه"},
+  {name:"El Confidencial", domain:"elconfidencial.com", scope:"world", lang:"es", type:"رسانه آنلاین"},
+  {name:"Clarín", domain:"clarin.com", scope:"world", lang:"es", type:"روزنامه"},
+  {name:"La Nación", domain:"lanacion.com.ar", scope:"world", lang:"es", type:"روزنامه"},
+  {name:"El Universal México", domain:"eluniversal.com.mx", scope:"world", lang:"es", type:"روزنامه"},
+  {name:"NTN24", domain:"ntn24.com", scope:"world", lang:"es", type:"تلویزیون/آنلاین"},
   {name:"Le Monde", domain:"lemonde.fr", scope:"world", lang:"fr", type:"روزنامه"},
   {name:"France 24", domain:"france24.com", scope:"world", lang:"fr", type:"تلویزیون/آنلاین"},
   {name:"RFI", domain:"rfi.fr", scope:"world", lang:"fr", type:"رادیو/آنلاین"},
@@ -166,7 +182,7 @@ const PRESS_SOURCES = [
 ]
 
 const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان"};
-const PRESS_LANG_FA = {all:"همه زبان‌ها", fa:"فارسی", en:"انگلیسی", fr:"فرانسوی", tr:"ترکی", ar:"عربی", de:"آلمانی"};
+const PRESS_LANG_FA = {all:"همه زبان‌ها", fa:"فارسی", en:"انگلیسی", es:"اسپانیایی", fr:"فرانسوی", tr:"ترکی", ar:"عربی", de:"آلمانی"};
 
 function pressLogo(s) {
   const src = "https://www.google.com/s2/favicons?domain=" + encodeURIComponent(s.domain) + "&sz=128";
