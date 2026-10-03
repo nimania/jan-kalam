@@ -847,3 +847,20 @@
 .story-person-main{appearance:none;border:0;background:none;color:inherit;font:inherit;display:flex;align-items:center;gap:10px;text-align:right;min-width:0;flex:1;cursor:pointer;padding:0}
 .story-person-main:hover b{color:var(--accent)}.story-person-copy{display:flex;flex-direction:column;min-width:0;line-height:1.45}.story-person-copy b{font-size:14px}.story-person-copy small{font-size:11.5px;color:var(--ink-faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.story-person-copy em{font-style:normal;font-size:10.5px;color:var(--accent);margin-top:2px}.story-person-card .fig-follow.compact{flex:0 0 auto}
 @media(max-width:560px){.story-people-grid{grid-template-columns:1fr}}
+
+/* Jan-e Jaraid multilingual source directory */
+.press-directory-note{margin:0 0 14px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink-soft);font-size:.9rem;line-height:1.8}
+.press-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.press-langs{margin-bottom:18px}
+.press-source-rich{grid-template-columns:54px 1fr;grid-template-rows:1fr;align-items:center;min-height:86px}
+.press-logo{width:50px;height:50px;border:1px solid var(--line);border-radius:12px;background:#fff;display:grid;place-items:center;overflow:hidden}
+.press-logo img{width:34px;height:34px;object-fit:contain}
+.press-logo b{width:100%;height:100%;place-items:center;font-size:20px;color:var(--accent);background:var(--accent-soft)}
+.press-source-copy{display:grid;gap:3px}
+.press-source-copy strong{font-size:15px}
+.press-source-copy small{font-size:12px;color:var(--ink-faint)}
+.press-source-copy em{font-size:11px;color:var(--brass);font-style:normal;font-weight:700}
+.press-source-head .press-logo{flex:0 0 auto}
+.press-source-head>div:last-child{display:grid;gap:2px}
+.press-source-head p{margin:-7px 0 12px;color:var(--ink-faint);font-size:.82rem}
+@media(max-width:720px){.press-source-rich{min-height:78px}.press-logo{width:44px;height:44px}.press-logo img{width:30px;height:30px}}
