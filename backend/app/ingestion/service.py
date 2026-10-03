@@ -141,7 +141,15 @@ def ingest_source(
     }
     mirror_keys = set(mirror_articles)
 
+    # Some publisher feeds repeat the same canonical URL inside one payload
+    # (France 24 is one example).  Database lookups cannot see all pending ORM
+    # inserts until flush/commit, so deduplicate the batch before adding rows.
+    batch_urls: set[str] = set()
+    batch_hashes: set[str] = set()
     for item in items:
+        if item.article_url in batch_urls:
+            result.duplicates += 1
+            continue
         mkey = _mirror_key(item.description or item.title)
         if mkey and mkey in mirror_keys:
             # If Bale was available during an earlier Telegram outage, upgrade
@@ -159,6 +167,9 @@ def ingest_source(
             result.duplicates += 1
             continue
         h = content_hash(source.name, item.title, item.article_url)
+        if h in batch_hashes:
+            result.duplicates += 1
+            continue
         exists = db.execute(
             select(Article.id).where(
                 (Article.hash == h) | (Article.article_url == item.article_url)
@@ -176,6 +187,8 @@ def ingest_source(
                     db.commit()
             result.duplicates += 1
             continue
+        batch_urls.add(item.article_url)
+        batch_hashes.add(h)
         db.add(
             Article(
                 source_id=source.id,
