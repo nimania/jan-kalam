@@ -31,6 +31,7 @@ class Figure:
     gender: str = "m"  # "m" | "f" — used for balance / future comparison stats
     bale: str | None = None  # verified public Bale channel handle (without @)
     external: bool = False  # profile is fed by non-Telegram collectors (Truth Social, web, etc.)
+    aliases: tuple[str, ...] = ()  # alternate public names matched into the same profile
 
 
 FIGURES: list[Figure] = [
@@ -65,6 +66,51 @@ FIGURES: list[Figure] = [
     Figure("kasaeizade", "سید هادی کسایی‌زاده", "روزنامه‌نگار", "media",
            (("x", "https://x.com/seyedhadikasaei"),), bale="kasaeizade"),
     Figure("hasanabbasi_students", "حسن عباسی", "سخنران و پژوهشگر", "politics", bale="hasanabbasi_students"),
+
+    # ══════════════════════════════════════════════════════════════════════
+    #  چهره‌های تکمیلی — پروفایل واحد، منابع مستقیم و گفته در خبر
+    # ══════════════════════════════════════════════════════════════════════
+    Figure("reza-alijani", "رضا علیجانی", "روزنامه‌نگار و تحلیلگر سیاسی", "politics", external=True),
+    Figure("mahmoud-farjami", "محمود فرجامی", "نویسنده و پژوهشگر رسانه", "media", external=True),
+    Figure("rashid-kakavand", "رشید کاکاوند", "نویسنده و پژوهشگر ادبیات", "culture", external=True),
+    Figure("mansour-zabetian", "منصور ضابطیان", "نویسنده و مجری", "media", external=True),
+    Figure("nezameddin-mousavi", "نظام‌الدین موسوی", "فعال رسانه‌ای و سیاسی", "politics", external=True),
+    Figure("jamshid-assadi", "جمشید اسدی", "اقتصاددان و استاد دانشگاه", "economy", external=True),
+    Figure("reza-taghizadeh", "رضا تقی‌زاده", "روزنامه‌نگار و تحلیلگر", "foreign", external=True),
+    Figure("asghar-sepehri", "اصغر سپهری", "فعال سیاسی", "politics",
+           (("x", "https://x.com/AsgharSepehri"),), external=True),
+    Figure("farzan-deljou", "فرزان دلجو", "هنرمند", "culture", external=True),
+    Figure("shohreh-aghdashloo", "شهره آغداشلو", "بازیگر", "cinema", (), "f", external=True),
+    Figure("mohsen-makhmalbaf", "محسن مخملباف", "فیلم‌ساز و نویسنده", "cinema", external=True),
+    Figure("nader-fattourechi", "نادر فتوره‌چی", "نویسنده و روزنامه‌نگار", "media", external=True),
+    Figure("hasan-shariatmadari", "حسن شریعتمداری", "فعال سیاسی", "politics", external=True),
+    Figure("hossein-shariatmadari", "حسین شریعتمداری", "روزنامه‌نگار", "media", external=True),
+    Figure("faraj-sarkouhi", "فرج سرکوهی", "نویسنده و روزنامه‌نگار", "media", external=True),
+    Figure("fazel-nazari", "فاضل نظری", "شاعر و نویسنده", "culture", external=True),
+    Figure("fardad-farahzad", "فرداد فرحزاد", "روزنامه‌نگار و مجری", "media", external=True),
+    Figure("mirhossein-mousavi", "میرحسین موسوی", "فعال سیاسی", "politics", external=True),
+    Figure("mehdi-karroubi", "مهدی کروبی", "فعال سیاسی", "politics", external=True),
+    Figure("mohammad-khatami", "سیدمحمد خاتمی", "فعال سیاسی", "politics", external=True,
+           aliases=("محمد خاتمی",)),
+    Figure("hojat-kalashi", "حجت کلاشی", "پژوهشگر و فعال سیاسی", "politics", external=True),
+    Figure("sepideh-gholian", "سپیده قلیان", "فعال مدنی", "law", (), "f", external=True),
+    Figure("mazdak-bamdadan", "مزدک بامدادان (محسن بنایی)", "نویسنده و پژوهشگر تاریخ", "history",
+           external=True, aliases=("مزدک بامدادان", "محسن بنایی", "محسن بنائی")),
+    Figure("nasser-karami", "ناصر کرمی", "پژوهشگر محیط‌زیست", "environment", external=True),
+    Figure("vahid-jalili", "وحید جلیلی", "فعال فرهنگی و رسانه‌ای", "media", external=True),
+    Figure("hasan-shamaizadeh", "حسن شماعی‌زاده", "خواننده و آهنگساز", "culture", external=True),
+    Figure("arash-azizi", "آرش عزیزی", "نویسنده و پژوهشگر تاریخ", "history", external=True),
+    Figure("keyvan-abbassi", "کیوان عباسی", "مدیر رسانه", "media", external=True),
+    Figure("javad-zarif", "محمدجواد ظریف", "دیپلمات", "foreign", external=True,
+           aliases=("محمد جواد ظریف",)),
+    Figure("masoud-behnoud", "مسعود بهنود", "روزنامه‌نگار و نویسنده", "media", external=True),
+    Figure("shirin-ebadi", "شیرین عبادی", "حقوقدان و فعال حقوق بشر", "law", (), "f", external=True),
+    Figure("narges-mohammadi", "نرگس محمدی", "فعال حقوق بشر", "law", (), "f", external=True),
+    Figure("elnaz-shakerdoost", "الناز شاکردوست", "بازیگر", "cinema", (), "f", external=True),
+    Figure("zagros-rashidi", "زاگرس رشیدی", "پژوهشگر ژئوپلیتیک", "foreign", external=True),
+    Figure("hossein-entezami", "حسین انتظامی", "مدیر فرهنگی و رسانه‌ای", "media", external=True),
+    Figure("mahnaz-shirali", "مهناز شیرالی", "جامعه‌شناس و پژوهشگر", "society", (), "f", external=True),
+    Figure("fayaz-zahed", "فیاض زاهد", "روزنامه‌نگار و تحلیلگر سیاسی", "politics", external=True),
 
     # ══════════════════════════════════════════════════════════════════════
     #  چهره‌های بین‌المللی — منابع چندزبانه
