@@ -95,6 +95,9 @@ const PRESS_SOURCES = [
   {name:"سازندگی", domain:"sazandeginews.com", scope:"iran-paper", lang:"fa", type:"روزنامه"},
   // مجلات و فصلنامه‌های ایرانی
   {name:"تجربه", aliases:["مجله تجربه","ماهنامه تجربه"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"ماهنامه فرهنگی و هنری"},
+  {name:"آنگاه", aliases:["مجله آنگاه","فصلنامه آنگاه"], domain:"angahmag.com", scope:"iran-magazine", lang:"fa", type:"فصلنامه فرهنگی و هنری"},
+  {name:"تراژدی", aliases:["مجله تراژدی"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و هنری"},
+  {name:"روزآروز", aliases:["مجله روزآروز","روز آ روز"], domain:"roozarooz.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
   {name:"بخارا", aliases:["مجله بخارا"], domain:"bukharamag.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و ادبی"},
   {name:"تنور", aliases:["مجله تنور"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و ادبی"},
   {name:"ناداستان", aliases:["مجله ناداستان"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله روایت و ادبیات غیرداستانی"},
