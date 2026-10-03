@@ -96,6 +96,7 @@ def main():
     if SITE_IN.exists():
         rows += json.loads(SITE_IN.read_text(encoding="utf-8"))
     old=json.loads(ARCHIVE.read_text(encoding="utf-8")) if ARCHIVE.exists() else []
+    old_by_id={x.get("id"):x for x in old if x.get("id")}
     provider=get_provider()
     fresh=[]
     covers=[x for x in rows if x.get("kind")=="issue_cover"]
@@ -115,7 +116,13 @@ def main():
 
     # Full source pages get AI synthesis even when a safe RSS fallback is already
     # publishable. The later AI result replaces the fallback for the same id.
-    ai_site_rows=sorted(site_rows,key=lambda x:bool(x.get("source_text")),reverse=True)
+    ai_site_rows=sorted(
+        site_rows,
+        key=lambda x:(
+            old_by_id.get(x.get("id"),{}).get("enrichment_state")=="ai_fulltext",
+            not bool(x.get("source_text")),
+        )
+    )
     article_rows=(ai_site_rows[:24] + pdf_rows[:16])[:40]
 
     if getattr(provider,"name","mock")=="mock":
