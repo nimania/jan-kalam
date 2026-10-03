@@ -265,13 +265,38 @@ async function renderPress(sourceName) {
   // Source pages should also show ordinary news-feed stories, not only
   // long-form periodical/PDF articles.
   let feedItems=[];
+  const names=meta?[meta.name,...(meta.aliases||[])]:[sourceName];
   try{
-    const feed=await getJSON(`${DATA}/stories.json`);
-    const names=meta?[meta.name,...(meta.aliases||[])]:[sourceName];
-    feedItems=(Array.isArray(feed)?feed:[]).filter(x=>(x.source_names||[]).some(n=>names.includes(n)));
-  }catch(_){}
+    // Prefer the 500-story press archive; fall back to the compact homepage feed
+    // during deployments where the new export has not landed yet.
+    const archive=await getJSON(`${DATA}/press-source-stories.json`);
+    feedItems=names.flatMap(n => Array.isArray(archive && archive[n]) ? archive[n] : []);
+    const seen=new Set();
+    feedItems=feedItems.filter(x=>x && x.id && !seen.has(String(x.id)) && seen.add(String(x.id)))
+      .sort((a,b)=>String(b.published_at||"").localeCompare(String(a.published_at||"")));
+  }catch(_){
+    try{
+      const feed=await getJSON(`${DATA}/stories.json`);
+      feedItems=(Array.isArray(feed)?feed:[]).filter(x=>(x.source_names||[]).some(n=>names.includes(n)));
+    }catch(__){}
+  }
+  const sourceStoryCard=x=>{
+    const metaBits=[];
+    if(x.published_at) metaBits.push(relTime(x.published_at));
+    if(x.category) metaBits.push(CAT_FA[x.category]||x.category);
+    if(x.source_count>1) metaBits.push(faN(x.source_count)+" منبع");
+    const relevance=IRAN_FA[x.iran_relevance]||"";
+    if(relevance) metaBits.push(relevance);
+    return `<article class="press-article press-click press-news-full" onclick="openStory('\\${esc(x.id)}')">
+      <div class="press-news-meta"><span class="chip">${esc(sourceName)}</span>${metaBits.length?`<span>${metaBits.map(esc).join(" · ")}</span>`:""}</div>
+      <h2>${esc(x.headline_fa||x.title_fa||"")}</h2>
+      ${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}
+      ${x.image_url?`<img class="press-news-thumb" src="${esc(x.image_url)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:""}
+      <div class="press-read">پروندهٔ کامل خبر ←</div>
+    </article>`;
+  };
   el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}${st.iran_story_count?` · ${faN(st.iran_story_count)} خبر مرتبط با ایران`:""}${st.latest_at?` · آخرین: ${ago(st.latest_at)}`:""}</p>`:""}</div></div>
-    ${(items.length||feedItems.length)?`<div class="press-list">${feedItems.map(x=>`<article class="press-article press-click" onclick="openStory(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">مشاهده در خط خبری ←</div></article>`).join("")}${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
+    ${(items.length||feedItems.length)?`<div class="press-source-count">${faN(feedItems.length)} خبر اخیر در آرشیو این منبع</div><div class="press-list">${feedItems.map(sourceStoryCard).join("")}${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
 }
 
 async function openPressArticle(id) {
