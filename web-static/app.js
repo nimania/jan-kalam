@@ -635,13 +635,28 @@ async function storyPeopleSuggestions(s) {
 }
 
 async function openStory(id) {
-  setHash("#/story/" + id);
+  // Defensive normalization for copied/encoded deep links.  A stray control
+  // character (e.g. %01 before a UUID) previously produced a valid-looking
+  // route that could never match an exported story JSON file.
+  const rawId = String(id || "");
+  const uuidMatch = rawId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+  const cleanId = uuidMatch ? uuidMatch[0] : rawId.replace(/[\\x00-\\x1F\\x7F]/g, "").trim();
+  if (cleanId !== rawId) {
+    history.replaceState(null, "", "#/story/" + encodeURIComponent(cleanId));
+  } else {
+    setHash("#/story/" + cleanId);
+  }
   show("detail"); setTab("feed");
   const v = document.getElementById("detail-view");
   v.innerHTML = `<div class="spinner"></div>`;
   let s;
-  try { s = await getJSON(`${DATA}/story/${id}.json`); }
-  catch (e) { v.innerHTML = `<div class="state"><div class="big">خبر بارگذاری نشد</div></div>`; return; }
+  try { s = await getJSON(`${DATA}/story/${cleanId}.json`); }
+  catch (e) {
+    // Deep links can outlive the compact feed.  Give a useful failure state
+    // rather than leaving a blank/spinner page.
+    v.innerHTML = `<button class="back" onclick="showFeed()">بازگشت به خط خبری</button><div class="state"><div class="big">این خبر در آرشیو فعلی پیدا نشد</div><p class="muted">شناسهٔ خبر: ${esc(cleanId)}</p></div>`;
+    return;
+  }
 
   const imp = impInfo(s.importance_score);
   const peopleSuggestions = await storyPeopleSuggestions(s);
