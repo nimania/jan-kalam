@@ -92,6 +92,7 @@ jobs:
           rsync -a --exclude 'data/' /tmp/jankalam-ui/web-static/ site/
           mkdir -p site/data
           cp backend/public/data/periodicals.json site/data/periodicals.json
+          cp backend/public/data/press-directory.json site/data/press-directory.json
           cp backend/public/data/press-registry-health.json site/data/press-registry-health.json
           if [ -d backend/web-static/assets/periodicals ]; then
             mkdir -p site/assets/periodicals
