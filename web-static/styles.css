@@ -908,3 +908,5 @@
 .curated-poem-no{font-size:11px;color:var(--ink-faint);padding-top:6px;white-space:nowrap}
 .curated-poem-text{font-family:"Noto Naskh Arabic",serif;font-size:20px;line-height:2.15;color:var(--text)}
 @media(max-width:620px){.x-profile-tabs button{flex:1 0 25%;font-size:12px}.curated-poems-head{padding:20px 16px 16px;display:block}.curated-count{display:inline-block;margin-top:12px}.curated-poem-list{padding:4px 16px 24px}.curated-poem{grid-template-columns:1fr;gap:7px;padding:22px 0}.curated-poem-text{font-size:18px;line-height:2.05}}
+
+.smart-search-result em{display:block;margin-top:5px;color:var(--ink-faint);font-style:normal;font-size:12px;line-height:1.65}.ss-answer{padding:10px 9px 8px;border-bottom:1px solid var(--line)}.ss-answer strong,.ss-answer small{display:block}.ss-answer strong{font-size:13px}.ss-answer small{margin-top:2px;color:var(--ink-faint);font-size:11px}.ss-divider{padding:10px 8px 5px;color:var(--ink-faint);font-size:11px;font-weight:700;border-top:1px solid var(--line)}
