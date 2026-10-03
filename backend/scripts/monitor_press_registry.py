@@ -12,6 +12,11 @@ from app.ingestion.service import _EXCLUDED_SOURCE_TERMS, _EXCLUDED_SOURCE_DOMAI
 
 OUT = Path("public/data/press-registry-health.json")
 UA = "Mozilla/5.0 (compatible; JanKalamPressMonitor/1.1; +https://nimania.github.io/jan-kalam/)"
+PINNED_FEEDS = {
+    # Verified official feeds. Keep these independent from homepage discovery so
+    # transient markup/redirect changes cannot silently disconnect a source.
+    "بخارا": "https://bukharamag.com/feed",
+}
 
 def excluded(name: str, url: str) -> bool:
     n=(name or "").casefold(); u=(url or "").casefold()
@@ -34,7 +39,7 @@ def discover_feed(base: str, html: str) -> list[str]:
         mm=re.search(r'href=["\']([^"\']+)', tag, re.I)
         if mm: found.append(urllib.parse.urljoin(base, mm.group(1)))
     root=urllib.parse.urljoin(base, "/")
-    found += [urllib.parse.urljoin(root,"feed/"), urllib.parse.urljoin(root,"rss.xml")]
+    found += [urllib.parse.urljoin(root,"feed"), urllib.parse.urljoin(root,"feed/"), urllib.parse.urljoin(root,"rss.xml")]
     return list(dict.fromkeys(found))
 
 def main():
@@ -49,7 +54,10 @@ def main():
             final,status,ctype,body=fetch(homepage)
             row["homepage"]=final; row["http_status"]=status
             feed=None
-            for candidate in discover_feed(final,body):
+            candidates=[]
+            if PINNED_FEEDS.get(name): candidates.append(PINNED_FEEDS[name])
+            candidates += discover_feed(final,body)
+            for candidate in dict.fromkeys(candidates):
                 if excluded(name,candidate): continue
                 try:
                     _,fs,fc,fb=fetch(candidate, 6)
