@@ -218,13 +218,17 @@ function pressSourceStats(s, stats){
   return rows.reduce((a,x)=>({story_count:a.story_count+(x.story_count||0),iran_story_count:a.iran_story_count+(x.iran_story_count||0),latest_at:(!a.latest_at||((x.latest_at||"")>a.latest_at))?(x.latest_at||a.latest_at):a.latest_at}),{story_count:0,iran_story_count:0,latest_at:null});
 }
 async function renderPress(sourceName) {
-  const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
-  // Keep the directory usable even when one generated data file is missing,
-  // stale, or temporarily unavailable during a deploy.
-  const [rowsResult,statsResult]=await Promise.allSettled([loadPeriodicals(),loadPressStats()]);
-  const rows=rowsResult.status==="fulfilled" ? rowsResult.value : [];
-  const stats=statsResult.status==="fulfilled" ? statsResult.value : [];
+  const el=document.getElementById("press-content");
+  // Render the directory immediately. Generated datasets are enhancements,
+  // never a prerequisite for navigation.
+  const rows=periodicalRows||[];
+  const stats=pressStatsCache||[];
   const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
+  if(!periodicalRows.length || pressStatsCache===null){
+    Promise.allSettled([loadPeriodicals(),loadPressStats()]).then(()=>{
+      if(document.getElementById("press-content")===el && location.hash.startsWith("#/press")) renderPress(sourceName);
+    });
+  }
 
   if(!sourceName){
     const sources=PRESS_SOURCES.filter(s => (pressScope==="all"||s.scope===pressScope) && (pressLanguage==="all"||s.lang===pressLanguage));
