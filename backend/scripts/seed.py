@@ -45,6 +45,10 @@ SOURCES = [
 
     # --- Global / international ---
     ("BBC", "https://www.bbc.com/news", "http://feeds.bbci.co.uk/news/world/rss.xml", "global", 0.85),
+    # Spanish-language sources. EL PAÍS publishes an official RSS directory;
+    # start with its International feed, where Iran/Middle East coverage lands.
+    ("El País", "https://elpais.com/internacional/", "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/internacional/portada", "global-es", 0.8),
+
     ("The Guardian", "https://www.theguardian.com", "https://www.theguardian.com/world/rss", "global", 0.8),
     ("Al Jazeera", "https://www.aljazeera.com", "https://www.aljazeera.com/xml/rss/all.xml", "mena", 0.75),
     ("The Verge", "https://www.theverge.com", "https://www.theverge.com/rss/index.xml", "tech", 0.7),
@@ -127,7 +131,7 @@ def run() -> None:
         wanted: set[str] = set()
         for name, home, feed, region, rel in SOURCES:
             wanted.add(name)
-            lang = "fa" if region.startswith("iran") else "en"
+            lang = "fa" if region.startswith("iran") else ("es" if region == "global-es" else "en")
             existing = db.query(Source).filter_by(name=name).one_or_none()
             if existing:
                 existing.homepage_url = home
