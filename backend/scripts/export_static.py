@@ -28,7 +28,7 @@ from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
 from app import figure_posts as figure_svc
 from app.news_people import merge_news_people, is_named_person_name
-from app.models.news_person_statement import NewsPersonStatement
+from app.models.news_person_statement import NewsPersonStatement\nfrom app.models.ingestion_log import IngestionLog\nfrom app.models.source import Source
 from app.figure_assets import export_avatars
 from app.geo import countries as countries_svc
 from app.geo import service as geo_svc
@@ -439,6 +439,36 @@ def run() -> None:
         for source_name in card.get("source_names", []) or []:
             press_source_stories.setdefault(source_name, []).append(card)
     _write(os.path.join(DATA, "press-source-stories.json"), press_source_stories)
+
+    # Operational health for every configured source.  The press directory can
+    # now distinguish a genuinely active collector from a merely listed outlet.
+    source_health = []
+    for src in db.query(Source).all():
+        log = (db.query(IngestionLog)
+               .filter(IngestionLog.source_id == src.id)
+               .order_by(IngestionLog.finished_at.desc(), IngestionLog.created_at.desc())
+               .first())
+        if log is None:
+            state = "pending" if src.enabled else "disabled"
+        elif log.status == "error":
+            state = "error"
+        elif (log.fetched_count or 0) == 0:
+            state = "empty"
+        else:
+            state = "active"
+        source_health.append({
+            "source_name": src.name,
+            "enabled": bool(src.enabled),
+            "state": state,
+            "method": str(getattr(src.feed_type, "value", src.feed_type) or ""),
+            "feed_url": src.feed_url,
+            "last_status": log.status if log else None,
+            "last_fetched": log.fetched_count if log else 0,
+            "last_new": log.new_count if log else 0,
+            "last_error": log.message if log and log.status == "error" else None,
+            "last_run": (log.finished_at or log.started_at).isoformat() if log and (log.finished_at or log.started_at) else None,
+        })
+    _write(os.path.join(DATA, "press-source-health.json"), source_health)
 
 
     # Keep deep links durable beyond the 60-card home feed. Export a larger
