@@ -60,6 +60,7 @@ function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); 
 let periodicalRows = [];
 let pressScope = "all";
 let pressLanguage = "all";
+let pressStatsCache = null;
 
 const PRESS_SOURCES = [
   // خبرگزاری‌ها و رسانه‌های خبری داخل ایران
@@ -153,9 +154,20 @@ async function loadPeriodicals() {
   periodicalRows=Array.isArray(rows)?rows:(rows.articles||[]);
   return periodicalRows;
 }
+async function loadPressStats(){
+  if(pressStatsCache) return pressStatsCache;
+  let rows=[]; try{rows=await getJSON(`${DATA}/press-stats.json`);}catch(_){}
+  pressStatsCache=Array.isArray(rows)?rows:[];
+  return pressStatsCache;
+}
+function pressSourceStats(s, stats){
+  const names=[s.name,...(s.aliases||[])];
+  const rows=stats.filter(x=>names.includes(x.source_name));
+  return rows.reduce((a,x)=>({story_count:a.story_count+(x.story_count||0),iran_story_count:a.iran_story_count+(x.iran_story_count||0),latest_at:(!a.latest_at||((x.latest_at||"")>a.latest_at))?(x.latest_at||a.latest_at):a.latest_at}),{story_count:0,iran_story_count:0,latest_at:null});
+}
 async function renderPress(sourceName) {
   const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
-  const rows=await loadPeriodicals();
+  const [rows,stats]=await Promise.all([loadPeriodicals(),loadPressStats()]);
   const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
 
   if(!sourceName){
@@ -165,7 +177,13 @@ async function renderPress(sourceName) {
     const langControls=["all",...langs].map(k=>`<button class="fchip ${pressLanguage===k?"on":""}" onclick="setPressLanguage('${k}')">${PRESS_LANG_FA[k]||k}</button>`).join("");
     const cards=sources.map(s=>{
       const items=[s.name,...(s.aliases||[])].flatMap(n=>groups.get(n)||[]);
-      const status=items.length ? `${faN(items.length)} مطلب پردازش‌شده` : "در فهرست پایش";
+      const st=pressSourceStats(s,stats);
+      const bits=[];
+      if(st.iran_story_count) bits.push(faN(st.iran_story_count)+" خبر مرتبط با ایران");
+      else if(st.story_count) bits.push(faN(st.story_count)+" حضور در خط خبری");
+      if(items.length) bits.push(faN(items.length)+" مطلب تفصیلی");
+      if(st.latest_at) bits.push("آخرین: "+ago(st.latest_at));
+      const status=bits.length?bits.join(" · "):"در فهرست پایش";
       return `<button class="press-source press-source-rich" onclick="showPress('${esc(s.name)}')">
         ${pressLogo(s)}
         <span class="press-source-copy"><strong>${esc(s.name)}</strong><small>${esc(s.type)} · ${PRESS_LANG_FA[s.lang]||s.lang}</small><em>${status}</em></span>
@@ -183,7 +201,8 @@ async function renderPress(sourceName) {
 
   const meta=PRESS_SOURCES.find(s=>s.name===sourceName);
   const items=meta ? [meta.name,...(meta.aliases||[])].flatMap(n=>groups.get(n)||[]) : (groups.get(sourceName)||[]);
-  el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}</p>`:""}</div></div>
+  const st=meta?pressSourceStats(meta,stats):{story_count:0,iran_story_count:0,latest_at:null};
+  el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}${st.iran_story_count?` · ${faN(st.iran_story_count)} خبر مرتبط با ایران`:""}${st.latest_at?` · آخرین: ${ago(st.latest_at)}`:""}</p>`:""}</div></div>
     ${items.length?`<div class="press-list">${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle('${esc(x.id)}')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
 }
 
