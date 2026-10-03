@@ -28,7 +28,9 @@ from app.entities import service as entity_svc
 from app.factcheck import service as fc_svc
 from app import figure_posts as figure_svc
 from app.news_people import merge_news_people, is_named_person_name
-from app.models.news_person_statement import NewsPersonStatement\nfrom app.models.ingestion_log import IngestionLog\nfrom app.models.source import Source
+from app.models.news_person_statement import NewsPersonStatement
+from app.models.ingestion_log import IngestionLog
+from app.models.source import Source
 from app.figure_assets import export_avatars
 from app.geo import countries as countries_svc
 from app.geo import service as geo_svc
