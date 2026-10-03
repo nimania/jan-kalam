@@ -226,8 +226,12 @@ function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); 
 let booksCache = null;
 async function loadBooks(){
   if(booksCache) return booksCache;
-  let d={books:[],people:[],publishers:[]};
+  let d=null;
   try{d=await getJSON(`${DATA}/books.json?v=${Date.now()}`,7000);}catch(_){}
+  if(!d || !Array.isArray(d.books) || !d.books.length){
+    d=(window.__BOOKS_DATA__ && typeof window.__BOOKS_DATA__==="object")
+      ? window.__BOOKS_DATA__ : {books:[],people:[],publishers:[]};
+  }
   booksCache={
     books:Array.isArray(d.books)?d.books:[],
     people:Array.isArray(d.people)?d.people:[],
