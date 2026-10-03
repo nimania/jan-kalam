@@ -8,16 +8,12 @@ import json, re, time, urllib.parse, urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
-from app.press_registry import PRESS_REGISTRY
+from app.press_registry import PRESS_REGISTRY, PRESS_FEEDS
 from app.ingestion.service import _EXCLUDED_SOURCE_TERMS, _EXCLUDED_SOURCE_DOMAINS
 
 OUT = Path("public/data/press-registry-health.json")
 UA = "Mozilla/5.0 (compatible; JanKalamPressMonitor/1.1; +https://nimania.github.io/jan-kalam/)"
-PINNED_FEEDS = {
-    # Verified official feeds. Keep these independent from homepage discovery so
-    # transient markup/redirect changes cannot silently disconnect a source.
-    "بخارا": "https://bukharamag.com/feed",
-}
+PINNED_FEEDS = dict(PRESS_FEEDS)
 
 def excluded(name: str, url: str) -> bool:
     n=(name or "").casefold(); u=(url or "").casefold()
