@@ -383,10 +383,13 @@ def _fetch_weather_only(timeout: float = 20.0) -> list[dict]:
                     delta24 = round(float(cur.get("temperature_2m")) - float(temps[idx - 24]), 1)
             maxs = daily.get("temperature_2m_max") or []
             mins = daily.get("temperature_2m_min") or []
+            days = daily.get("time") or []
+            today = datetime.now(TEHRAN).date().isoformat()
+            day_idx = days.index(today) if today in days else 0
             out.append({
                 "city_fa": name, "temp": temp,
-                "max": round(maxs[0]) if maxs and maxs[0] is not None else None,
-                "min": round(mins[0]) if mins and mins[0] is not None else None,
+                "max": round(maxs[day_idx]) if day_idx < len(maxs) and maxs[day_idx] is not None else None,
+                "min": round(mins[day_idx]) if day_idx < len(mins) and mins[day_idx] is not None else None,
                 "cond_fa": cond_fa, "icon": icon, "delta24": delta24,
             })
         except (TypeError, ValueError, IndexError):
