@@ -495,14 +495,29 @@ function pressSourceStats(s, stats){
 async function renderPress(sourceName) {
   const el=document.getElementById("press-content");
   if(sourceName){
-    if(!periodicalRows.length || pressStatsCache===null || pressHealthCache===null){
+    // Only article data is required to render a source page. Stats/health are
+    // optional decoration and must never hold the page on a spinner.
+    if(!periodicalRows.length){
       el.innerHTML='<div class="spinner"></div>';
-      await Promise.allSettled([loadPeriodicals(),loadPressStats(),loadPressHealth()]);
+      await loadPeriodicals();
+    }
+    if(pressStatsCache===null || pressHealthCache===null){
+      Promise.allSettled([loadPressStats(),loadPressHealth()]).then(()=>{
+        if(document.getElementById("press-content")===el &&
+           decodeURIComponent(location.hash||"").includes("/press-source/")) renderPress(sourceName);
+      });
     }
   }else{
-    if(pressDirectoryCache===null || pressHealthCache===null){
+    // The directory needs only the tiny synchronous manifest. Health status is
+    // loaded in the background and may enhance badges later.
+    if(pressDirectoryCache===null){
       el.innerHTML='<div class="spinner"></div>';
-      await Promise.allSettled([loadPressDirectory(),loadPressHealth()]);
+      await loadPressDirectory();
+    }
+    if(pressHealthCache===null){
+      loadPressHealth().then(()=>{
+        if(document.getElementById("press-content")===el && location.hash==="#/press") renderPress("");
+      }).catch(()=>{});
     }
   }
   const rows=periodicalRows||[];
