@@ -9,6 +9,11 @@ Important: source-level editorial exclusions in app.ingestion.service still
 apply to every collector.
 """
 PRESS_REGISTRY = [
+    # Iranian periodicals — tracked even when acquisition is PDF/site fallback.
+    ("سپیده دانایی","https://www.magiran.com/magazine/5447","fa","iran-magazine"),
+    ("ترجمان","https://tarjomaan.com","fa","iran-magazine"),
+    ("مهرنامه","http://www.mehrnameh.ir","fa","iran-magazine"),
+    ("دالان","http://www.dalan.media","fa","iran-magazine"),
     # name, homepage, language, scope
     ("Press TV","https://www.presstv.ir","en","iran-agency"),
     ("Tehran Times","https://www.tehrantimes.com","en","iran-paper"),
