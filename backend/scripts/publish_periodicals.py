@@ -12,6 +12,7 @@ from app.ai.providers import get_provider
 
 ROOT=Path("periodicals")
 IN=ROOT/"articles.json"
+SITE_IN=ROOT/"site_articles.json"
 ARCHIVE=ROOT/"archive.json"
 PUBLIC=Path("public/data/periodicals.json")
 MAX_ITEMS=300
@@ -30,6 +31,8 @@ body_fa should be a detailed Persian rendering of the available article text, no
 
 def main():
     rows=json.loads(IN.read_text(encoding="utf-8")) if IN.exists() else []
+    if SITE_IN.exists():
+        rows += json.loads(SITE_IN.read_text(encoding="utf-8"))
     old=json.loads(ARCHIVE.read_text(encoding="utf-8")) if ARCHIVE.exists() else []
     provider=get_provider()
     if getattr(provider,"name","mock")=="mock":
@@ -52,6 +55,7 @@ def main():
                     "section_fa":str(r.get("section_fa") or "سایر").strip(),
                     "key_points_fa":[str(v).strip() for v in (r.get("key_points_fa") or [])[:4] if str(v).strip()],
                     "telegram_post_url":x.get("telegram_post_url"),
+                    "article_url":x.get("article_url"),
                     "transport":x.get("transport"),"page":x.get("page"),
                     "image_url":x.get("image_url"),
                     "issue_key":f'{x.get("publisher","")}:{x.get("transport","")}:{x.get("telegram_message_id","")}',
