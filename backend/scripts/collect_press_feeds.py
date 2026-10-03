@@ -75,7 +75,7 @@ def enrich_full_article(row):
                 if len(txt)>=300: candidates.append(txt)
         full=max(candidates,key=len) if candidates else ""
         if full:
-            row={**row,"source_text":full[:18000]}
+            row={**row,"source_text":full[:26000]}
         og=soup.find("meta",attrs={"property":"og:image"}) or soup.find("meta",attrs={"name":"twitter:image"})
         if og and og.get("content"):
             row={**row,"image_url":urllib.parse.urljoin(link,og.get("content"))}
