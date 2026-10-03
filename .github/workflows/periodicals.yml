@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "backend/app/press_registry.py"
+      - "backend/app/ai/providers/**"
       - "backend/scripts/monitor_press_registry.py"
       - "backend/scripts/collect_press_feeds.py"
       - "backend/scripts/collect_periodicals.py"
