@@ -262,8 +262,16 @@ async function renderPress(sourceName) {
   const meta=PRESS_SOURCES.find(s=>s.name===sourceName);
   const items=meta ? [meta.name,...(meta.aliases||[])].flatMap(n=>groups.get(n)||[]) : (groups.get(sourceName)||[]);
   const st=meta?pressSourceStats(meta,stats):{story_count:0,iran_story_count:0,latest_at:null};
+  // Source pages should also show ordinary news-feed stories, not only
+  // long-form periodical/PDF articles.
+  let feedItems=[];
+  try{
+    const feed=await getJSON(`${DATA}/stories.json`);
+    const names=meta?[meta.name,...(meta.aliases||[])]:[sourceName];
+    feedItems=(Array.isArray(feed)?feed:[]).filter(x=>(x.source_names||[]).some(n=>names.includes(n)));
+  }catch(_){}
   el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}${st.iran_story_count?` · ${faN(st.iran_story_count)} خبر مرتبط با ایران`:""}${st.latest_at?` · آخرین: ${ago(st.latest_at)}`:""}</p>`:""}</div></div>
-    ${items.length?`<div class="press-list">${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle('${esc(x.id)}')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
+    ${(items.length||feedItems.length)?`<div class="press-list">${feedItems.map(x=>`<article class="press-article press-click" onclick="openStory(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">مشاهده در خط خبری ←</div></article>`).join("")}${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
 }
 
 async function openPressArticle(id) {
