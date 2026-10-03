@@ -40,7 +40,13 @@ overview, not a translation. Do not invent article details beyond the metadata.
 body_fa should be detailed but only as detailed as the evidence permits. Clearly
 attribute arguments/opinions to The Economist."""
     user="Create the Jan-e Jaraid issue overview from these public sources:\n\n"+context
-    res=provider.generate(system=system,user=user,context={})
+    try:
+        res=provider.generate(system=system,user=user,context={})
+    except Exception as exc:
+        # Jan-e Jaraid is enrichment, not a release gate. Provider outages,
+        # quota/rate limits, or model churn must never block the whole site.
+        print(f"Jan-e Jaraid skipped: AI provider unavailable ({type(exc).__name__}: {str(exc)[:180]})")
+        return {"articles":0,"skipped":"ai_provider"}
     d=res.data
     date=str(d.get("issue_date") or "2026-09-26")[:10]
     row={"id":f"economist-{date}","publisher":"The Economist","issue":date,
