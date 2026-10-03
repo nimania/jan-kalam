@@ -8,6 +8,8 @@ from __future__ import annotations
 import hashlib, html, json, re, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path
+from bs4 import BeautifulSoup
+from app.ingestion.service import _EXCLUDED_SOURCE_TERMS, _EXCLUDED_SOURCE_DOMAINS
 
 HEALTH=Path("public/data/press-registry-health.json")
 OUT=Path("periodicals/site_articles.json")
@@ -23,12 +25,54 @@ def first_text(el,names):
             return clean(child.text)
     return ""
 
+def excluded(src):
+    name=(src.get("source_name") or "").casefold()
+    urls=" ".join(str(src.get(k) or "").casefold() for k in ("homepage","feed_url"))
+    # Keep the standalone press collectors under the same source-level editorial denylist.
+    if any(t.casefold() in name for t in _EXCLUDED_SOURCE_TERMS): return True
+    return any(d in urls for d in _EXCLUDED_SOURCE_DOMAINS)
+
+def html_candidates(src):
+    """Fallback for monitored sites that expose articles but advertise no RSS."""
+    home=src.get("homepage")
+    if not home: return []
+    req=urllib.request.Request(home,headers={"User-Agent":UA})
+    raw=urllib.request.urlopen(req,timeout=25).read(2_000_000)
+    soup=BeautifulSoup(raw,"html.parser")
+    host=urllib.parse.urlparse(home).netloc.lower().removeprefix("www.")
+    seen=set(); out=[]
+    bad_parts=("/tag/","/category/","/author/","/page/","/search","/login","/contact","/about")
+    for a in soup.find_all("a",href=True):
+        title=clean(a.get_text(" ",strip=True))
+        if len(title)<18 or len(title)>240: continue
+        link=urllib.parse.urljoin(home,a["href"])
+        u=urllib.parse.urlparse(link)
+        if u.scheme not in {"http","https"}: continue
+        if u.netloc.lower().removeprefix("www.") != host: continue
+        if any(p in u.path.lower() for p in bad_parts): continue
+        if u.path in {"","/"} or link in seen: continue
+        seen.add(link)
+        ident=hashlib.sha1((src["source_name"]+"|"+link).encode()).hexdigest()
+        out.append({"id":"site:"+ident,"publisher":src["source_name"],"kind":"site_feed",
+          "title_original":title,"text":title,"article_url":link,
+          "transport":"site:"+home,"page":None,"lang":src.get("lang"),
+          "source_homepage":home})
+        if len(out)>=20: break
+    return out
+
 def main():
     health=json.loads(HEALTH.read_text(encoding="utf-8")) if HEALTH.exists() else []
     rows=[]
     for src in health:
+        if src.get("state")!="active" or excluded(src): continue
         feed=src.get("feed_url")
-        if src.get("state")!="active" or not feed: continue
+        if not feed:
+            try:
+                found=html_candidates(src); rows.extend(found)
+                print("press sites:",src.get("source_name"),"collected",len(found),"HTML candidates")
+            except Exception as exc:
+                print("press sites:",src.get("source_name"),"failed:",str(exc)[:180])
+            continue
         try:
             req=urllib.request.Request(feed,headers={"User-Agent":UA})
             raw=urllib.request.urlopen(req,timeout=25).read(2_000_000)
@@ -47,7 +91,8 @@ def main():
                 ident=hashlib.sha1((src["source_name"]+"|"+link).encode()).hexdigest()
                 rows.append({"id":"site:"+ident,"publisher":src["source_name"],"kind":"site_feed",
                   "title_original":title,"text":summary[:5000],"article_url":link,
-                  "transport":"rss:"+feed,"page":None})
+                  "transport":"rss:"+feed,"page":None,"lang":src.get("lang"),
+                  "source_homepage":src.get("homepage")})
         except Exception as exc:
             print("press feeds:",src.get("source_name"),"failed:",str(exc)[:180])
     OUT.parent.mkdir(exist_ok=True)
