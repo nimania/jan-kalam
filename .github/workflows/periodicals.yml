@@ -45,6 +45,10 @@ jobs:
         working-directory: backend
         run: python -m scripts.monitor_press_registry
 
+      - name: Collect articles from discovered RSS feeds
+        working-directory: backend
+        run: python -m scripts.collect_press_feeds
+
       - name: Collect public Telegram PDFs
         working-directory: backend
         run: python -m scripts.collect_periodicals
@@ -97,6 +101,7 @@ jobs:
           name: periodical-diagnostics-${{ github.run_id }}
           path: |
             backend/periodicals/articles.json
+            backend/periodicals/site_articles.json
             backend/periodicals/quarantine.json
             backend/periodicals/archive.json
           if-no-files-found: ignore
