@@ -52,6 +52,21 @@ SOURCES = [
     ("The Guardian", "https://www.theguardian.com", "https://www.theguardian.com/world/rss", "global", 0.8),
     ("Al Jazeera", "https://www.aljazeera.com", "https://www.aljazeera.com/xml/rss/all.xml", "mena", 0.75),
     ("The Verge", "https://www.theverge.com", "https://www.theverge.com/rss/index.xml", "tech", 0.7),
+    # --- Jan-e Jaraid: additional verified/public feeds ---
+    # Iranian foreign-language outlets remain region=iran even when language differs.
+    ("Press TV", "https://www.presstv.ir", "https://www.presstv.ir/rss", "iran-en", 0.55),
+    ("Tehran Times", "https://www.tehrantimes.com", "https://www.tehrantimes.com/rss", "iran-en", 0.6),
+    ("Al-Alam", "https://www.alalam.ir", "https://www.alalam.ir/rss", "iran-ar", 0.55),
+    ("Al-Monitor", "https://www.al-monitor.com", "https://www.al-monitor.com/rss", "mena", 0.75),
+    ("France 24", "https://www.france24.com/en/", "https://www.france24.com/en/rss", "global", 0.75),
+    ("RFI", "https://www.rfi.fr/en/", "https://www.rfi.fr/en/rss", "global", 0.75),
+    ("Anadolu Ajansı", "https://www.aa.com.tr/en", "https://www.aa.com.tr/en/rss/default?cat=guncel", "global-tr", 0.7),
+    ("CNN", "https://www.cnn.com", "http://rss.cnn.com/rss/edition_world.rss", "global", 0.75),
+    ("NPR", "https://www.npr.org", "https://feeds.npr.org/1004/rss.xml", "global", 0.8),
+    ("CNBC", "https://www.cnbc.com/world/", "https://www.cnbc.com/id/100727362/device/rss/rss.html", "global", 0.75),
+    ("Sky News", "https://news.sky.com", "https://feeds.skynews.com/feeds/rss/world.xml", "global", 0.75),
+    ("El Mundo", "https://www.elmundo.es", "https://e00-elmundo.uecdn.es/elmundo/rss/internacional.xml", "global-es", 0.7),
+    ("La Vanguardia", "https://www.lavanguardia.com", "https://www.lavanguardia.com/rss/internacional.xml", "global-es", 0.7),
 
     # --- Persian-language: domestic (agencies, portals, economic, sport) ---
     ("خبرگزاری ایرنا (IRNA)", "https://www.irna.ir", "https://www.irna.ir/rss", "iran", 0.6),
@@ -131,7 +146,7 @@ def run() -> None:
         wanted: set[str] = set()
         for name, home, feed, region, rel in SOURCES:
             wanted.add(name)
-            lang = "fa" if region.startswith("iran") else ("es" if region == "global-es" else "en")
+            lang = ("ar" if region == "iran-ar" else "en" if region == "iran-en" else "fa" if region.startswith("iran") else "es" if region == "global-es" else "tr" if region == "global-tr" else "en")
             existing = db.query(Source).filter_by(name=name).one_or_none()
             if existing:
                 existing.homepage_url = home
