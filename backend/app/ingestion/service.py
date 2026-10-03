@@ -30,6 +30,27 @@ Fetcher = Callable[[str], str]
 _URL_RE = re.compile(r"https?://\\S+", re.I)
 _WS_RE = re.compile(r"\\s+")
 
+# Editorial exclusion requested for Jan Kalam. Keep this at ingestion so
+# excluded organization-owned material cannot leak into downstream stories,
+# press pages, or exports. Mentions in independent reporting are not blocked.
+_EXCLUDED_SOURCE_TERMS = (
+    "مجاهدین خلق", "سازمان مجاهدین", "شورای ملی مقاومت",
+    "people's mojahedin", "people’s mojahedin", "mujahedin-e khalq",
+    "mojahedin-e khalq", "mek", "ncri", "national council of resistance",
+)
+_EXCLUDED_SOURCE_DOMAINS = {
+    "mojahedin.org", "mujahideen.org", "ncr-iran.org", "iranntv.com",
+    "hambastegimeli.com",
+}
+
+def _editorially_excluded_source(source: Source) -> bool:
+    name = (source.name or "").casefold()
+    home = (source.homepage_url or "").casefold()
+    feed = (source.feed_url or "").casefold()
+    if any(term.casefold() in name for term in _EXCLUDED_SOURCE_TERMS):
+        return True
+    return any(domain in home or domain in feed for domain in _EXCLUDED_SOURCE_DOMAINS)
+
 
 def _mirror_key(text: str | None) -> str:
     """Platform-neutral key for Telegram/Bale mirrors of the same post."""
@@ -68,6 +89,11 @@ def ingest_source(
     """Ingest one source. Pass `raw_content` to skip the network (tests)."""
     started = datetime.now(timezone.utc)
     result = IngestResult(source_name=source.name, status="ok")
+    if _editorially_excluded_source(source):
+        result.status = "skipped"
+        result.message = "editorial_source_exclusion"
+        _write_log(db, source, result, started)
+        return result
 
     try:
         raw = raw_content if raw_content is not None else fetcher(source.feed_url)
