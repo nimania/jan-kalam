@@ -52,8 +52,8 @@ function setArticleSeo(x){
   k.content=(x.seo_keywords_fa||[]).join("، ");
   let schema=document.getElementById("press-article-schema");
   if(!schema){schema=document.createElement("script");schema.type="application/ld+json";schema.id="press-article-schema";document.head.appendChild(schema);}
-  schema.textContent=JSON.stringify({
-    "@context":"https://schema.org","@type":"Article",
+  const articleSchema={
+    "@type":"Article",
     "headline":title,"description":desc,
     "datePublished":x.source_published_at||x.published_at||undefined,
     "dateModified":x.published_at||undefined,
@@ -62,7 +62,24 @@ function setArticleSeo(x){
     "mainEntityOfPage":location.href,
     "isBasedOn":x.source_url||x.article_url||undefined,
     "keywords":(x.seo_keywords_fa||[]).join(", ")
-  });
+  };
+  const e=x.event||{};
+  const graph=[articleSchema];
+  if(e.is_event||e.start_iso||e.date_fa||e.location_fa||e.address_fa){
+    graph.push({
+      "@type":"Event",
+      "name":x.headline_fa||x.title_original||title,
+      "description":desc,
+      "startDate":e.start_iso||undefined,
+      "endDate":e.end_iso||undefined,
+      "location":(e.location_fa||e.address_fa)?{
+        "@type":"Place","name":e.location_fa||undefined,
+        "address":e.address_fa||undefined
+      }:undefined,
+      "url":x.source_url||x.article_url||location.href
+    });
+  }
+  schema.textContent=JSON.stringify({"@context":"https://schema.org","@graph":graph});
 }
 
 
@@ -548,20 +565,88 @@ async function renderPress(sourceName) {
   })();
 }
 
+function _pressNormText(s){
+  return String(s||"").replace(/[\s\u200c]+/g," ").replace(/[،؛:,.!?؟"'«»()\[\]{}]/g,"").trim();
+}
+function _pressNearDuplicate(a,b){
+  const x=_pressNormText(a), y=_pressNormText(b);
+  if(!x||!y) return false;
+  if(x===y) return true;
+  const shorter=x.length<=y.length?x:y, longer=x.length>y.length?x:y;
+  return shorter.length>=70 && longer.includes(shorter) && shorter.length/longer.length>.5;
+}
+function _gcalStamp(iso){
+  const d=new Date(iso||"");
+  if(Number.isNaN(d.getTime())) return "";
+  return d.toISOString().replace(/[-:]/g,"").replace(/\.\d{3}Z$/,"Z");
+}
+function pressEventCard(x){
+  const e=x.event||{};
+  const has=!!(e.is_event||e.date_fa||e.time_fa||e.start_iso||e.location_fa||e.address_fa);
+  if(!has) return "";
+  const where=[e.location_fa,e.address_fa].filter(Boolean).join("، ");
+  const rows=[
+    e.date_fa?`<div class="press-event-item"><span>تاریخ</span><b>${esc(e.date_fa)}</b></div>`:"",
+    e.time_fa?`<div class="press-event-item"><span>ساعت</span><b>${esc(e.time_fa)}</b></div>`:"",
+    where?`<div class="press-event-item press-event-place"><span>مکان</span><b>${esc(where)}</b></div>`:""
+  ].join("");
+  const actions=[];
+  const start=_gcalStamp(e.start_iso);
+  let end=_gcalStamp(e.end_iso);
+  if(start&&!end){
+    const d=new Date(e.start_iso); d.setHours(d.getHours()+2); end=_gcalStamp(d.toISOString());
+  }
+  if(start&&end){
+    const original=x.source_url||x.article_url||x.telegram_post_url||"";
+    const details=[x.summary_fa||"",original?("منبع: "+original):""].filter(Boolean).join("\n\n");
+    const cal="https://calendar.google.com/calendar/render?action=TEMPLATE"
+      +"&text="+encodeURIComponent(x.headline_fa||x.title_original||"رویداد")
+      +"&dates="+encodeURIComponent(start+"/"+end)
+      +"&details="+encodeURIComponent(details)
+      +(where?"&location="+encodeURIComponent(where):"");
+    actions.push(`<a class="press-event-action" href="${cal}" target="_blank" rel="noopener">افزودن به Google Calendar ↗</a>`);
+  }
+  if(where){
+    const maps="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(where);
+    actions.push(`<a class="press-event-action" href="${maps}" target="_blank" rel="noopener">مشاهده در Google Maps ↗</a>`);
+  }
+  return `<section class="press-event-card"><div class="press-event-kicker">اطلاعات رویداد</div><div class="press-event-grid">${rows}</div>${actions.length?`<div class="press-event-actions">${actions.join("")}</div>`:""}</section>`;
+}
+
 async function openPressArticle(id) {
   show("press"); setTab("press"); const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
   const rows=await loadPeriodicals(); const x=rows.find(r=>String(r.id)===String(id));
   if(!x){el.innerHTML='<div class="state"><div class="big">مطلب پیدا نشد</div></div>';return;}
   setArticleSeo(x);
-  const body=x.body_fa||x.longform_fa||"";
+  const summary=x.summary_fa||"";
+  let body=x.body_fa||x.longform_fa||"";
+  if(_pressNearDuplicate(summary,body)) body="";
   const points=(x.key_points_fa||[]).map(p=>`<li>${esc(p)}</li>`).join("");
   const hero=x.image_url||x.hero_image_url||x.source_image_url||x.og_image||"";
   const originalUrl=x.source_url||x.article_url||x.telegram_post_url||"";
   const isFallback=x.enrichment_state==="metadata_fallback";
   const note=isFallback
-    ?"این متن، چکیده/بخشی از توضیح منتشرشده در خوراک رسمی منبع است؛ برای متن کامل به منبع اصلی مراجعه کنید."
-    :"این متن بازگویی فارسی و وفادارانهٔ محتوای منبع است، نه ترجمهٔ خط‌به‌خط یا جایگزین متن اصلی.";
-  el.innerHTML=`<article class="press-detail press-longread"><button class="back" onclick="showPress('${esc(x.publisher||"")}')">بازگشت به ${esc(x.publisher||"نشریه")}</button><header class="press-longread-head"><div class="press-detail-meta"><span class="chip">${esc(x.publisher||"نشریه")}</span>${x.issue?`<span>شماره ${esc(x.issue)}</span>`:""}</div><h1>${esc(x.headline_fa||x.title_original||"")}</h1>${x.title_original && x.title_original!==(x.headline_fa||"")?`<div class="press-original">${esc(x.title_original)}</div>`:""}${x.summary_fa?`<p class="press-deck">${esc(x.summary_fa)}</p>`:""}</header>${hero?`<figure class="press-hero"><img src="${esc(hero)}" alt="" loading="eager" referrerpolicy="no-referrer" onerror="this.closest('figure').remove()"></figure>`:""}${points?`<section class="press-points"><h2>جانِ مطلب</h2><ul>${points}</ul></section>`:""}<section class="press-body">${body?body.split(/\\n{2,}/).map(p=>`<p>${esc(p)}</p>`).join(""):`<p class="muted">برای این مطلب هنوز متن تفصیلی آماده نشده است.</p>`}</section><footer class="press-longread-foot"><div class="press-copyright-note">${esc(note)}</div>${originalUrl?`<a class="press-source-link" href="${esc(originalUrl)}" target="_blank" rel="noopener">مشاهدهٔ منبع اصلی ↗</a>`:""}</footer></article>`;
+    ?"این صفحه بر پایهٔ توضیح منتشرشده در خوراک رسمی منبع ساخته شده است؛ برای متن کامل به منبع اصلی مراجعه کنید."
+    :"این متن بازنویسی مستقل و وفادارانه‌ای بر پایهٔ محتوای منبع است و جایگزین متن اصلی نیست.";
+  const eventCard=pressEventCard(x);
+  el.innerHTML=`<article class="press-detail press-longread">
+    <button class="back press-article-back" onclick="showPress('${esc(x.publisher||"")}')">بازگشت به ${esc(x.publisher||"نشریه")}</button>
+    <header class="press-longread-head">
+      <div class="press-kicker-row"><span class="press-kicker">جان جراید</span><span class="press-source-name">${esc(x.publisher||"نشریه")}</span>${x.section_fa?`<span class="press-section-dot">•</span><span class="press-section-name">${esc(x.section_fa)}</span>`:""}</div>
+      <h1>${esc(x.headline_fa||x.title_original||"")}</h1>
+      ${x.title_original && x.title_original!==(x.headline_fa||"")?`<div class="press-original">${esc(x.title_original)}</div>`:""}
+      ${summary?`<p class="press-deck">${esc(summary)}</p>`:""}
+      <div class="press-article-meta">${x.source_published_at?`<span>انتشار منبع: ${esc(String(x.source_published_at).slice(0,10))}</span>`:""}<span>منبع: ${esc(x.publisher||"")}</span></div>
+    </header>
+    ${eventCard}
+    ${hero?`<figure class="press-hero"><img src="${esc(hero)}" alt="" loading="eager" referrerpolicy="no-referrer" onerror="this.closest('figure').remove()"></figure>`:""}
+    ${points?`<section class="press-points"><div class="press-box-label">جانِ مطلب</div><ul>${points}</ul></section>`:""}
+    ${body?`<section class="press-body">${body.split(/\\n{2,}/).map(p=>`<p>${esc(p)}</p>`).join("")}</section>`:""}
+    <footer class="press-longread-foot">
+      <div class="press-copyright-note">${esc(note)}</div>
+      ${originalUrl?`<a class="press-source-link" href="${esc(originalUrl)}" target="_blank" rel="noopener">مشاهدهٔ منبع اصلی ↗</a>`:""}
+    </footer>
+  </article>`;
   setHash("#/press-article/"+encodeURIComponent(id));
 }
 
