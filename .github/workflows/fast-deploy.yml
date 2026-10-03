@@ -23,24 +23,46 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Find latest successful data refresh
+      - name: Find freshest successful site artifact
         id: refresh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          run_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id')"
-          test -n "$run_id" -a "$run_id" != "null"
-          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
-      - name: Download latest complete static site
+          build_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?status=success&per_page=1")"
+          press_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/periodicals.yml/runs?status=success&per_page=1")"
+          build_id="$(jq -r '.workflow_runs[0].id // empty' <<<"$build_json")"
+          build_at="$(jq -r '.workflow_runs[0].updated_at // empty' <<<"$build_json")"
+          press_id="$(jq -r '.workflow_runs[0].id // empty' <<<"$press_json")"
+          press_at="$(jq -r '.workflow_runs[0].updated_at // empty' <<<"$press_json")"
+          if [ -n "$press_id" ] && { [ -z "$build_id" ] || [[ "$press_at" > "$build_at" ]]; }; then
+            echo "run_id=$press_id" >> "$GITHUB_OUTPUT"
+            echo "source=periodicals" >> "$GITHUB_OUTPUT"
+          else
+            test -n "$build_id"
+            echo "run_id=$build_id" >> "$GITHUB_OUTPUT"
+            echo "source=build" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Download freshest complete static site
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ steps.refresh.outputs.run_id }}
+          SOURCE: ${{ steps.refresh.outputs.source }}
         run: |
-          mkdir -p site
-          # Prefer the latest complete data artifact, but do not block a UI
-          # hotfix if GitHub has already expired/removed that artifact.
-          if ! gh run download "$RUN_ID" -n latest-static-site -D site; then
-            echo "::warning::Could not download latest-static-site; deploying repository UI/data fallback."
+          rm -rf site && mkdir -p site
+          ok=0
+          if [ "$SOURCE" = "periodicals" ]; then
+            rm -rf pages-archive && mkdir -p pages-archive
+            if gh run download "$RUN_ID" -n github-pages -D pages-archive && [ -f pages-archive/artifact.tar ]; then
+              tar -xf pages-archive/artifact.tar -C site
+              ok=1
+            fi
+          else
+            if gh run download "$RUN_ID" -n latest-static-site -D site; then
+              ok=1
+            fi
+          fi
+          if [ "$ok" -ne 1 ]; then
+            echo "::warning::Fresh site artifact unavailable; falling back to repository seed."
             cp -a web-static/. site/
           fi
       - name: Overlay current UI without overwriting generated data
