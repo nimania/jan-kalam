@@ -16,6 +16,7 @@ IN=ROOT/"articles.json"
 SITE_IN=ROOT/"site_articles.json"
 ARCHIVE=ROOT/"archive.json"
 PUBLIC=Path("public/data/periodicals.json")
+DIRECTORY=Path("public/data/press-directory.json")
 MAX_ITEMS=800
 
 SYSTEM="""You are a meticulous Persian periodical editor and SEO writer. Return JSON only.
@@ -266,6 +267,19 @@ def main():
     )[:MAX_ITEMS]
     ROOT.mkdir(exist_ok=True); ARCHIVE.write_text(json.dumps(out,ensure_ascii=False),encoding="utf-8")
     PUBLIC.parent.mkdir(parents=True,exist_ok=True); PUBLIC.write_text(json.dumps(out,ensure_ascii=False),encoding="utf-8")
-    print(f"periodicals: published archive {len(out)} items (+{len(fresh)} new)")
+    directory={}
+    for x in out:
+        p=str(x.get("publisher") or "").strip()
+        if not p: continue
+        row=directory.setdefault(p,{"source_name":p,"count":0,"latest_at":None})
+        row["count"]+=1
+        stamp=x.get("source_published_at") or x.get("published_at")
+        if stamp and (not row["latest_at"] or str(stamp)>str(row["latest_at"])):
+            row["latest_at"]=stamp
+    DIRECTORY.write_text(
+        json.dumps(sorted(directory.values(),key=lambda x:(-x["count"],x["source_name"])),ensure_ascii=False),
+        encoding="utf-8",
+    )
+    print(f"periodicals: published archive {len(out)} items from {len(directory)} publishers (+{len(fresh)} new)")
 
 if __name__=="__main__": main()
