@@ -40,7 +40,7 @@ async function getJSON(path, timeoutMs = 12000) {
 }
 
 
-// Header smart search — searches already-published Jan Kalam datasets locally.
+// Header smart search — natural-language, cross-dataset local retrieval.
 let _smartSearchTimer=null, _smartSearchDocs=null;
 function toggleSmartSearch(force){
   const box=document.getElementById("smart-search");
@@ -50,22 +50,102 @@ function toggleSmartSearch(force){
 }
 function smartSearchKey(e){ if(e.key==="Escape"){toggleSmartSearch(false);e.currentTarget.blur();} }
 function _sq(s){return String(s||"").toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/‌/g," ").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim()}
+const _SS_STOP=new Set("چه کدام کی کسی کسانی درباره در مورد را رو از به با برای که آیا و یا یک این آن های ها است هست هستند بوده شده می شود میکند می‌کند کرده کنند گفته گفت حرف نظر دیدگاه خبر اخبار رسانه رسانه‌ها نشریه نشریات".split(" "));
+const _SS_SEM={
+  "جنگ":["جنگ","درگیری","حمله","نظامی","نبرد","موشکی","آتش بس","آتش‌بس","تنش"],
+  "احتمال":["احتمال","ممکن","خطر","هشدار","پیش بینی","پیش‌بینی","سناریو","انتظار"],
+  "اقتصاد":["اقتصاد","اقتصادی","تورم","رکود","رشد","بازار","معیشت"],
+  "دلار":["دلار","ارز","نرخ ارز","ریال","تومان"],
+  "حجاب":["حجاب","پوشش","عفاف"],
+  "آب":["آب","خشکسالی","سد","کم آبی","کم‌آبی","منابع آبی"],
+  "آلودگی":["آلودگی","هوا","ریزگرد","گرد و غبار","گردوغبار"],
+  "هوش":["هوش مصنوعی","هوش","AI","مدل زبانی","یادگیری ماشین"],
+  "انتخابات":["انتخابات","رای","رأی","نامزد","صندوق"],
+  "تحریم":["تحریم","تحریم‌ها","محدودیت اقتصادی","فشار اقتصادی"],
+  "مذاکره":["مذاکره","گفتگو","گفت‌وگو","دیپلماسی","توافق"],
+  "هسته‌ای":["هسته‌ای","هسته ای","اتمی","غنی سازی","غنی‌سازی"]
+};
+function _ssStem(t){return t.replace(/(هایی|های|ها|ترین|تر|ی)$/,"")}
+function _ssQuery(q){
+  const n=_sq(q), raw=n.split(" ").filter(Boolean), base=raw.filter(t=>!_SS_STOP.has(t)).map(_ssStem).filter(t=>t.length>1);
+  const expanded=new Set(base);
+  for(const t of base) for(const [k,vals] of Object.entries(_SS_SEM)) if(t===_ssStem(k)||vals.some(v=>_sq(v).split(" ").map(_ssStem).includes(t))) vals.forEach(v=>_sq(v).split(" ").forEach(x=>expanded.add(_ssStem(x))));
+  const personIntent=/چه\s*کسان|چه\s*کسی|کی\s|افراد|چهره/.test(n);
+  const sourceIntent=/چه\s*رسانه|کدام\s*رسانه|چه\s*نشریه|کدام\s*نشریه|منابع/.test(n);
+  return {n,base:[...new Set(base)],terms:[...expanded].filter(Boolean),personIntent,sourceIntent};
+}
+function _ssScore(d,Q){
+  const t=_sq(d.text), title=_sq(d.title), words=new Set(t.split(" ").map(_ssStem));
+  let score=0, hits=0;
+  for(const z0 of Q.terms){
+    const z=_ssStem(z0); if(!z) continue;
+    if(title.includes(z)){score+=9;hits++}
+    else if(t.includes(z)){score+=3;hits++}
+    else if(z.length>=4 && [...words].some(w=>w.length>=4&&(w.startsWith(z)||z.startsWith(w)))){score+=1.2;hits++}
+  }
+  if(Q.base.length && Q.base.every(z=>t.includes(z)||title.includes(z)))score+=8;
+  if(Q.personIntent&&d.kind==="دیدگاه")score+=7;
+  if(Q.sourceIntent&&["جریده","مطلب جریده"].includes(d.kind))score+=7;
+  if(d.kind==="چهره"&&title===Q.n)score+=30;
+  return score+(hits?Math.min(hits,5):0);
+}
+async function _buildSmartSearchDocs(){
+  if(_smartSearchDocs) return _smartSearchDocs;
+  const docs=[];
+  try{
+    const f=await loadFigures();
+    (f.figures||[]).forEach(x=>{
+      docs.push({kind:"چهره",title:x.name_fa,sub:x.role_fa||"",handle:x.handle,go:`openFigure('${String(x.handle).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,x.handle].join(" ")});
+      (x.posts||[]).forEach(p=>docs.push({kind:"دیدگاه",title:x.name_fa,sub:p.topic_fa||p.source_name||"دیدگاه",handle:x.handle,go:`openStatement('${String(statementKey(p)).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,p.topic_fa,p.summary_fa,p.source_name].join(" "),snippet:p.summary_fa||""}));
+    });
+  }catch(_){}
+  try{
+    const feed=await getJSON(`${DATA}/feed.json`), arr=Array.isArray(feed)?feed:(feed.items||[]);
+    arr.forEach(x=>docs.push({kind:"خبر",title:x.headline_fa||x.title_fa||x.title||"",sub:(x.source_names||[]).slice(0,3).join(" · "),go:`openStory('${x.id}')`,text:[x.headline_fa,x.summary_fa,x.what_happened_fa,(x.source_names||[]).join(" ")].join(" "),snippet:x.summary_fa||x.what_happened_fa||""}));
+  }catch(_){}
+  try{
+    const archive=await getJSON(`${DATA}/press-source-stories.json`);
+    Object.entries(archive||{}).forEach(([source,items])=>(Array.isArray(items)?items:[]).forEach(x=>docs.push({kind:"مطلب جریده",title:x.headline_fa||x.title_fa||"",sub:source,source,go:`openStory('${x.id}')`,text:[source,x.headline_fa,x.summary_fa,x.category].join(" "),snippet:x.summary_fa||""})));
+  }catch(_){}
+  PRESS_SOURCES.forEach(x=>docs.push({kind:"جریده",title:x.name,sub:x.type||"",source:x.name,go:`showPress('${String(x.name).replace(/'/g,"\\'")}')`,text:[x.name,(x.aliases||[]).join(" "),x.type,x.lang].join(" ")}));
+  _smartSearchDocs=docs; return docs;
+}
+function _ssExcerpt(s,Q){
+  const x=String(s||"").trim(); if(!x)return "";
+  const low=_sq(x); let at=-1;
+  for(const t of Q.base){const p=low.indexOf(t);if(p>=0&&(at<0||p<at))at=p}
+  if(at<0)return x.slice(0,155)+(x.length>155?"…":"");
+  const st=Math.max(0,at-55), out=x.slice(st,st+190); return (st?"…":"")+out+(st+190<x.length?"…":"");
+}
+function _ssRenderRow(d,Q,label){
+  const sn=_ssExcerpt(d.snippet,Q);
+  return `<button class="smart-search-result" onclick="${d.go};toggleSmartSearch(false)"><span class="ss-kind">${esc(label||d.kind)}</span><span><b>${esc(d.title)}</b><small>${esc(d.sub||"")}</small>${sn?`<em>${esc(sn)}</em>`:""}</span></button>`;
+}
 async function smartSearch(q){
   clearTimeout(_smartSearchTimer);
   _smartSearchTimer=setTimeout(async()=>{
-    const out=document.getElementById("smart-search-results"), nq=_sq(q);
-    if(nq.length<2){out.innerHTML='<div class="smart-search-hint">حداقل دو حرف بنویس؛ جست‌وجو در خبرها، چهره‌ها و جراید انجام می‌شود.</div>';return}
-    if(!_smartSearchDocs){
-      const docs=[];
-      try{const f=await loadFigures();(f.figures||[]).forEach(x=>docs.push({kind:"چهره",title:x.name_fa,sub:x.role_fa||"",go:`openFigure('${String(x.handle).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,x.handle,(x.posts||[]).map(p=>p.summary_fa).join(" ")] .join(" ")}))}catch(_){}
-      try{const feed=await getJSON(`${DATA}/feed.json`);const arr=Array.isArray(feed)?feed:(feed.items||[]);arr.forEach(x=>docs.push({kind:"خبر",title:x.headline_fa||x.title_fa||x.title||"",sub:(x.source_names||[]).slice(0,3).join(" · "),go:`openStory('${x.id}')`,text:[x.headline_fa,x.summary_fa,x.what_happened_fa,(x.source_names||[]).join(" ")].join(" ")}))}catch(_){}
-      PRESS_SOURCES.forEach(x=>docs.push({kind:"جریده",title:x.name,sub:x.type||"",go:`showPress('${String(x.name).replace(/'/g,"\\'")}')`,text:[x.name,(x.aliases||[]).join(" "),x.type,x.lang].join(" ")}));
-      _smartSearchDocs=docs;
+    const out=document.getElementById("smart-search-results"), Q=_ssQuery(q);
+    if(Q.n.length<2){out.innerHTML='<div class="smart-search-hint">می‌توانی طبیعی بنویسی؛ مثلاً «چه کسانی درباره احتمال جنگ حرف زده‌اند؟»</div>';return}
+    out.innerHTML='<div class="smart-search-hint">در حال جست‌وجو در خبرها، گفته‌ها و جراید…</div>';
+    const docs=await _buildSmartSearchDocs();
+    let ranked=docs.map(d=>({d,score:_ssScore(d,Q)})).filter(x=>x.score>1).sort((a,b)=>b.score-a.score);
+    if(Q.personIntent){
+      const by=new Map();
+      ranked.filter(x=>x.d.kind==="دیدگاه").forEach(x=>{const k=x.d.handle;if(!by.has(k)||by.get(k).score<x.score)by.set(k,x)});
+      const people=[...by.values()].sort((a,b)=>b.score-a.score).slice(0,7);
+      const rest=ranked.filter(x=>x.d.kind!=="دیدگاه").slice(0,5);
+      out.innerHTML=people.length?`<div class="ss-answer"><strong>چهره‌های مرتبط با این پرسش</strong><small>بر اساس گفته‌های ثبت‌شده در جان کلام</small></div>${people.map(x=>_ssRenderRow(x.d,Q,"چهره")).join("")}${rest.length?`<div class="ss-divider">مطالب مرتبط</div>${rest.map(x=>_ssRenderRow(x.d,Q)).join("")}`:""}`:'<div class="smart-search-hint">در گفته‌های ثبت‌شده، پاسخ روشنی پیدا نشد.</div>';
+      return;
     }
-    const terms=nq.split(" ").filter(Boolean);
-    const ranked=_smartSearchDocs.map(d=>{const t=_sq(d.text),tt=_sq(d.title);let score=0;for(const z of terms){if(tt===z)score+=12;else if(tt.includes(z))score+=7;if(t.includes(z))score+=2}if(terms.every(z=>t.includes(z)))score+=6;return {d,score}}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
-    out.innerHTML=ranked.length?ranked.map(({d})=>`<button class="smart-search-result" onclick="${d.go};toggleSmartSearch(false)"><span class="ss-kind">${esc(d.kind)}</span><span><b>${esc(d.title)}</b><small>${esc(d.sub)}</small></span></button>`).join(""):'<div class="smart-search-hint">نتیجه‌ای پیدا نشد.</div>';
-  },120);
+    if(Q.sourceIntent){
+      const by=new Map();
+      ranked.filter(x=>x.d.source).forEach(x=>{const k=x.d.source;if(!by.has(k)||by.get(k).score<x.score)by.set(k,x)});
+      const src=[...by.values()].sort((a,b)=>b.score-a.score).slice(0,8);
+      out.innerHTML=src.length?`<div class="ss-answer"><strong>رسانه‌ها و نشریات مرتبط</strong><small>بر اساس آرشیو فعلی جان کلام</small></div>${src.map(x=>_ssRenderRow(x.d,Q,"منبع")).join("")}`:'<div class="smart-search-hint">منبع مرتبطی پیدا نشد.</div>';return;
+    }
+    ranked=ranked.slice(0,14);
+    out.innerHTML=ranked.length?ranked.map(x=>_ssRenderRow(x.d,Q)).join(""):'<div class="smart-search-hint">نتیجه‌ای پیدا نشد. عبارت را طبیعی‌تر یا کوتاه‌تر امتحان کن.</div>';
+  },140);
 }
 document.addEventListener("click",e=>{const box=document.getElementById("smart-search");if(box?.classList.contains("open")&&!box.contains(e.target))toggleSmartSearch(false)});
 
