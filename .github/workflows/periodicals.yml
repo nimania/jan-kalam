@@ -2,6 +2,15 @@ name: Collect & publish periodicals
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "backend/app/press_registry.py"
+      - "backend/scripts/monitor_press_registry.py"
+      - "backend/scripts/collect_press_feeds.py"
+      - "backend/scripts/collect_periodicals.py"
+      - "backend/scripts/publish_periodicals.py"
+      - ".github/workflows/periodicals.yml"
   schedule:
     - cron: "*/30 * * * *"
 
