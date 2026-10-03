@@ -25,7 +25,7 @@ PRESS_REGISTRY = [
     ("آزما","https://azmaonline.com","fa","iran-magazine"),
     ("آگاهی نو","https://agahino.com","fa","iran-magazine"),
     ("کتابنامه آگاهی نو","https://agahino.com","fa","iran-magazine"),
-    ("وزن دنیا","https://vaznedonya.com","fa","iran-magazine"),
+    ("وزن دنیا","https://vaznedonya.ir","fa","iran-magazine"),
     # name, homepage, language, scope
     ("Press TV","https://www.presstv.ir","en","iran-agency"),
     ("Tehran Times","https://www.tehrantimes.com","en","iran-paper"),
