@@ -1369,7 +1369,7 @@ async function renderWeather() {
       <div class="wx-temp">${faN(c.temp)}°</div>
       <div class="wx-cond">${esc(c.cond_fa || "")}</div>
       <div class="wx-mm"><span class="wx-min">${faN(c.min)}°</span> / <span class="wx-max">${faN(c.max)}°</span></div></div>`).join("")
-      + `</div><p class="muted" style="margin-top:14px">منبع: Open-Meteo — دمای کنونی و کمینه/بیشینهٔ امروز. هر ساعت به‌روز می‌شود.</p>`;
+      + `</div><aside class="weather-expert"><div><span class="weather-expert-kicker">کارشناس مرتبط</span><strong>محمد اصغری</strong><p>پیش‌بینی، تحلیل سامانه‌های بارشی، هشدارهای جوی و هواشناسی کشاورزی</p></div><button onclick="openFigure(\'asghari_weatherman\')">صفحهٔ محمد اصغری ←</button></aside><p class="muted" style="margin-top:14px">منبع دادهٔ عددی: Open-Meteo — دمای کنونی و کمینه/بیشینهٔ امروز. هر ساعت به‌روز می‌شود. تحلیل‌های محمد اصغری به‌عنوان دیدگاه کارشناس، جدا از دادهٔ عددی نمایش داده می‌شوند.</p>`;
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">آب‌وهوا بارگذاری نشد</div></div>`; }
 }
 
