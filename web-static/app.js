@@ -203,7 +203,7 @@ function showPress(sourceName) {
 async function loadPeriodicals() {
   if (periodicalRows.length) return periodicalRows;
   let rows=[]; try { rows=await getJSON(`${DATA}/periodicals.json`); } catch (_) {}
-  periodicalRows=Array.isArray(rows)?rows:(rows.articles||[]);
+  periodicalRows=Array.isArray(rows)?rows:((rows && Array.isArray(rows.articles))?rows.articles:[]);
   return periodicalRows;
 }
 async function loadPressStats(){
