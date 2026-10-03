@@ -437,14 +437,14 @@ function showPress(sourceName) {
 }
 async function loadPeriodicals() {
   if (periodicalRows.length) return periodicalRows;
-  let rows=[]; try { rows=await getJSON(`${DATA}/periodicals.json`); } catch (_) {}
+  let rows=[]; try { rows=await getJSON(`${DATA}/periodicals.json?v=${Date.now()}`); } catch (_) {}
   periodicalRows=Array.isArray(rows)?rows:((rows && Array.isArray(rows.articles))?rows.articles:[]);
   return periodicalRows;
 }
 async function loadPressDirectory(){
   if(pressDirectoryCache!==null) return pressDirectoryCache;
   let rows=[];
-  try{rows=await getJSON(`${DATA}/press-directory.json`,5000);}catch(_){}
+  try{rows=await getJSON(`${DATA}/press-directory.json?v=${Date.now()}`,5000);}catch(_){}
   pressDirectoryCache=Array.isArray(rows)?rows:[];
   return pressDirectoryCache;
 }
