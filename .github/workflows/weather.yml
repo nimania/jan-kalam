@@ -1,0 +1,135 @@
+name: Refresh weather and air quality
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "backend/app/weather/**"
+      - "backend/scripts/build_weather.py"
+      - ".github/workflows/weather.yml"
+  schedule:
+    - cron: "17 * * * *"
+
+permissions:
+  actions: read
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: weather-refresh
+  cancel-in-progress: true
+
+jobs:
+  build-weather:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install lightweight weather dependency
+        run: pip install "httpx>=0.28"
+
+      - name: Fetch weather and air quality
+        env:
+          PYTHONPATH: backend
+        run: python backend/scripts/build_weather.py --out weather-data/weather.json
+
+      - name: Save reusable weather data
+        uses: actions/upload-artifact@v4
+        with:
+          name: weather-data
+          path: weather-data/weather.json
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+
+      - name: Find latest complete site and periodicals
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          build_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          press_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/periodicals.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          test -n "$build_id"
+          echo "build_id=$build_id" >> "$GITHUB_OUTPUT"
+          echo "press_id=$press_id" >> "$GITHUB_OUTPUT"
+
+      - name: Download latest complete static site
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_ID: ${{ steps.base.outputs.build_id }}
+        run: |
+          rm -rf site && mkdir -p site
+          gh run download "$BUILD_ID" -n latest-static-site -D site
+
+      - name: Overlay freshest Jan-e Jaraid data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRESS_ID: ${{ steps.base.outputs.press_id }}
+        run: |
+          if [ -n "$PRESS_ID" ]; then
+            rm -rf /tmp/press-pages /tmp/press-site
+            mkdir -p /tmp/press-pages /tmp/press-site
+            if gh run download "$PRESS_ID" -n github-pages -D /tmp/press-pages && [ -f /tmp/press-pages/artifact.tar ]; then
+              tar -xf /tmp/press-pages/artifact.tar -C /tmp/press-site
+              mkdir -p site/data
+              for name in periodicals.json press-directory.json press-directory.js books.json books.js press-registry-health.json; do
+                if [ -f "/tmp/press-site/data/$name" ]; then
+                  cp "/tmp/press-site/data/$name" "site/data/$name"
+                fi
+              done
+              if [ -d /tmp/press-site/assets/periodicals ]; then
+                mkdir -p site/assets/periodicals
+                rsync -a /tmp/press-site/assets/periodicals/ site/assets/periodicals/
+              fi
+            fi
+          fi
+
+      - name: Overlay current UI and fresh weather
+        run: |
+          rsync -a --exclude 'data/' web-static/ site/
+          mkdir -p site/data
+          cp weather-data/weather.json site/data/weather.json
+          python - <<'PY'
+          import hashlib, pathlib, re
+          root=pathlib.Path("site")
+          versions={}
+          for name in ("app.js","styles.css","iran-provinces.js","data/press-directory.js","data/books.js"):
+              p=root/name
+              if p.exists():
+                  versions[name]=hashlib.md5(p.read_bytes()).hexdigest()[:8]
+          idx=root/"index.html"
+          text=idx.read_text(encoding="utf-8")
+          for name,version in versions.items():
+              text=re.sub(r'((?:src|href)="' + re.escape(name) + r')(?:\?v=[0-9a-f]+)?(")',
+                          r'\1?v=' + version + r'\2', text)
+          idx.write_text(text,encoding="utf-8")
+          sw=root/"sw.js"
+          app_v=versions.get("app.js")
+          if sw.exists() and app_v:
+              s=sw.read_text(encoding="utf-8")
+              s=re.sub(r'const V = "[^"]*";', f'const V = "jankalam-{app_v}";', s, count=1)
+              sw.write_text(s,encoding="utf-8")
+          PY
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          name: weather-pages-${{ github.run_attempt }}
+          path: site
+
+  deploy:
+    needs: build-weather
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy weather refresh
+        id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          artifact_name: weather-pages-${{ github.run_attempt }}
