@@ -30,6 +30,7 @@ class Figure:
     social: tuple[tuple[str, str], ...] = ()
     gender: str = "m"  # "m" | "f" — used for balance / future comparison stats
     bale: str | None = None  # verified public Bale channel handle (without @)
+    external: bool = False  # profile is fed by non-Telegram collectors (Truth Social, web, etc.)
 
 
 FIGURES: list[Figure] = [
@@ -64,6 +65,13 @@ FIGURES: list[Figure] = [
     Figure("kasaeizade", "سید هادی کسایی‌زاده", "روزنامه‌نگار", "media",
            (("x", "https://x.com/seyedhadikasaei"),), bale="kasaeizade"),
     Figure("hasanabbasi_students", "حسن عباسی", "سخنران و پژوهشگر", "politics", bale="hasanabbasi_students"),
+
+    # ══════════════════════════════════════════════════════════════════════
+    #  چهره‌های بین‌المللی — منابع چندزبانه
+    # ══════════════════════════════════════════════════════════════════════
+    Figure("donald-trump", "دونالد ترامپ", "رئیس‌جمهور ایالات متحده", "foreign",
+           (("website", "https://www.whitehouse.gov/administration/donald-j-trump/"),
+            ("truthsocial", "https://truthsocial.com/@realDonaldTrump")), external=True),
 
     # ══════════════════════════════════════════════════════════════════════
     #  سیاست خارجی
@@ -225,12 +233,13 @@ FIGURES: list[Figure] = [
 
 
 SOCIAL_FA = {"website": "وب‌سایت", "x": "ایکس", "instagram": "اینستاگرام",
-             "youtube": "یوتیوب", "facebook": "فیس‌بوک", "telegram": "تلگرام", "bale": "بله"}
+             "youtube": "یوتیوب", "facebook": "فیس‌بوک", "telegram": "تلگرام", "bale": "بله",
+             "truthsocial": "تروث سوشیال"}
 
 
 def figure_social(f: Figure) -> list[dict]:
     """Public links for a figure, Telegram channel first."""
-    links = [{"kind": "telegram", "label": SOCIAL_FA["telegram"],
+    links = [] if f.external else [{"kind": "telegram", "label": SOCIAL_FA["telegram"],
               "url": f"https://t.me/{f.handle}"}]
     if f.bale:
         links.append({"kind": "bale", "label": SOCIAL_FA["bale"], "url": f"https://ble.ir/{f.bale}"})
@@ -245,8 +254,10 @@ def figure_source_name(f: Figure) -> str:
 
 
 def figure_feed_url(f: Figure) -> str:
-    return f"https://t.me/s/{f.handle}"
+    return "" if f.external else f"https://t.me/s/{f.handle}"
 
 
 def figure_home_url(f: Figure) -> str:
+    if f.external:
+        return next((url for kind, url in f.social if kind in {"truthsocial", "website"}), "")
     return f"https://t.me/{f.handle}"
