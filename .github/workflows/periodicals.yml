@@ -36,9 +36,14 @@ jobs:
           path: |
             backend/periodicals/state.json
             backend/periodicals/archive.json
+            backend/public/data/press-registry-health.json
           key: periodicals-v2-${{ github.run_id }}
           restore-keys: |
             periodicals-v2-
+
+      - name: Monitor registered press sites and discover RSS
+        working-directory: backend
+        run: python -m scripts.monitor_press_registry
 
       - name: Collect public Telegram PDFs
         working-directory: backend
@@ -70,6 +75,7 @@ jobs:
         run: |
           mkdir -p site/data
           cp backend/public/data/periodicals.json site/data/periodicals.json
+          cp backend/public/data/press-registry-health.json site/data/press-registry-health.json
           if [ -d backend/web-static/assets/periodicals ]; then
             mkdir -p site/assets/periodicals
             cp -R backend/web-static/assets/periodicals/. site/assets/periodicals/
