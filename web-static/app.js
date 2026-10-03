@@ -392,8 +392,13 @@ async function loadPressStats(){
 }
 async function loadPressHealth(){
   if(pressHealthCache) return pressHealthCache;
-  let rows=[]; try{rows=await getJSON(`${DATA}/press-source-health.json`);}catch(_){}
-  pressHealthCache=Array.isArray(rows)?rows:[];
+  let rows=[], registry=[];
+  try{rows=await getJSON(`${DATA}/press-source-health.json`);}catch(_){}
+  try{registry=await getJSON(`${DATA}/press-registry-health.json`);}catch(_){}
+  rows=Array.isArray(rows)?rows:[];
+  registry=Array.isArray(registry)?registry:[];
+  const operational=new Set(rows.map(x=>x.source_name));
+  pressHealthCache=rows.concat(registry.filter(x=>!operational.has(x.source_name)));
   return pressHealthCache;
 }
 function pressSourceHealth(s, rows){
