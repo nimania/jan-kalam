@@ -67,6 +67,15 @@ SOURCES = [
     ("Sky News", "https://news.sky.com", "https://feeds.skynews.com/feeds/rss/world.xml", "global", 0.75),
     ("El Mundo", "https://www.elmundo.es", "https://e00-elmundo.uecdn.es/elmundo/rss/internacional.xml", "global-es", 0.7),
     ("La Vanguardia", "https://www.lavanguardia.com", "https://www.lavanguardia.com/rss/internacional.xml", "global-es", 0.7),
+    # --- Jan-e Jaraid / international expansion ---
+    ("BBC Mundo", "https://www.bbc.com/mundo", "https://feeds.bbci.co.uk/mundo/rss.xml", "global-es", 0.8),
+    ("CNN en Español", "https://cnnespanol.cnn.com", "https://cnnespanol.cnn.com/feed/", "global-es", 0.7),
+    ("DW Español", "https://www.dw.com/es", "https://rss.dw.com/rdf/rss-sp-all", "global-es", 0.75),
+    ("RTVE Noticias", "https://www.rtve.es/noticias/", "https://www.rtve.es/api/noticias.rss", "global-es", 0.75),
+    ("ABC España", "https://www.abc.es", "https://www.abc.es/rss/feeds/abc_Internacional.xml", "global-es", 0.7),
+    ("El Confidencial", "https://www.elconfidencial.com", "https://rss.elconfidencial.com/mundo/", "global-es", 0.7),
+    ("France 24 Español", "https://www.france24.com/es/", "https://www.france24.com/es/rss", "global-es", 0.75),
+    ("DW", "https://www.dw.com", "https://rss.dw.com/rdf/rss-en-all", "global", 0.75),
 
     # --- Persian-language: domestic (agencies, portals, economic, sport) ---
     ("خبرگزاری ایرنا (IRNA)", "https://www.irna.ir", "https://www.irna.ir/rss", "iran", 0.6),
