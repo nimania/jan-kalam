@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
+import feedparser
 from pathlib import Path
 from bs4 import BeautifulSoup
 from app.ingestion.service import _EXCLUDED_SOURCE_TERMS, _EXCLUDED_SOURCE_DOMAINS
@@ -149,22 +150,29 @@ def collect_source(src):
     try:
         req=urllib.request.Request(feed,headers={"User-Agent":UA})
         raw=urllib.request.urlopen(req,timeout=18).read(2_000_000)
-        root=ET.fromstring(raw)
+        parsed=feedparser.parse(raw)
+        if not parsed.entries:
+            raise ValueError("feed has no parseable entries")
         out=[]
-        items=[x for x in root.iter() if x.tag.split("}")[-1].lower() in {"item","entry"}][:20]
-        for it in items:
-            title=first_text(it,{"title"})
-            summary=first_text(it,{"description","summary","content","encoded"})
-            link=first_text(it,{"link","guid"})
-            if not link:
-                for ch in list(it):
-                    if ch.tag.split("}")[-1].lower()=="link" and ch.attrib.get("href"):
-                        link=ch.attrib["href"]; break
+        for it in parsed.entries[:20]:
+            title=clean(it.get("title") or "")
+            content=it.get("content") or []
+            content_text=(content[0].get("value") if content and isinstance(content[0],dict) else "")
+            summary=clean(it.get("summary") or it.get("description") or content_text or "")
+            link=str(it.get("link") or it.get("id") or "").strip()
             link=urllib.parse.urljoin(src.get("homepage") or feed,link)
-            published=parse_published(first_text(it,{"pubdate","published","updated","date"}))
+            published=parse_published(it.get("published") or it.get("updated") or "")
             if not title or not link: continue
             if excluded({**src,"feed_url":link}): continue
-            out.append(make_row(src,title,link,summary,"rss:"+feed,published))
+            row=make_row(src,title,link,summary,"rss:"+feed,published)
+            media=it.get("media_content") or it.get("media_thumbnail") or []
+            if media and isinstance(media,list) and isinstance(media[0],dict) and media[0].get("url"):
+                row["image_url"]=media[0]["url"]
+            else:
+                for enc in it.get("enclosures") or []:
+                    if str(enc.get("type") or "").startswith("image") and (enc.get("href") or enc.get("url")):
+                        row["image_url"]=enc.get("href") or enc.get("url"); break
+            out.append(row)
         return out, f"press feeds: {src.get('source_name')} collected {len(out)} RSS candidates"
     except Exception as exc:
         return [], f"press feeds: {src.get('source_name')} failed: {str(exc)[:180]}"
