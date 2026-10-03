@@ -46,18 +46,27 @@ def monitor_source(entry):
     if excluded(name,homepage):
         row.update(state="excluded",collector_mode="denylist",last_error="source denylist")
     else:
+        pinned=PINNED_FEEDS.get(name)
+        if pinned and not excluded(name,pinned):
+            try:
+                final_feed,fs,fc,fb=fetch(pinned,8)
+                if fs < 400 and looks_feed(fc,fb):
+                    row.update(method="rss",collector_mode="rss",feed_url=final_feed,state="active",http_status=fs)
+                    row["last_run"]=datetime.now(timezone.utc).isoformat()
+                    row["duration_ms"]=round((time.time()-started)*1000)
+                    return row
+            except Exception as exc:
+                row["last_error"]="pinned feed failed: "+str(exc)[:180]
         try:
             final,status,ctype,body=fetch(homepage)
             row["homepage"]=final; row["http_status"]=status
             feed=None
-            candidates=[]
-            if PINNED_FEEDS.get(name): candidates.append(PINNED_FEEDS[name])
-            candidates += discover_feed(final,body)
+            candidates=discover_feed(final,body)
             for candidate in dict.fromkeys(candidates):
                 if excluded(name,candidate): continue
                 try:
-                    _,fs,fc,fb=fetch(candidate, 6)
-                    if fs < 400 and looks_feed(fc,fb): feed=candidate; break
+                    final_feed,fs,fc,fb=fetch(candidate,6)
+                    if fs < 400 and looks_feed(fc,fb): feed=final_feed; break
                 except Exception: pass
             if feed:
                 row.update(method="rss",collector_mode="rss",feed_url=feed,state="active")
