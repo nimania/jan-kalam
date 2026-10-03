@@ -5,6 +5,7 @@ validates a small set of conventional feed endpoints.
 """
 from __future__ import annotations
 import json, re, time, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 from app.press_registry import PRESS_REGISTRY
@@ -42,14 +43,13 @@ def discover_feed(base: str, html: str) -> list[str]:
     found += [urllib.parse.urljoin(root,"feed"), urllib.parse.urljoin(root,"feed/"), urllib.parse.urljoin(root,"rss.xml")]
     return list(dict.fromkeys(found))
 
-def main():
-    rows=[]
-    for name, homepage, lang, scope in PRESS_REGISTRY:
-        started=time.time()
-        row={"source_name":name,"homepage":homepage,"lang":lang,"scope":scope,"state":"error","method":"site","collector_mode":"none","feed_url":None,"http_status":None,"last_error":None}
-        if excluded(name,homepage):
-            row.update(state="excluded",collector_mode="denylist",last_error="source denylist")
-            rows.append(row); continue
+def monitor_source(entry):
+    name, homepage, lang, scope = entry
+    started=time.time()
+    row={"source_name":name,"homepage":homepage,"lang":lang,"scope":scope,"state":"error","method":"site","collector_mode":"none","feed_url":None,"http_status":None,"last_error":None}
+    if excluded(name,homepage):
+        row.update(state="excluded",collector_mode="denylist",last_error="source denylist")
+    else:
         try:
             final,status,ctype,body=fetch(homepage)
             row["homepage"]=final; row["http_status"]=status
@@ -71,9 +71,15 @@ def main():
                 row.update(state="empty",collector_mode="none")
         except Exception as exc:
             row["last_error"]=str(exc)[:240]
-        row["last_run"]=datetime.now(timezone.utc).isoformat()
-        row["duration_ms"]=round((time.time()-started)*1000)
-        rows.append(row)
+    row["last_run"]=datetime.now(timezone.utc).isoformat()
+    row["duration_ms"]=round((time.time()-started)*1000)
+    return row
+
+def main():
+    # Network probes are independent. Running a small bounded pool prevents one
+    # slow/dead publisher from serially delaying every other source.
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        rows=list(pool.map(monitor_source, PRESS_REGISTRY))
     OUT.parent.mkdir(parents=True,exist_ok=True)
     OUT.write_text(json.dumps(rows,ensure_ascii=False,indent=2),encoding="utf-8")
     print("press monitor:",sum(x["state"]=="active" for x in rows),"active /",len(rows),"total; rss",sum(x.get("collector_mode")=="rss" for x in rows),"html",sum(x.get("collector_mode")=="html" for x in rows))
