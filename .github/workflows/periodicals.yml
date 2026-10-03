@@ -129,7 +129,7 @@ jobs:
           name: periodical-diagnostics-${{ github.run_id }}
           path: |
             backend/periodicals/articles.json
-            backend/periodicals/site_articles.json
+            backend/periodicals/site_articles_diag.json
             backend/periodicals/quarantine.json
             backend/periodicals/archive.json
             backend/public/data/press-registry-health.json
