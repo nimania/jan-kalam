@@ -415,8 +415,10 @@ def run() -> None:
 
     _write(os.path.join(DATA, "stories.json"), cards)
     # Source activity summary for the press directory.
+    # Use a wider archive than the homepage so outlet activity is meaningful.
     press_stats = {}
-    for card in cards:
+    press_cards = [x.model_dump(mode="json") for x in story_svc.get_feed(db, limit=500, offset=0, category=None).items]
+    for card in press_cards:
         published = card.get("published_at")
         for source_name in card.get("source_names", []) or []:
             row = press_stats.setdefault(source_name, {"source_name": source_name, "story_count": 0, "iran_story_count": 0, "latest_at": None})
