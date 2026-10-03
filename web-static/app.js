@@ -208,7 +208,7 @@ document.addEventListener("click",e=>{const box=document.getElementById("smart-s
 const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
   factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
   weather: "weather-view", iran: "iran-view", faq: "faq-view", market: "market-view",
-  figures: "figures-view", press: "press-view", tech: "tech-view" };
+  figures: "figures-view", press: "press-view", books: "books-view", tech: "tech-view" };
 const TABS = ["feed", "trends", "factchecks", "iran", "topics"];
 const SCOPE_FA = { local: "استانی", national: "کشوری", international: "بین‌المللی" };
 function setTab(w) { for (const t of TABS) document.getElementById("tab-" + t).classList.toggle("active", w === t); }
@@ -222,6 +222,96 @@ function showTopics() { show("topics"); setTab("topics"); renderTopics(); setHas
 function showTrends() { show("trends"); setTab("trends"); renderTrends(); setHash("#/trends"); }
 function showFactchecks() { show("factchecks"); setTab("factchecks"); renderFactchecks(); setHash("#/fact"); }
 function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); }
+
+let booksCache = null;
+async function loadBooks(){
+  if(booksCache) return booksCache;
+  let d={books:[],people:[],publishers:[]};
+  try{d=await getJSON(`${DATA}/books.json?v=${Date.now()}`,7000);}catch(_){}
+  booksCache={
+    books:Array.isArray(d.books)?d.books:[],
+    people:Array.isArray(d.people)?d.people:[],
+    publishers:Array.isArray(d.publishers)?d.publishers:[]
+  };
+  return booksCache;
+}
+function _bookBySlug(d,slug){return (d.books||[]).find(x=>String(x.slug)===String(slug))}
+function _bookCard(b){
+  const creator=(b.creators||[])[0];
+  return `<button class="book-card" onclick="openBook('${esc(b.slug)}')">
+    <span class="book-cover-wrap">${b.cover_url?`<img class="book-cover" src="${esc(b.cover_url)}" alt="جلد ${esc(b.title_fa||"کتاب")}" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">`:`<span class="book-cover-placeholder">کتاب</span>`}</span>
+    <span class="book-card-copy"><strong>${esc(b.title_fa||"")}</strong>
+      ${creator?`<small>${esc(creator.name_fa)} · ${esc(creator.role_fa||"")}</small>`:""}
+      ${b.publisher?.name_fa?`<small>${esc(b.publisher.name_fa)}</small>`:""}
+      <em>${faN(b.mention_count||0)} اشاره در جان‌کلام</em>
+    </span>
+  </button>`;
+}
+async function showBooks(mode="books"){
+  show("books"); setTab("");
+  const lede=document.getElementById("books-lede"); if(lede) lede.style.display="";
+  const el=document.getElementById("books-content"); el.innerHTML='<div class="spinner"></div>';
+  const d=await loadBooks();
+  const tabs=`<div class="books-tabs"><button class="fchip ${mode==="books"?"on":""}" onclick="showBooks('books')">کتاب‌ها</button><button class="fchip ${mode==="publishers"?"on":""}" onclick="showBooks('publishers')">ناشرها</button></div>`;
+  if(mode==="publishers"){
+    const pubs=(d.publishers||[]).filter(x=>(x.book_slugs||[]).length);
+    el.innerHTML=tabs+(pubs.length?`<div class="publisher-grid">${pubs.map(p=>`<button class="publisher-card" onclick="openPublisher('${esc(p.slug)}')"><strong>${esc(p.name_fa)}</strong><small>${faN((p.book_slugs||[]).length)} کتاب</small><em>${esc((p.categories_fa||[]).slice(0,3).join(" · "))}</em></button>`).join("")}</div>`:'<div class="state"><div class="big">هنوز ناشری با کتاب تأییدشده نداریم</div></div>');
+  }else{
+    const books=(d.books||[]).filter(x=>(x.mention_count||0)>0);
+    el.innerHTML=tabs+(books.length?`<div class="books-grid">${books.map(_bookCard).join("")}</div>`:'<div class="state"><div class="big">هنوز کتاب تأییدشده‌ای نداریم</div></div>');
+  }
+  setHash(mode==="publishers"?"#/books/publishers":"#/books");
+}
+async function openBook(slug){
+  show("books"); setTab("");
+  const lede=document.getElementById("books-lede"); if(lede) lede.style.display="none";
+  const el=document.getElementById("books-content"); el.innerHTML='<div class="spinner"></div>';
+  const d=await loadBooks(), b=_bookBySlug(d,slug);
+  if(!b){el.innerHTML='<div class="state"><div class="big">کتاب پیدا نشد</div></div>';return}
+  const creators=(b.creators||[]).map(x=>`<button class="book-entity-link" onclick="openBookPerson('${esc(x.slug)}')"><span>${esc(x.role_fa||"پدیدآورنده")}</span><b>${esc(x.name_fa)}</b></button>`).join("");
+  const pub=b.publisher?.slug?`<button class="book-entity-link" onclick="openPublisher('${esc(b.publisher.slug)}')"><span>ناشر</span><b>${esc(b.publisher.name_fa||"")}</b></button>`:"";
+  const buys=(b.purchase_links||[]).map(x=>`<a class="book-buy" href="${esc(x.url)}" target="_blank" rel="noopener"><b>${esc(x.store||"فروشگاه")}</b><span>${esc(x.format_fa||"خرید کتاب")} ↗</span></a>`).join("");
+  const mentions=(b.mentions||[]).map(m=>{
+    const inner=`<span class="book-mention-source">${esc(m.source_name||"منبع")}</span><strong>${esc(m.headline_fa||"ذکر کتاب")}</strong>${m.summary_fa?`<p>${esc(m.summary_fa)}</p>`:""}`;
+    return m.article_id?`<button class="book-mention" onclick="openPressArticle('${esc(m.article_id)}')">${inner}</button>`:`<a class="book-mention" href="${esc(m.url||"#")}" target="_blank" rel="noopener">${inner}</a>`;
+  }).join("");
+  el.innerHTML=`<button class="back" onclick="showBooks()">بازگشت به کتاب‌ها</button>
+    <article class="book-detail">
+      <div class="book-hero">
+        <div class="book-detail-cover">${b.cover_url?`<img src="${esc(b.cover_url)}" alt="جلد ${esc(b.title_fa)}" referrerpolicy="no-referrer">`:""}</div>
+        <div class="book-detail-copy"><span class="press-kicker">کتاب</span><h1>${esc(b.title_fa||"")}</h1>
+          ${b.subtitle_fa?`<p class="book-subtitle">${esc(b.subtitle_fa)}</p>`:""}
+          <p class="book-desc">${esc(b.description_fa||"")}</p>
+          <div class="book-facts">${b.pages?`<span>تعداد صفحات <b>${faN(b.pages)}</b></span>`:""}${b.category_fa?`<span>موضوع <b>${esc(b.category_fa)}</b></span>`:""}${b.isbn?`<span>شابک <b>${esc(b.isbn)}</b></span>`:""}</div>
+        </div>
+      </div>
+      <div class="book-entities">${creators}${pub}</div>
+      ${buys?`<div class="rule"><span>خرید و دسترسی</span><span class="l"></span></div><div class="book-buy-grid">${buys}</div>`:""}
+      <div class="rule"><span>کجا در جان‌کلام از این کتاب نام برده شده؟</span><span class="l"></span></div>
+      <div class="book-mentions">${mentions||'<div class="state"><div class="big">هنوز اشاره‌ای ثبت نشده</div></div>'}</div>
+    </article>`;
+  setHash("#/book/"+encodeURIComponent(slug));
+}
+async function openPublisher(slug){
+  show("books"); setTab("");
+  const lede=document.getElementById("books-lede"); if(lede) lede.style.display="none";
+  const el=document.getElementById("books-content"); el.innerHTML='<div class="spinner"></div>';
+  const d=await loadBooks(), p=(d.publishers||[]).find(x=>x.slug===slug);
+  if(!p){el.innerHTML='<div class="state"><div class="big">ناشر پیدا نشد</div></div>';return}
+  const books=(p.book_slugs||[]).map(s=>_bookBySlug(d,s)).filter(Boolean);
+  el.innerHTML=`<button class="back" onclick="showBooks('publishers')">بازگشت به ناشرها</button><div class="book-person-head"><span class="press-kicker">ناشر</span><h1>${esc(p.name_fa)}</h1><p>${faN(books.length)} کتاب تأییدشده در جان‌کلام</p></div><div class="books-grid">${books.map(_bookCard).join("")}</div>`;
+  setHash("#/publisher/"+encodeURIComponent(slug));
+}
+async function openBookPerson(slug){
+  show("books"); setTab("");
+  const lede=document.getElementById("books-lede"); if(lede) lede.style.display="none";
+  const el=document.getElementById("books-content"); el.innerHTML='<div class="spinner"></div>';
+  const d=await loadBooks(), p=(d.people||[]).find(x=>x.slug===slug);
+  if(!p){el.innerHTML='<div class="state"><div class="big">پدیدآورنده پیدا نشد</div></div>';return}
+  const books=(p.book_slugs||[]).map(s=>_bookBySlug(d,s)).filter(Boolean);
+  el.innerHTML=`<button class="back" onclick="showBooks()">بازگشت به کتاب‌ها</button><div class="book-person-head"><span class="press-kicker">پدیدآورنده</span><h1>${esc(p.name_fa)}</h1><p>${esc((p.roles_fa||[]).join(" · "))}</p></div><div class="books-grid">${books.map(_bookCard).join("")}</div>`;
+  setHash("#/book-person/"+encodeURIComponent(slug));
+}
 
 let periodicalRows = [];
 let pressScope = "all";
@@ -730,6 +820,10 @@ async function route() {
   if (kind === "press") return showPress();
   if (kind === "press-source" && arg) return showPress(arg);
   if (kind === "press-article" && arg) return openPressArticle(arg);
+  if (kind === "books") return showBooks(arg === "publishers" ? "publishers" : "books");
+  if (kind === "book" && arg) return openBook(arg);
+  if (kind === "publisher" && arg) return openPublisher(arg);
+  if (kind === "book-person" && arg) return openBookPerson(arg);
   if (kind === "tech") return showTech();
   if (kind === "figure" && arg) return openFigure(arg);
   if (kind === "news-person" && arg) return openNewsPerson(arg);
