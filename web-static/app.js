@@ -250,6 +250,12 @@ const PRESS_SOURCES = [
   {name:"گواه", aliases:["مجله گواه"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
   {name:"رود", aliases:["مجله رود"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و ادبی"},
   {name:"وزن دنیا", aliases:["مجله وزن دنیا"], domain:"vaznedonya.com", scope:"iran-magazine", lang:"fa", type:"مجله شعر"},
+  {name:"سپیده دانایی", aliases:["ماهنامه سپیده دانایی","مجله سپیده دانایی"], domain:"magiran.com", scope:"iran-magazine", lang:"fa", type:"ماهنامه روان‌شناسی و خانواده"},
+  {name:"نقطه‌بند", aliases:["نقطه بند","مجله نقطه بند"], domain:"magiran.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
+  {name:"ترجمان", aliases:["ترجمان علوم انسانی","فصلنامه ترجمان"], domain:"tarjomaan.com", scope:"iran-magazine", lang:"fa", type:"فصلنامه علوم انسانی"},
+  {name:"انگار", aliases:["مجله انگار"], domain:"magiran.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
+  {name:"مهرنامه", aliases:["مجله مهرنامه","ماهنامه مهرنامه"], domain:"mehrnameh.ir", scope:"iran-magazine", lang:"fa", type:"ماهنامه علوم انسانی · متوقف‌شده"},
+  {name:"دالان", aliases:["مجله دالان","Dalan Magazine"], domain:"dalan.media", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و هنری"},
 
   // رسانه‌های ایرانی غیرفارسی‌زبان؛ در دستهٔ داخل ایران، نه رسانه‌های جهان
   {name:"Press TV", domain:"presstv.ir", scope:"iran-agency", lang:"en", type:"تلویزیون/رسانه خبری"},
