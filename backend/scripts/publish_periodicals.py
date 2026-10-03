@@ -31,8 +31,14 @@ SEO requirements:
   explanatory clauses, subtitles and filler. Keep only the central subject/action.
 - seo_title_fa: concise and search-friendly; preferably <= 45 Persian characters.
 - meta_description_fa: 120-165 Persian characters when practical.
-- body_fa: structured, coherent, substantial but not a substitute copy of the source.
-- key_points_fa: 3-5 concrete points.
+- body_fa: structured, coherent and substantially detailed. When the source contains enough
+  material, you may make the article up to roughly three times more detailed than the former
+  concise format: typically 6-12 purposeful paragraphs (about 800-1400 Persian words for a
+  rich long-form source). Short sources must stay short. Never pad for length.
+- Every paragraph must add a distinct fact, argument, example, context point or consequence.
+  Do not repeat the lead, summary, key points or another paragraph in different words.
+- summary_fa should be a compact lead, not a duplicate of the first body paragraph.
+- key_points_fa: 3-5 concrete points that complement rather than repeat the body verbatim.
 - seo_keywords_fa: 3-8 short relevant phrases.
 - section_fa: one useful section such as سیاست، اقتصاد، جهان، ایران، فناوری، فرهنگ،
   جامعه، علم، کسب‌وکار or سبک زندگی.
@@ -159,7 +165,7 @@ def main():
         for idx,x in enumerate(article_rows):
             try:
                 prompt_kind = "full source article" if x.get("source_text") else ("RSS/site article metadata or snippet" if x.get("kind")=="site_feed" else "PDF page candidate")
-                source_text=(x.get("source_text") or x.get("text") or "")[:16000]
+                source_text=(x.get("source_text") or x.get("text") or "")[:24000]
                 r=provider.generate(system=SYSTEM,user=("Input type: "+prompt_kind+"\nPublisher: "+x["publisher"]+"\nOriginal title: "+str(x.get("title_original") or "")+"\nSource URL: "+str(x.get("article_url") or x.get("telegram_post_url") or "")+"\nText:\n"+source_text),context={"articles":[]}).data
                 consecutive_provider_errors=0
                 if not r.get("publish") or not r.get("headline_fa") or not r.get("summary_fa"):
