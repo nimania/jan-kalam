@@ -703,6 +703,13 @@
 .press-mark{grid-row:1/3;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);
  color:var(--accent);font-family:"Noto Naskh Arabic",serif;font-size:23px;font-weight:700}
 .press-source strong{font-size:15px}.press-source small{color:var(--ink-faint)}
+.press-source-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.press-health{display:inline-flex;align-items:center;white-space:nowrap;font:700 10.5px/1 system-ui,sans-serif;padding:5px 7px;border-radius:999px;border:1px solid var(--line);vertical-align:middle}
+.ph-active{color:var(--fact);background:var(--fact-bg);border-color:color-mix(in srgb,var(--fact) 25%,var(--line))}
+.ph-empty{color:var(--warn);background:var(--warn-bg);border-color:color-mix(in srgb,var(--warn) 25%,var(--line))}
+.ph-error{color:var(--disagree);background:var(--disagree-bg);border-color:color-mix(in srgb,var(--disagree) 25%,var(--line))}
+.ph-disabled,.ph-pending{color:var(--ink-faint);background:var(--surface-2)}
+.press-source-head h2 .press-health{font-family:system-ui,sans-serif;margin-inline-start:7px;transform:translateY(-2px)}
 .press-list{display:grid;gap:12px;padding-bottom:40px;width:100%;max-width:100%;min-width:0}\n.press-list .press-article{width:100%;max-width:100%;min-width:0;overflow:hidden}\n.press-list .press-article h2,.press-list .press-article p{overflow-wrap:anywhere;word-break:normal}\n.press-news-thumb{display:block;width:100%;max-width:100%;height:auto;max-height:360px;object-fit:cover;border-radius:12px;margin-top:14px}
 .press-source-head{display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--line);margin-bottom:16px}
 .press-source-head h2{font-family:"Noto Naskh Arabic",serif;font-size:25px}
