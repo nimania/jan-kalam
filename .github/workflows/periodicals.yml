@@ -46,6 +46,7 @@ jobs:
             backend/periodicals/archive.json
             backend/periodicals/book_candidates.json
             backend/public/data/books.json
+            backend/public/data/books.js
             backend/public/data/press-registry-health.json
           key: periodicals-v2-${{ github.run_id }}
           restore-keys: |
@@ -102,6 +103,7 @@ jobs:
           cp backend/public/data/press-directory.json site/data/press-directory.json
           cp backend/public/data/press-directory.js site/data/press-directory.js
           cp backend/public/data/books.json site/data/books.json
+          cp backend/public/data/books.js site/data/books.js
           cp backend/public/data/press-registry-health.json site/data/press-registry-health.json
           if [ -d backend/web-static/assets/periodicals ]; then
             mkdir -p site/assets/periodicals
@@ -111,7 +113,7 @@ jobs:
           import hashlib, pathlib, re
           root = pathlib.Path("site")
           versions = {}
-          for name in ("app.js", "styles.css", "iran-provinces.js", "data/press-directory.js"):
+          for name in ("app.js", "styles.css", "iran-provinces.js", "data/press-directory.js", "data/books.js"):
               p = root / name
               if p.exists():
                   versions[name] = hashlib.md5(p.read_bytes()).hexdigest()[:8]
