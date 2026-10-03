@@ -46,17 +46,30 @@ def fallback_site_card(x):
     if not title or not (_persian_text(title) or str(x.get("lang") or "").lower() in {"fa","fa-ir","persian"}):
         return None
     publisher=str(x.get("publisher") or "این نشریه").strip()
+    excerpt=re.sub(r"\\s+"," ",str(x.get("text") or "")).strip()
+    excerpt=re.sub(r"\\s*\\[(?:…|\\.\\.\\.)\\]\\s*$","",excerpt).strip()
+    # RSS descriptions are already source-authored summaries/excerpts. Keep them
+    # short and clearly attributed rather than replacing them with a generic notice.
+    body=excerpt[:1400].strip()
+    if len(excerpt)>1400: body=body.rstrip()+"…"
+    summary=body
+    if len(summary)>360:
+        cut=max(summary.rfind("。",0,360),summary.rfind("؟",0,360),summary.rfind("!",0,360),summary.rfind(".",0,360))
+        summary=(summary[:cut+1] if cut>140 else summary[:360].rstrip()+"…")
+    if not summary:
+        summary=f"این مطلب در {publisher} منتشر شده است. برای خواندن متن کامل به منبع اصلی مراجعه کنید."
     return {
         "id":x["id"],"publisher":publisher,
         "title_original":title,
         "source_lang":x.get("lang"),
         "headline_fa":title,
-        "summary_fa":f"این مطلب در {publisher} منتشر شده است. برای خواندن متن کامل به منبع اصلی مراجعه کنید.",
-        "body_fa":"",
+        "summary_fa":summary,
+        "body_fa":body,
         "section_fa":"سایر",
         "key_points_fa":[],
         "telegram_post_url":x.get("telegram_post_url"),
         "article_url":x.get("article_url"),
+        "source_url":x.get("article_url"),
         "transport":x.get("transport"),"page":x.get("page"),
         "image_url":x.get("image_url"),
         "issue_key":f'{publisher}:article:{x.get("id","")}',
