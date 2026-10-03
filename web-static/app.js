@@ -164,6 +164,14 @@ async function _buildSmartSearchDocs(){
   PRESS_SOURCES
     .filter(x=>[x.name,...(x.aliases||[])].some(n=>visiblePressNames.has(n)))
     .forEach(x=>docs.push({kind:"جریده",title:x.name,sub:x.type||"",source:x.name,go:`showPress('${String(x.name).replace(/'/g,"\\'")}')`,text:[x.name,(x.aliases||[]).join(" "),x.type,x.lang].join(" ")}));
+  try{
+    const b=await loadBooks();
+    (b.books||[]).forEach(x=>{
+      const creators=(x.creators||[]).map(c=>c.name_fa).join(" · ");
+      const publisher=x.publisher?.name_fa||"";
+      docs.push({kind:"کتاب",title:x.title_fa||"",sub:[creators,publisher].filter(Boolean).join(" · "),go:`openBook('${String(x.slug).replace(/'/g,"\\'")}')`,text:[x.title_fa,x.subtitle_fa,creators,publisher,x.category_fa].join(" "),snippet:x.description_fa||""});
+    });
+  }catch(_){}
   _smartSearchDocs=docs; return docs;
 }
 function _ssExcerpt(s,Q){
@@ -755,7 +763,8 @@ function pressEventCard(x){
 
 async function openPressArticle(id) {
   show("press"); setTab("press"); const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
-  const rows=await loadPeriodicals(); const x=rows.find(r=>String(r.id)===String(id));
+  const [rows,bookData]=await Promise.all([loadPeriodicals(),loadBooks()]);
+  const x=rows.find(r=>String(r.id)===String(id));
   if(!x){el.innerHTML='<div class="state"><div class="big">مطلب پیدا نشد</div></div>';return;}
   setArticleSeo(x);
   const summary=x.summary_fa||"";
@@ -769,6 +778,8 @@ async function openPressArticle(id) {
     ?"این صفحه بر پایهٔ توضیح منتشرشده در خوراک رسمی منبع ساخته شده است؛ برای متن کامل به منبع اصلی مراجعه کنید."
     :"این متن بازنویسی مستقل و وفادارانه‌ای بر پایهٔ محتوای منبع است و جایگزین متن اصلی نیست.";
   const eventCard=pressEventCard(x);
+  const relatedBooks=(bookData.books||[]).filter(b=>(b.mentions||[]).some(m=>String(m.article_id||"")===String(id)));
+  const bookStrip=relatedBooks.length?`<section class="press-books"><div class="press-box-label">کتاب‌های این مطلب</div><div class="press-book-links">${relatedBooks.map(b=>`<button onclick="openBook('${esc(b.slug)}')"><span>کتاب</span><b>${esc(b.title_fa||"")}</b></button>`).join("")}</div></section>`:"";
   el.innerHTML=`<article class="press-detail press-longread">
     <button class="back press-article-back" onclick="showPress('${esc(x.publisher||"")}')">بازگشت به ${esc(x.publisher||"نشریه")}</button>
     <header class="press-longread-head">
@@ -781,6 +792,7 @@ async function openPressArticle(id) {
     ${eventCard}
     ${hero?`<figure class="press-hero"><img src="${esc(hero)}" alt="" loading="eager" referrerpolicy="no-referrer" onerror="this.closest('figure').remove()"></figure>`:""}
     ${points?`<section class="press-points"><div class="press-box-label">جانِ مطلب</div><ul>${points}</ul></section>`:""}
+    ${bookStrip}
     ${body?`<section class="press-body">${body.split(/\\n{2,}/).map(p=>`<p>${esc(p)}</p>`).join("")}</section>`:""}
     <footer class="press-longread-foot">
       <div class="press-copyright-note">${esc(note)}</div>
