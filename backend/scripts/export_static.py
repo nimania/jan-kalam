@@ -429,6 +429,17 @@ def run() -> None:
                 row["latest_at"] = published
     _write(os.path.join(DATA, "press-stats.json"), list(press_stats.values()))
 
+    # Rich per-outlet archive for Jan-e Jaraid source pages.  stories.json is a
+    # deliberately small homepage feed and was truncating pages such as Fararu.
+    # Export up to 500 recent story cards grouped by every contributing source;
+    # the UI can then show the source's full recent history without inflating the
+    # homepage payload.
+    press_source_stories = {}
+    for card in press_cards:
+        for source_name in card.get("source_names", []) or []:
+            press_source_stories.setdefault(source_name, []).append(card)
+    _write(os.path.join(DATA, "press-source-stories.json"), press_source_stories)
+
 
     # Keep deep links durable beyond the 60-card home feed. Export a larger
     # read-only story archive as individual JSON files; these do not inflate
