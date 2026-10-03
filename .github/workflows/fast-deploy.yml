@@ -23,48 +23,52 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Find freshest successful site artifact
+      - name: Find latest successful build and periodicals runs
         id: refresh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          build_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?status=success&per_page=1")"
-          press_json="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/periodicals.yml/runs?status=success&per_page=1")"
-          build_id="$(jq -r '.workflow_runs[0].id // empty' <<<"$build_json")"
-          build_at="$(jq -r '.workflow_runs[0].updated_at // empty' <<<"$build_json")"
-          press_id="$(jq -r '.workflow_runs[0].id // empty' <<<"$press_json")"
-          press_at="$(jq -r '.workflow_runs[0].updated_at // empty' <<<"$press_json")"
-          if [ -n "$press_id" ] && { [ -z "$build_id" ] || [[ "$press_at" > "$build_at" ]]; }; then
-            echo "run_id=$press_id" >> "$GITHUB_OUTPUT"
-            echo "source=periodicals" >> "$GITHUB_OUTPUT"
-          else
-            test -n "$build_id"
-            echo "run_id=$build_id" >> "$GITHUB_OUTPUT"
-            echo "source=build" >> "$GITHUB_OUTPUT"
-          fi
-      - name: Download freshest complete static site
+          build_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/build.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          press_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/periodicals.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          test -n "$build_id"
+          echo "build_id=$build_id" >> "$GITHUB_OUTPUT"
+          echo "press_id=$press_id" >> "$GITHUB_OUTPUT"
+
+      - name: Download latest complete static site
         env:
           GH_TOKEN: ${{ github.token }}
-          RUN_ID: ${{ steps.refresh.outputs.run_id }}
-          SOURCE: ${{ steps.refresh.outputs.source }}
+          BUILD_ID: ${{ steps.refresh.outputs.build_id }}
         run: |
           rm -rf site && mkdir -p site
-          ok=0
-          if [ "$SOURCE" = "periodicals" ]; then
-            rm -rf pages-archive && mkdir -p pages-archive
-            if gh run download "$RUN_ID" -n github-pages -D pages-archive && [ -f pages-archive/artifact.tar ]; then
-              tar -xf pages-archive/artifact.tar -C site
-              ok=1
+          gh run download "$BUILD_ID" -n latest-static-site -D site
+
+      - name: Overlay freshest Jan-e Jaraid generated data
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PRESS_ID: ${{ steps.refresh.outputs.press_id }}
+        run: |
+          if [ -z "$PRESS_ID" ]; then
+            echo "::warning::No successful periodicals run found; keeping build data."
+            exit 0
+          fi
+          rm -rf /tmp/press-pages && mkdir -p /tmp/press-pages
+          if gh run download "$PRESS_ID" -n github-pages -D /tmp/press-pages && [ -f /tmp/press-pages/artifact.tar ]; then
+            rm -rf /tmp/press-site && mkdir -p /tmp/press-site
+            tar -xf /tmp/press-pages/artifact.tar -C /tmp/press-site
+            mkdir -p site/data
+            for name in periodicals.json press-registry-health.json; do
+              if [ -f "/tmp/press-site/data/$name" ]; then
+                cp "/tmp/press-site/data/$name" "site/data/$name"
+              fi
+            done
+            if [ -d /tmp/press-site/assets/periodicals ]; then
+              mkdir -p site/assets/periodicals
+              rsync -a /tmp/press-site/assets/periodicals/ site/assets/periodicals/
             fi
           else
-            if gh run download "$RUN_ID" -n latest-static-site -D site; then
-              ok=1
-            fi
+            echo "::warning::Could not download latest periodicals Pages artifact; keeping build data."
           fi
-          if [ "$ok" -ne 1 ]; then
-            echo "::warning::Fresh site artifact unavailable; falling back to repository seed."
-            cp -a web-static/. site/
-          fi
+
       - name: Overlay current UI without overwriting generated data
         run: |
           # Generated datasets (especially Jan-e Jaraid) belong to collector/build
