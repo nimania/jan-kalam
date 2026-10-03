@@ -357,7 +357,7 @@ const PRESS_SOURCES = [
   {name:"Süddeutsche Zeitung", domain:"sueddeutsche.de", scope:"world", lang:"de", type:"روزنامه"}
 ]
 
-const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", "iran-magazine":"مجلات ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان", magazine:"همهٔ مجلات و هفته‌نامه‌ها"};
+const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", "iran-magazine":"مجلات ایران", diaspora:"جراید دیاسپورا", world:"رسانه‌های جهان", magazine:"همهٔ مجلات و هفته‌نامه‌ها"};
 function pressMatchesScope(s, scope){
   if(scope==="all") return true;
   if(scope==="magazine") return /مجله|هفته‌نامه/.test(String(s.type||""));
