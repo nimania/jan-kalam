@@ -27,8 +27,9 @@ into a clear independent article. For non-Persian sources, translate and synthes
 The result should be useful on its own while clearly attributing the original publisher.
 
 SEO requirements:
-- headline_fa: accurate, natural, search-friendly; avoid clickbait.
-- seo_title_fa: <= 65 Persian characters when practical.
+- headline_fa: very short, accurate and natural; normally 3-6 Persian words. Remove
+  explanatory clauses, subtitles and filler. Keep only the central subject/action.
+- seo_title_fa: concise and search-friendly; preferably <= 45 Persian characters.
 - meta_description_fa: 120-165 Persian characters when practical.
 - body_fa: structured, coherent, substantial but not a substitute copy of the source.
 - key_points_fa: 3-5 concrete points.
