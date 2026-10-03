@@ -53,6 +53,24 @@ Output:
 def _persian_text(s):
     return bool(re.search(r"[\u0600-\u06ff]", str(s or "")))
 
+def _fallback_event(text: str) -> dict:
+    text=re.sub(r"\s+"," ",str(text or "")).strip()
+    out={"is_event":False,"date_fa":"","time_fa":"","start_iso":"","end_iso":"","timezone":"","location_fa":"","address_fa":""}
+    if not text or not re.search(r"(نشست|مراسم|رونمایی|نمایش فیلم|شب‌های|شب |برگزار|همایش|سخنرانی)",text):
+        return out
+    months="فروردین|اردیبهشت|خرداد|تیر|مرداد|امرداد|شهریور|مهر|آبان|آذر|دی|بهمن|اسفند"
+    days="شنبه|یکشنبه|یک‌شنبه|دوشنبه|سه‌شنبه|سه شنبه|چهارشنبه|پنجشنبه|پنج‌شنبه|جمعه"
+    dm=re.search(rf"((?:{days})\s+[۰-۹0-9]+\s+(?:{months})\s+[۰-۹0-9]{{4}})",text)
+    if dm: out["date_fa"]=dm.group(1).strip()
+    tm=re.search(r"ساعت\s+([^،.]{1,28}?)(?=\s+(?:روز|در|با|برگزار|آغاز)|[،.])",text)
+    if tm: out["time_fa"]=tm.group(1).strip()
+    am=re.search(r"(?:نشانی|آدرس)\s*[:：]\s*([^\n.]{5,160})",text)
+    if am: out["address_fa"]=am.group(1).strip(" ،؛")
+    lm=re.search(r"((?:عمارت|خانۀ|خانهٔ|خانه|دانشگاه|مؤسسۀ|مؤسسه|موسسه|کتابفروشی|شهرکتاب|تالار|مرکز|فرهنگسرا)\s+[^،.]{2,110})",text)
+    if lm: out["location_fa"]=lm.group(1).strip(" ،؛")
+    out["is_event"]=bool(out["date_fa"] or out["time_fa"] or out["location_fa"] or out["address_fa"])
+    return out
+
 def fallback_site_card(x):
     """Publish a metadata-only card for trusted Persian RSS when AI is unavailable.
 
@@ -66,6 +84,7 @@ def fallback_site_card(x):
     if not title or not (_persian_text(title) or str(x.get("lang") or "").lower() in {"fa","fa-ir","persian"}):
         return None
     publisher=str(x.get("publisher") or "این نشریه").strip()
+    raw_source=str(x.get("source_text") or x.get("text") or "")
     excerpt=re.sub(r"\\s+"," ",str(x.get("text") or "")).strip()
     excerpt=re.sub(r"\\s*\\[(?:…|\\.\\.\\.)\\]\\s*$","",excerpt).strip()
     # RSS descriptions are already source-authored summaries/excerpts. Keep them
