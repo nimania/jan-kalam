@@ -11,6 +11,7 @@ on:
       - "backend/scripts/collect_press_feeds.py"
       - "backend/scripts/collect_periodicals.py"
       - "backend/scripts/publish_periodicals.py"
+      - "backend/scripts/build_books.py"
       - ".github/workflows/periodicals.yml"
   schedule:
     - cron: "*/30 * * * *"
@@ -43,6 +44,8 @@ jobs:
           path: |
             backend/periodicals/state.json
             backend/periodicals/archive.json
+            backend/periodicals/book_candidates.json
+            backend/public/data/books.json
             backend/public/data/press-registry-health.json
           key: periodicals-v2-${{ github.run_id }}
           restore-keys: |
@@ -67,6 +70,10 @@ jobs:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_MODEL_STRONG: ${{ secrets.AI_MODEL_STRONG }}
         run: python -m scripts.publish_periodicals
+
+      - name: Build books knowledge layer
+        working-directory: backend
+        run: python -m scripts.build_books
 
       - name: Find latest successful full site build
         id: base
@@ -94,6 +101,7 @@ jobs:
           cp backend/public/data/periodicals.json site/data/periodicals.json
           cp backend/public/data/press-directory.json site/data/press-directory.json
           cp backend/public/data/press-directory.js site/data/press-directory.js
+          cp backend/public/data/books.json site/data/books.json
           cp backend/public/data/press-registry-health.json site/data/press-registry-health.json
           if [ -d backend/web-static/assets/periodicals ]; then
             mkdir -p site/assets/periodicals
