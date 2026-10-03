@@ -17,6 +17,7 @@ SITE_IN=ROOT/"site_articles.json"
 ARCHIVE=ROOT/"archive.json"
 PUBLIC=Path("public/data/periodicals.json")
 DIRECTORY=Path("public/data/press-directory.json")
+DIRECTORY_JS=Path("public/data/press-directory.js")
 MAX_ITEMS=800
 
 SYSTEM="""You are a meticulous Persian periodical editor and SEO writer. Return JSON only.
@@ -276,8 +277,13 @@ def main():
         stamp=x.get("source_published_at") or x.get("published_at")
         if stamp and (not row["latest_at"] or str(stamp)>str(row["latest_at"])):
             row["latest_at"]=stamp
+    directory_rows=sorted(directory.values(),key=lambda x:(-x["count"],x["source_name"]))
     DIRECTORY.write_text(
-        json.dumps(sorted(directory.values(),key=lambda x:(-x["count"],x["source_name"])),ensure_ascii=False),
+        json.dumps(directory_rows,ensure_ascii=False),
+        encoding="utf-8",
+    )
+    DIRECTORY_JS.write_text(
+        "window.__PRESS_DIRECTORY__="+json.dumps(directory_rows,ensure_ascii=False,separators=(",",":"))+";\n",
         encoding="utf-8",
     )
     print(f"periodicals: published archive {len(out)} items from {len(directory)} publishers (+{len(fresh)} new)")
