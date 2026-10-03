@@ -42,13 +42,23 @@ def main():
         fresh=[]
         covers=[x for x in rows if x.get("kind")=="issue_cover"]
         article_rows=[x for x in rows if x.get("kind")!="issue_cover"]
-        for x in article_rows[:40]:
+        # Give newly discovered official-site/RSS material a fair share instead
+        # of letting PDF pages consume the whole synthesis budget.
+        site_rows=[x for x in article_rows if x.get("kind")=="site_feed"]
+        pdf_rows=[x for x in article_rows if x.get("kind")!="site_feed"]
+        article_rows=(site_rows[:24] + pdf_rows[:16])[:40]
+        consecutive_provider_errors=0
+        for x in article_rows:
             try:
-                r=provider.generate(system=SYSTEM,user=("Publisher: "+x["publisher"]+"\nText:\n"+x["text"][:10000]),context={"articles":[]}).data
+                prompt_kind = "RSS/site article metadata or snippet" if x.get("kind")=="site_feed" else "PDF page candidate"
+                r=provider.generate(system=SYSTEM,user=("Input type: "+prompt_kind+"\nPublisher: "+x["publisher"]+"\nText:\n"+x["text"][:10000]),context={"articles":[]}).data
+                consecutive_provider_errors=0
                 if not r.get("publish") or not r.get("headline_fa") or not r.get("summary_fa"):
                     continue
                 fresh.append({
                     "id":x["id"],"publisher":x["publisher"],
+                    "title_original":x.get("title_original"),
+                    "source_lang":x.get("lang"),
                     "headline_fa":str(r["headline_fa"]).strip(),
                     "summary_fa":str(r["summary_fa"]).strip(),
                     "body_fa":str(r.get("body_fa") or "").strip(),
@@ -58,12 +68,18 @@ def main():
                     "article_url":x.get("article_url"),
                     "transport":x.get("transport"),"page":x.get("page"),
                     "image_url":x.get("image_url"),
-                    "issue_key":f'{x.get("publisher","")}:{x.get("transport","")}:{x.get("telegram_message_id","")}',
+                    "issue_key":(f'{x.get("publisher","")}:article:{x.get("id","")}' if x.get("kind")=="site_feed" else f'{x.get("publisher","")}:{x.get("transport","")}:{x.get("telegram_message_id","")}'),
                     "cover_url":next((v.get("cover_url") for v in sorted(covers,key=lambda z:abs(int(z.get("telegram_message_id",0))-int(x.get("telegram_message_id",0)))) if v.get("publisher")==x.get("publisher") and abs(int(v.get("telegram_message_id",0))-int(x.get("telegram_message_id",0)))<=3),None),
                     "published_at":datetime.now(timezone.utc).isoformat(),
                 })
             except Exception as exc:
+                consecutive_provider_errors += 1
                 print("periodicals: synthesis skipped",x.get("id"),str(exc)[:160])
+                # A provider-wide quota outage can otherwise spend tens of minutes
+                # retrying every candidate. Preserve the archive and defer the rest.
+                if consecutive_provider_errors >= 2:
+                    print("periodicals: provider circuit breaker opened; deferring remaining candidates")
+                    break
     merged={x["id"]:x for x in old if x.get("id")}
     for x in fresh: merged[x["id"]]=x
     out=list(merged.values())[-MAX_ITEMS:]
