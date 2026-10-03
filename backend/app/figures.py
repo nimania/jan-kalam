@@ -337,6 +337,9 @@ FIGURES: list[Figure] = [
     # ══════════════════════════════════════════════════════════════════════
     #  فرهنگ و هنر
     # ══════════════════════════════════════════════════════════════════════
+    Figure("asghari_weatherman", "محمد اصغری", "کارشناس هواشناسی", "science",
+           (("instagram", "https://www.instagram.com/asghari_weatherman"),),
+           bale="asghari_weatherman"),
     Figure("bahman_babazadeh", "بهمن بابازاده", "خبرنگار موسیقی", "culture"),
     Figure("monaborzouei", "مونا برزویی", "شاعر و ترانه‌سرا", "culture",
            (("x", "https://x.com/monaborzouei"),
