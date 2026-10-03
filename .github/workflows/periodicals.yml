@@ -147,6 +147,8 @@ jobs:
             backend/periodicals/site_articles_diag.json
             backend/periodicals/quarantine.json
             backend/periodicals/archive.json
+            backend/periodicals/book_candidates.json
+            backend/public/data/books.json
             backend/public/data/press-registry-health.json
           if-no-files-found: ignore
           retention-days: 3
