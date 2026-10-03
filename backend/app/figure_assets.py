@@ -83,7 +83,7 @@ def refresh_avatars(db, *, now: datetime | None = None, fetcher=_fetch_avatar) -
 
 def avatar_paths(db) -> dict[str, str]:
     """Return the stable self-hosted paths for all cached figure assets."""
-    return {a.handle: f"figures/{a.handle}.{a.ext}" for a in db.query(FigureAsset).all()}
+    external = {f.handle for f in FIGURES if f.external}\n    return {a.handle: f"figures/{a.handle}.{a.ext}" for a in db.query(FigureAsset).all() if a.handle not in external}
 
 
 def write_avatars(db, out_dir: str) -> dict[str, str]:
