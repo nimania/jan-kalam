@@ -136,35 +136,50 @@ def html_candidates(src):
         if len(out)>=20: break
     return out
 
+def collect_source(src):
+    if src.get("state")!="active" or excluded(src):
+        return [], None
+    feed=src.get("feed_url")
+    if not feed:
+        try:
+            found=html_candidates(src)
+            return found, f"press sites: {src.get('source_name')} collected {len(found)} HTML candidates"
+        except Exception as exc:
+            return [], f"press sites: {src.get('source_name')} failed: {str(exc)[:180]}"
+    try:
+        req=urllib.request.Request(feed,headers={"User-Agent":UA})
+        raw=urllib.request.urlopen(req,timeout=18).read(2_000_000)
+        root=ET.fromstring(raw)
+        out=[]
+        items=[x for x in root.iter() if x.tag.split("}")[-1].lower() in {"item","entry"}][:20]
+        for it in items:
+            title=first_text(it,{"title"})
+            summary=first_text(it,{"description","summary","content","encoded"})
+            link=first_text(it,{"link","guid"})
+            if not link:
+                for ch in list(it):
+                    if ch.tag.split("}")[-1].lower()=="link" and ch.attrib.get("href"):
+                        link=ch.attrib["href"]; break
+            link=urllib.parse.urljoin(src.get("homepage") or feed,link)
+            published=parse_published(first_text(it,{"pubdate","published","updated","date"}))
+            if not title or not link: continue
+            if excluded({**src,"feed_url":link}): continue
+            out.append(make_row(src,title,link,summary,"rss:"+feed,published))
+        return out, f"press feeds: {src.get('source_name')} collected {len(out)} RSS candidates"
+    except Exception as exc:
+        return [], f"press feeds: {src.get('source_name')} failed: {str(exc)[:180]}"
+
 def main():
     health=json.loads(HEALTH.read_text(encoding="utf-8")) if HEALTH.exists() else []
+    active=[src for src in health if src.get("state")=="active" and not excluded(src)]
     rows=[]
-    for src in health:
-        if src.get("state")!="active" or excluded(src): continue
-        feed=src.get("feed_url")
-        if not feed:
-            try:
-                found=html_candidates(src); rows.extend(found)
-                print("press sites:",src.get("source_name"),"collected",len(found),"HTML candidates")
-            except Exception as exc: print("press sites:",src.get("source_name"),"failed:",str(exc)[:180])
-            continue
-        try:
-            req=urllib.request.Request(feed,headers={"User-Agent":UA})
-            raw=urllib.request.urlopen(req,timeout=25).read(2_000_000); root=ET.fromstring(raw)
-            items=[x for x in root.iter() if x.tag.split("}")[-1].lower() in {"item","entry"}][:20]
-            for it in items:
-                title=first_text(it,{"title"}); summary=first_text(it,{"description","summary","content","encoded"})
-                link=first_text(it,{"link","guid"})
-                if not link:
-                    for ch in list(it):
-                        if ch.tag.split("}")[-1].lower()=="link" and ch.attrib.get("href"): link=ch.attrib["href"]; break
-                link=urllib.parse.urljoin(src.get("homepage") or feed,link)
-                published=parse_published(first_text(it,{"pubdate","published","updated","date"}))
-                if not title or not link: continue
-                if excluded({**src,"feed_url":link}): continue
-                rows.append(make_row(src,title,link,summary,"rss:"+feed,published))
-            print("press feeds:",src.get("source_name"),"collected",sum(1 for x in rows if x["publisher"]==src["source_name"]),"RSS candidates")
-        except Exception as exc: print("press feeds:",src.get("source_name"),"failed:",str(exc)[:180])
+    # Feed fetches are independent; bounded concurrency keeps a few slow outlets
+    # from stretching an every-30-minute run into an hour.
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        batches=list(pool.map(collect_source,active))
+    for found,msg in batches:
+        rows.extend(found)
+        if msg: print(msg)
     rows=list({x["id"]:x for x in rows}.values())
 
     # Fetch full pages fairly across publishers. The least-enriched publishers
