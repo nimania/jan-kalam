@@ -1,15 +1,191 @@
 """Canonical Jan-e Jaraid source registry.
 
-This file is the backend counterpart of the press directory.  Every outlet we
-want to monitor belongs here even when it has no usable RSS yet.  The ingestion
-pipeline can progressively attach RSS/API/custom collectors without losing
-visibility of the remaining queue.
+News feeds listed in PRESS_FEEDS were already used/verified by the main ingestion
+pipeline. Jan-e Jaraid reuses those exact endpoints instead of guessing new RSS
+URLs. Sources without a verified feed remain visible and can fall back to HTML
+or a future dedicated adapter.
 
-Important: source-level editorial exclusions in app.ingestion.service still
-apply to every collector.
+Source-level editorial exclusions in app.ingestion.service apply to every
+collector, including pinned feeds and article-page fetches.
 """
+
+# Verified publisher feeds. Keep names aligned with PRESS_REGISTRY / the public
+# press directory so article groups land on the correct source page.
+PRESS_FEEDS = {
+    # Iranian magazines / periodicals
+    "بخارا": "https://bukharamag.com/feed",
+
+    # Iran — agencies, news sites and newspapers
+    "ایرنا": "https://www.irna.ir/rss",
+    "ایسنا": "https://www.isna.ir/rss",
+    "مهر": "https://www.mehrnews.com/rss",
+    "فارس": "https://farsnews.ir/rss",
+    "خبرآنلاین": "https://www.khabaronline.ir/rss",
+    "همشهری": "https://www.hamshahrionline.ir/rss",
+    "خبرگزاری صداوسیما": "https://www.iribnews.ir/fa/rss/allnews",
+    "باشگاه خبرنگاران جوان": "https://www.yjc.ir/fa/rss/allnews",
+    "تابناک": "https://www.tabnak.ir/fa/rss/allnews",
+    "فرارو": "https://fararu.com/fa/rss/allnews",
+    "انتخاب": "https://www.entekhab.ir/fa/rss/allnews",
+    "عصر ایران": "https://www.asriran.com/fa/rss/allnews",
+    "فردانیوز": "https://www.fardanews.com/fa/rss/allnews",
+    "رویداد۲۴": "https://www.rouydad24.ir/fa/rss/allnews",
+    "آفتاب‌نیوز": "https://aftabnews.ir/fa/rss/allnews",
+    "مشرق نیوز": "https://www.mashreghnews.ir/rss",
+    "انصاف نیوز": "https://www.ensafnews.com/feed",
+    "پیام ما": "https://payamema.ir/feed",
+    "شرق": "https://www.sharghdaily.com/fa/rss/allnews",
+    "اعتماد": "https://www.etemadonline.com/fa/rss/allnews",
+    "دنیای اقتصاد": "https://donya-e-eqtesad.com/fa/rss/allnews",
+    "ایلنا": "https://www.ilna.ir/fa/rss/allnews",
+    "تسنیم": "https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D8%A2%D8%AE%D8%B1%DB%8C%D9%86-%D8%A7%D8%AE%D8%A8%D8%A7%D8%B1",
+    "آنا": "https://ana.ir/fa/rss/allnews",
+    "اقتصادنیوز": "https://www.eghtesadnews.com/fa/rss/allnews",
+    "اکوایران": "https://ecoiran.com/fa/rss/allnews",
+    "دیپلماسی ایرانی": "https://irdiplomacy.ir/fa/rss",
+    "جماران": "https://www.jamaran.news/fa/rss/allnews",
+    "میزان": "https://www.mizanonline.ir/fa/rss/allnews",
+    "شفقنا فارسی": "https://fa.shafaqna.com/feed/",
+
+    # Persian-language international / diaspora
+    "اخبار روز": "https://akhbar-rooz.com/feed/",
+    "رادیو زمانه": "http://radiozamaneh.com/rss.xml",
+    "رادیو فردا": "https://www.radiofarda.com/api/zrttpol-vomx-tpeoogpi",
+    "ایران‌وایر": "https://iranwire.com/feed/",
+    "مرکز حقوق بشر در ایران": "https://iranhumanrights.org/feed/",
+    "بی‌بی‌سی فارسی": "https://feeds.bbci.co.uk/persian/rss.xml",
+    "ایران اینترنشنال": "https://www.iranintl.com/feed",
+    "دویچه‌وله فارسی": "https://rss.dw.com/rdf/rss-per-all",
+    "یورونیوز فارسی": "https://parsi.euronews.com/rss",
+    "کیهان لندن": "https://kayhan.london/feed/",
+    "زیتون": "https://www.zeitoons.com/feed",
+    "ایندیپندنت فارسی": "https://www.independentpersian.com/rss.xml",
+    "صدای آمریکا فارسی": "https://ir.voanews.com/api/zmgqoe$mvi",
+    "العربیه فارسی": "https://farsi.alarabiya.net/tools/rss",
+
+    # International
+    "BBC": "http://feeds.bbci.co.uk/news/world/rss.xml",
+    "El País": "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/internacional/portada",
+    "The Guardian": "https://www.theguardian.com/world/rss",
+    "Al Jazeera": "https://www.aljazeera.com/xml/rss/all.xml",
+    "Press TV": "https://www.presstv.ir/rss",
+    "Tehran Times": "https://www.tehrantimes.com/rss",
+    "Al-Alam": "https://www.alalam.ir/rss",
+    "Al-Monitor": "https://www.al-monitor.com/rss",
+    "France 24": "https://www.france24.com/en/rss",
+    "RFI": "https://www.rfi.fr/en/rss",
+    "Anadolu Ajansı": "https://www.aa.com.tr/en/rss/default?cat=guncel",
+    "CNN": "http://rss.cnn.com/rss/edition_world.rss",
+    "NPR": "https://feeds.npr.org/1004/rss.xml",
+    "CNBC": "https://www.cnbc.com/id/100727362/device/rss/rss.html",
+    "Sky News": "https://feeds.skynews.com/feeds/rss/world.xml",
+    "El Mundo": "https://e00-elmundo.uecdn.es/elmundo/rss/internacional.xml",
+    "La Vanguardia": "https://www.lavanguardia.com/rss/internacional.xml",
+    "BBC Mundo": "https://feeds.bbci.co.uk/mundo/rss.xml",
+    "CNN en Español": "https://cnnespanol.cnn.com/feed/",
+    "DW Español": "https://rss.dw.com/rdf/rss-sp-all",
+    "RTVE Noticias": "https://www.rtve.es/api/noticias.rss",
+    "ABC España": "https://www.abc.es/rss/feeds/abc_Internacional.xml",
+    "El Confidencial": "https://rss.elconfidencial.com/mundo/",
+    "France 24 Español": "https://www.france24.com/es/rss",
+    "DW": "https://rss.dw.com/rdf/rss-en-all",
+
+    # Specialist sources already verified by the main pipeline
+    "The Verge": "https://www.theverge.com/rss/index.xml",
+    "ورزش سه": "https://www.varzesh3.com/rss/all",
+    "دیجیاتو": "https://digiato.com/feed",
+    "زومیت": "https://www.zoomit.ir/feed",
+    "گیمفا": "https://gamefa.com/feed/",
+    "سلامت نیوز": "http://salamatnews.com/rss.xml",
+}
+
 PRESS_REGISTRY = [
-    # Iranian periodicals — tracked even when acquisition is PDF/site fallback.
+    # Iran — agencies / news portals
+    ("ایرنا","https://www.irna.ir","fa","iran-agency"),
+    ("ایسنا","https://www.isna.ir","fa","iran-agency"),
+    ("مهر","https://www.mehrnews.com","fa","iran-agency"),
+    ("فارس","https://farsnews.ir","fa","iran-agency"),
+    ("خبرآنلاین","https://www.khabaronline.ir","fa","iran-agency"),
+    ("خبرگزاری صداوسیما","https://www.iribnews.ir","fa","iran-agency"),
+    ("باشگاه خبرنگاران جوان","https://www.yjc.ir","fa","iran-agency"),
+    ("تابناک","https://www.tabnak.ir","fa","iran-agency"),
+    ("فرارو","https://fararu.com","fa","iran-agency"),
+    ("انتخاب","https://www.entekhab.ir","fa","iran-agency"),
+    ("عصر ایران","https://www.asriran.com","fa","iran-agency"),
+    ("فردانیوز","https://www.fardanews.com","fa","iran-agency"),
+    ("رویداد۲۴","https://www.rouydad24.ir","fa","iran-agency"),
+    ("آفتاب‌نیوز","https://aftabnews.ir","fa","iran-agency"),
+    ("مشرق نیوز","https://www.mashreghnews.ir","fa","iran-agency"),
+    ("انصاف نیوز","https://www.ensafnews.com","fa","iran-agency"),
+    ("ایلنا","https://www.ilna.ir","fa","iran-agency"),
+    ("تسنیم","https://www.tasnimnews.com","fa","iran-agency"),
+    ("آنا","https://ana.ir","fa","iran-agency"),
+    ("اقتصادنیوز","https://www.eghtesadnews.com","fa","iran-agency"),
+    ("اکوایران","https://ecoiran.com","fa","iran-agency"),
+    ("دیپلماسی ایرانی","https://irdiplomacy.ir","fa","iran-agency"),
+    ("جماران","https://www.jamaran.news","fa","iran-agency"),
+    ("میزان","https://www.mizanonline.ir","fa","iran-agency"),
+    ("شفقنا فارسی","https://fa.shafaqna.com","fa","iran-agency"),
+
+    # Iran — newspapers
+    ("همشهری","https://www.hamshahrionline.ir","fa","iran-paper"),
+    ("پیام ما","https://payamema.ir","fa","iran-paper"),
+    ("شرق","https://www.sharghdaily.com","fa","iran-paper"),
+    ("اعتماد","https://www.etemadonline.com","fa","iran-paper"),
+    ("دنیای اقتصاد","https://donya-e-eqtesad.com","fa","iran-paper"),
+
+    # Persian-language international / diaspora
+    ("اخبار روز","https://akhbar-rooz.com","fa","diaspora"),
+    ("رادیو زمانه","https://www.radiozamaneh.com","fa","diaspora"),
+    ("رادیو فردا","https://www.radiofarda.com","fa","diaspora"),
+    ("ایران‌وایر","https://iranwire.com/fa/","fa","diaspora"),
+    ("مرکز حقوق بشر در ایران","https://iranhumanrights.org","fa","diaspora"),
+    ("بی‌بی‌سی فارسی","https://www.bbc.com/persian","fa","diaspora"),
+    ("ایران اینترنشنال","https://www.iranintl.com","fa","diaspora"),
+    ("دویچه‌وله فارسی","https://www.dw.com/fa-ir","fa","diaspora"),
+    ("یورونیوز فارسی","https://parsi.euronews.com","fa","diaspora"),
+    ("کیهان لندن","https://kayhan.london","fa","diaspora"),
+    ("زیتون","https://www.zeitoons.com","fa","diaspora"),
+    ("ایندیپندنت فارسی","https://www.independentpersian.com","fa","diaspora"),
+    ("صدای آمریکا فارسی","https://ir.voanews.com","fa","diaspora"),
+    ("العربیه فارسی","https://farsi.alarabiya.net","fa","diaspora"),
+
+    # International news / newspapers
+    ("BBC","https://www.bbc.com/news","en","world"),
+    ("El País","https://elpais.com/internacional/","es","world"),
+    ("The Guardian","https://www.theguardian.com","en","world"),
+    ("Al Jazeera","https://www.aljazeera.com","en","world"),
+    ("Press TV","https://www.presstv.ir","en","world"),
+    ("Tehran Times","https://www.tehrantimes.com","en","world"),
+    ("Al-Alam","https://www.alalam.ir","ar","world"),
+    ("Al-Monitor","https://www.al-monitor.com","en","world"),
+    ("France 24","https://www.france24.com/en/","en","world"),
+    ("RFI","https://www.rfi.fr/en/","en","world"),
+    ("Anadolu Ajansı","https://www.aa.com.tr/en","en","world"),
+    ("CNN","https://www.cnn.com","en","world"),
+    ("NPR","https://www.npr.org","en","world"),
+    ("CNBC","https://www.cnbc.com/world/","en","world"),
+    ("Sky News","https://news.sky.com","en","world"),
+    ("El Mundo","https://www.elmundo.es","es","world"),
+    ("La Vanguardia","https://www.lavanguardia.com","es","world"),
+    ("BBC Mundo","https://www.bbc.com/mundo","es","world"),
+    ("CNN en Español","https://cnnespanol.cnn.com","es","world"),
+    ("DW Español","https://www.dw.com/es","es","world"),
+    ("RTVE Noticias","https://www.rtve.es/noticias/","es","world"),
+    ("ABC España","https://www.abc.es","es","world"),
+    ("El Confidencial","https://www.elconfidencial.com","es","world"),
+    ("France 24 Español","https://www.france24.com/es/","es","world"),
+    ("DW","https://www.dw.com","en","world"),
+
+    # Specialist verified feeds
+    ("The Verge","https://www.theverge.com","en","world"),
+    ("ورزش سه","https://www.varzesh3.com","fa","iran-agency"),
+    ("دیجیاتو","https://digiato.com","fa","iran-agency"),
+    ("زومیت","https://www.zoomit.ir","fa","iran-agency"),
+    ("گیمفا","https://gamefa.com","fa","iran-agency"),
+    ("سلامت نیوز","https://www.salamatnews.com","fa","iran-agency"),
+
+    # Iranian periodicals — RSS/site/PDF fallback
     ("سپیده دانایی","https://www.magiran.com/magazine/5447","fa","iran-magazine"),
     ("ترجمان","https://tarjomaan.com","fa","iran-magazine"),
     ("مهرنامه","http://www.mehrnameh.ir","fa","iran-magazine"),
@@ -26,20 +202,7 @@ PRESS_REGISTRY = [
     ("آگاهی نو","https://agahino.com","fa","iran-magazine"),
     ("کتابنامه آگاهی نو","https://agahino.com","fa","iran-magazine"),
     ("وزن دنیا","https://vaznedonya.ir","fa","iran-magazine"),
-    # name, homepage, language, scope
-    ("Press TV","https://www.presstv.ir","en","iran-agency"),
-    ("Tehran Times","https://www.tehrantimes.com","en","iran-paper"),
-    ("Al-Alam","https://www.alalam.ir","ar","iran-agency"),
-    ("Al-Monitor","https://www.al-monitor.com","en","world"),
-    ("Al Jazeera","https://www.aljazeera.com","en","world"),
-    ("BBC","https://www.bbc.com/news","en","world"),
-    ("The Guardian","https://www.theguardian.com","en","world"),
-    ("El País","https://elpais.com","es","world"),
-    ("France 24","https://www.france24.com","fr","world"),
-    ("RFI","https://www.rfi.fr","fr","world"),
-    ("Anadolu Ajansı","https://www.aa.com.tr","tr","world"),
 ]
 
-# Registry policy: a directory entry without a collector is a tracked backlog,
-# not an implicitly active source.  UI status must be based on actual ingestion
-# logs / exported story counts.
+# Registry policy: an entry without a working collector remains tracked backlog,
+# not implicitly active. UI status is based on real collection/health output.
