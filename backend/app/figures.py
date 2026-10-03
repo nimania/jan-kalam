@@ -234,7 +234,8 @@ FIGURES: list[Figure] = [
 
 SOCIAL_FA = {"website": "وب‌سایت", "x": "ایکس", "instagram": "اینستاگرام",
              "youtube": "یوتیوب", "facebook": "فیس‌بوک", "telegram": "تلگرام", "bale": "بله",
-             "truthsocial": "تروث سوشیال", "eitaa": "ایتا", "rubika": "روبیکا",\n             "soroush": "سروش‌پلاس", "igap": "آی‌گپ"}
+             "truthsocial": "تروث سوشیال", "eitaa": "ایتا", "rubika": "روبیکا",
+             "soroush": "سروش‌پلاس", "igap": "آی‌گپ"}
 
 
 def figure_social(f: Figure) -> list[dict]:
