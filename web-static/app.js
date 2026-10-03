@@ -1739,7 +1739,8 @@ function figuresSection(list) {
     <p class="muted fig-note">دیدگاه‌های مستقیم از کانال‌های عمومی خود افراد و «گفته در خبر» از منابع خبری جدا برچسب می‌خورند؛ لینک هر مورد به منبع همان گفته می‌رود.
       <a href="#/figures" onclick="event.preventDefault();showFigures()">همهٔ چهره‌ها</a></p></div>`;
 }
-let _FIG = null, _NEWS_PEOPLE = null, _figDirectoryMode = "direct";
+let _FIG = null, _NEWS_PEOPLE = null, _CURATED_POEMS = null, _figDirectoryMode = "direct";
+async function loadCuratedPoems(){ if(_CURATED_POEMS) return _CURATED_POEMS; try{_CURATED_POEMS=await getJSON(`${DATA}/curated-figure-poems.json`);}catch(_){_CURATED_POEMS={};} return _CURATED_POEMS||{}; }
 async function loadFigures() {
   if (_FIG) return _FIG;
   try { _FIG = await getJSON(`${DATA}/figures.json`); } catch (e) { _FIG = { figures: [], fields: {} }; }
@@ -1859,13 +1860,15 @@ async function openFigure(handle, resetFilter = true) {
   document.getElementById("figure-timeline").innerHTML = "";
   const el = document.getElementById("figures");
   el.innerHTML = `<div class="spinner"></div>`;
-  const d = await loadFigures();
+  const [d, curatedPoems] = await Promise.all([loadFigures(), loadCuratedPoems()]);
   const x = (d.figures || []).find(f => f.handle.toLowerCase() === String(handle).toLowerCase());
   if (!x) { el.innerHTML = `<div class="state"><div class="big">این چهره پیدا نشد</div></div>`; return; }
   const direct = (x.posts || []).filter(p => p.kind !== "news_statement");
   const news = (x.posts || []).filter(p => p.kind === "news_statement");
   const shown = _figureProfileFilter === "direct" ? direct : _figureProfileFilter === "news" ? news : (x.posts || []);
   const latest = (x.posts || []).map(p => p.published_at).filter(Boolean).sort().pop();
+  const poems = Array.isArray(curatedPoems[x.handle]) ? curatedPoems[x.handle] : [];
+  const poemSection = poems.length ? `<section class="curated-poems"><div class="curated-poems-head"><div><span class="curated-kicker">گزیدهٔ ویژه</span><h2>شعرها</h2><p>متن‌های ارسالی، با حفظ سطر‌بندی شعر</p></div><span class="curated-count">${faN(poems.length)} قطعه</span></div><div class="curated-poem-list">${poems.map((p,i)=>`<article class="curated-poem"><div class="curated-poem-no">${faN(i+1)}</div><div class="curated-poem-text">${esc(p.text||"").replace(/\\n/g,"<br>")}</div></article>`).join("")}</div></section>` : "";
   const postRow = p => `<article class="x-post">
     <div class="x-post-rail">${avatar(x,"sm")}</div>
     <div class="x-post-body">
@@ -1896,7 +1899,7 @@ async function openFigure(handle, resetFilter = true) {
       <button class="${_figureProfileFilter==="direct"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','direct')">دیدگاه‌ها</button>
       <button class="${_figureProfileFilter==="news"?"on":""}" onclick="setFigureProfileFilter('${esc(x.handle)}','news')">در خبرها</button>
     </nav>
-    <div class="x-profile-feed">${shown.length ? shown.map(postRow).join("") : '<div class="state"><div class="big">در این بخش موردی ثبت نشده.</div></div>'}</div>
+    ${poemSection}\n    <div class="x-profile-feed">${shown.length ? shown.map(postRow).join("") : '<div class="state"><div class="big">در این بخش موردی ثبت نشده.</div></div>'}</div>
     <p class="muted fig-note x-profile-note">دیدگاه‌ها از منابع عمومی خود شخص می‌آیند؛ موارد «در خبرها» گفته‌هایی هستند که رسانه‌ها به او نسبت داده‌اند.</p>
   </div>`;
 }
