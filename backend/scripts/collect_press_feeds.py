@@ -1,6 +1,7 @@
 """Collect recent article metadata from RSS/Atom and source-aware HTML collectors."""
 from __future__ import annotations
 import hashlib, html, json, re, urllib.parse, urllib.request
+from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from bs4 import BeautifulSoup
@@ -8,6 +9,7 @@ from app.ingestion.service import _EXCLUDED_SOURCE_TERMS, _EXCLUDED_SOURCE_DOMAI
 
 HEALTH=Path("public/data/press-registry-health.json")
 OUT=Path("periodicals/site_articles.json")
+DIAG_OUT=Path("periodicals/site_articles_diag.json")
 UA="Mozilla/5.0 (compatible; JanKalamPressFeeds/1.1; +https://nimania.github.io/jan-kalam/)"
 
 ARTICLE_RULES={
@@ -50,7 +52,40 @@ def make_row(src,title,link,text,transport):
     ident=hashlib.sha1((src["source_name"]+"|"+link).encode()).hexdigest()
     return {"id":"site:"+ident,"publisher":src["source_name"],"kind":"site_feed","title_original":title,
       "text":text[:5000],"article_url":link,"transport":transport,"page":None,"lang":src.get("lang"),
-      "source_homepage":src.get("homepage")}
+      "scope":src.get("scope"),"source_homepage":src.get("homepage")}
+
+def enrich_full_article(row):
+    """Fetch article HTML for transformation. Raw source text stays workflow-local."""
+    link=row.get("article_url")
+    if not link: return row
+    try:
+        req=urllib.request.Request(link,headers={"User-Agent":UA,"Accept":"text/html,application/xhtml+xml"})
+        raw=urllib.request.urlopen(req,timeout=12).read(3_000_000)
+        soup=BeautifulSoup(raw,"html.parser")
+        for node in soup.select("script,style,noscript,nav,footer,header,aside,form,.share,.social,.related,.comments,.comment"):
+            node.decompose()
+        selectors=["[itemprop='articleBody']","article .entry-content","article .post-content",
+                   ".td-post-content",".single-content",".article-content",".post-body",
+                   ".entry-content",".post-content","article","main"]
+        candidates=[]
+        for sel in selectors:
+            for node in soup.select(sel):
+                txt=re.sub(r"\s+"," ",node.get_text(" ",strip=True)).strip()
+                if len(txt)>=300: candidates.append(txt)
+        full=max(candidates,key=len) if candidates else ""
+        if full:
+            row={**row,"source_text":full[:18000]}
+        og=soup.find("meta",attrs={"property":"og:image"}) or soup.find("meta",attrs={"name":"twitter:image"})
+        if og and og.get("content"):
+            row={**row,"image_url":urllib.parse.urljoin(link,og.get("content"))}
+        pub=(soup.find("meta",attrs={"property":"article:published_time"})
+             or soup.find("meta",attrs={"itemprop":"datePublished"})
+             or soup.find("meta",attrs={"name":"date"}))
+        if pub and pub.get("content"):
+            row={**row,"source_published_at":pub.get("content")}
+    except Exception as exc:
+        row={**row,"fulltext_error":str(exc)[:180]}
+    return row
 
 def html_candidates(src):
     home=src.get("homepage")
@@ -108,7 +143,31 @@ def main():
             print("press feeds:",src.get("source_name"),"collected",sum(1 for x in rows if x["publisher"]==src["source_name"]),"RSS candidates")
         except Exception as exc: print("press feeds:",src.get("source_name"),"failed:",str(exc)[:180])
     rows=list({x["id"]:x for x in rows}.values())
-    OUT.parent.mkdir(exist_ok=True); OUT.write_text(json.dumps(rows,ensure_ascii=False),encoding="utf-8")
-    print("press feeds: collected",len(rows),"article candidates from",len(set(x["publisher"] for x in rows)),"publishers")
+
+    # Pull a bounded number of complete article pages. Cover Iranian magazines
+    # broadly (up to 10 per publisher) instead of letting one prolific source
+    # consume the whole full-text budget.
+    full_ids=set(); per_publisher={}
+    for x in rows:
+        if x.get("scope")!="iran-magazine": continue
+        p=x.get("publisher")
+        n=per_publisher.get(p,0)
+        if n<10:
+            full_ids.add(x["id"]); per_publisher[p]=n+1
+    other=0
+    for x in rows:
+        if x["id"] in full_ids or other>=20: continue
+        full_ids.add(x["id"]); other+=1
+    with ThreadPoolExecutor(max_workers=6) as pool:
+        enriched=list(pool.map(enrich_full_article,[x for x in rows if x["id"] in full_ids]))
+    enriched_by_id={x["id"]:x for x in enriched}
+    rows=[enriched_by_id.get(x["id"],x) for x in rows]
+
+    OUT.parent.mkdir(exist_ok=True)
+    OUT.write_text(json.dumps(rows,ensure_ascii=False),encoding="utf-8")
+    # Diagnostics intentionally omit full copyrighted source text.
+    diag=[{k:v for k,v in x.items() if k!="source_text"} for x in rows]
+    DIAG_OUT.write_text(json.dumps(diag,ensure_ascii=False),encoding="utf-8")
+    print("press feeds: collected",len(rows),"article candidates from",len(set(x["publisher"] for x in rows)),"publishers; full text",sum(bool(x.get("source_text")) for x in rows))
 
 if __name__=="__main__": main()
