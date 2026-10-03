@@ -469,6 +469,17 @@ def run() -> None:
             "last_run": (log.finished_at or log.started_at).isoformat() if log and (log.finished_at or log.started_at) else None,
         })
     _write(os.path.join(DATA, "press-source-health.json"), source_health)
+    # Compact repair queue: unhealthy enabled sources first, so broken feeds can
+    # be fixed systematically instead of discovered ad hoc from workflow logs.
+    health_order = {"error": 0, "empty": 1, "pending": 2, "disabled": 3, "active": 9}
+    repair_queue = [
+        row for row in sorted(
+            source_health,
+            key=lambda x: (health_order.get(x["state"], 8), x["source_name"])
+        )
+        if row["enabled"] and row["state"] in {"error", "empty", "pending"}
+    ]
+    _write(os.path.join(DATA, "press-source-repair-queue.json"), repair_queue)
 
 
     # Keep deep links durable beyond the 60-card home feed. Export a larger
