@@ -426,17 +426,20 @@ function pressSourceStats(s, stats){
 }
 async function renderPress(sourceName) {
   const el=document.getElementById("press-content");
-  // Render the directory immediately. Generated datasets are enhancements,
-  // never a prerequisite for navigation.
+  // A source page must wait for the long-form periodical dataset; otherwise a
+  // direct visit can render a false empty state before periodicals.json arrives.
+  if(sourceName && !periodicalRows.length){
+    el.innerHTML='<div class="spinner"></div>';
+    await Promise.allSettled([loadPeriodicals(),loadPressStats(),loadPressHealth()]);
+  } else if(!periodicalRows.length || pressStatsCache===null || pressHealthCache===null){
+    Promise.allSettled([loadPeriodicals(),loadPressStats(),loadPressHealth()]).then(()=>{
+      if(document.getElementById("press-content")===el && location.hash.startsWith("#/press")) renderPress(sourceName);
+    });
+  }
   const rows=periodicalRows||[];
   const stats=pressStatsCache||[];
   const health=pressHealthCache||[];
   const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
-  if(!periodicalRows.length || pressStatsCache===null){
-    Promise.allSettled([loadPeriodicals(),loadPressStats()]).then(()=>{
-      if(document.getElementById("press-content")===el && location.hash.startsWith("#/press")) renderPress(sourceName);
-    });
-  }
 
   if(!sourceName){
     const sources=PRESS_SOURCES.filter(s => pressMatchesScope(s,pressScope) && (pressLanguage==="all"||s.lang===pressLanguage));
@@ -506,7 +509,7 @@ async function renderPress(sourceName) {
     </article>`;
   };
   el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)} ${pressHealthBadge(h)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}${st.iran_story_count?` · ${faN(st.iran_story_count)} خبر مرتبط با ایران`:""}${st.latest_at?` · آخرین خبر: ${ago(st.latest_at)}`:""}${h&&h.last_run?` · آخرین پایش: ${ago(h.last_run)}`:""}${h?` · دریافت آخر: ${faN(h.last_fetched||0)} / جدید: ${faN(h.last_new||0)}`:""}</p>`:""}</div></div>
-    ${(items.length||feedItems.length)?`<div class="press-source-count">${faN(feedItems.length)} خبر اخیر در آرشیو این منبع</div><div class="press-list">${feedItems.map(sourceStoryCard).join("")}${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
+    ${(items.length||feedItems.length)?`<div class="press-source-count">${faN(feedItems.length + items.length)} مطلب موجود از این منبع</div><div class="press-list">${feedItems.map(sourceStoryCard).join("")}${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
 }
 
 async function openPressArticle(id) {
