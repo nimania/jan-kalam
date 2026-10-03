@@ -1812,32 +1812,67 @@ function swapMarketUnits() {
   const v=a.value; a.value=b.value; b.value=v; convertMarketUnit();
 }
 
-// weather — home strip (4 cities) + dedicated page
+// weather + AirCheck-style air quality
 function showWeather() { show("weather"); setTab("feed"); renderWeather(); setHash("#/weather"); }
+const AQI_FA={good:"خوب",moderate:"قابل قبول",sensitive:"ناسالم برای گروه‌های حساس",unhealthy:"ناسالم","very-unhealthy":"بسیار ناسالم",hazardous:"خطرناک",unknown:"نامشخص"};
+const POLLUTANT_FA={pm25:"PM2.5",pm10:"PM10",o3:"O₃",no2:"NO₂",so2:"SO₂",co:"CO"};
+function _wxNum(v,suffix=""){return v===null||v===undefined||Number.isNaN(Number(v))?"—":faN(v)+suffix}
+function _airBadge(c){
+  if(c.aqi===null||c.aqi===undefined)return "";
+  const est=c.air_estimated?" estimate":"";
+  return `<span class="aqi-chip aqi-${esc(c.aqi_class||"unknown")}${est}"><b>AQI ${faN(c.aqi)}</b><span>${esc(c.aqi_label||AQI_FA[c.aqi_class]||"")}</span></span>`;
+}
+function _pollutants(c){
+  const p=c.pollutants||{}, dom=new Set(c.dominant||[]);
+  const rows=Object.entries(POLLUTANT_FA).map(([k,label])=>{
+    const v=p[k], hit=dom.has(label);
+    return `<div class="pollutant ${hit?"dominant":""}"><span>${label}</span><b>${v===null||v===undefined?"—":faN(v)}</b></div>`;
+  }).join("");
+  return `<div class="pollutants">${rows}</div>`;
+}
+function _airForecast(c){
+  const rows=(c.air_forecast||[]).filter(x=>x&&x.aqi!==null&&x.aqi!==undefined);
+  if(!rows.length)return "";
+  return `<div class="air-forecast"><span>برآورد آینده</span>${rows.map(x=>`<em>+${faN(x.hours)}ساعت <b>AQI ${faN(x.aqi)}</b></em>`).join("")}</div>`;
+}
 async function renderHomeWeather() {
   const el = document.getElementById("home-weather");
   if (!el) return;
   try {
-    const w = await getJSON(`${DATA}/weather.json`);
+    const w = await getJSON(`${DATA}/weather.json?v=${Date.now()}`);
     if (!w || !w.length) return;
     el.innerHTML = w.slice(0, 4).map(c => `<div class="hp"><span class="hp-label">${c.icon || ""} ${esc(c.city_fa)}</span>
-      <span class="hp-val">${faN(c.temp)}°</span>
-      <span class="hp-chg flat">${faN(c.min)}° / ${faN(c.max)}°</span></div>`).join("")
-      + `<button class="hp-more" onclick="showWeather()">آب‌وهوا ›</button>`;
+      <span class="hp-val">${_wxNum(c.temp,"°")}</span>
+      <span class="hp-chg flat">${_wxNum(c.min,"°")} / ${_wxNum(c.max,"°")}${c.aqi!==undefined?` · AQI ${faN(c.aqi)}`:""}</span></div>`).join("")
+      + `<button class="hp-more" onclick="showWeather()">هوا و آلودگی ›</button>`;
   } catch (e) {}
 }
 async function renderWeather() {
   const el = document.getElementById("weather");
   try {
-    const w = await getJSON(`${DATA}/weather.json`);
+    const w = await getJSON(`${DATA}/weather.json?v=${Date.now()}`);
     if (!w || !w.length) { el.innerHTML = `<div class="state"><div class="big">آب‌وهوا در دسترس نیست</div></div>`; return; }
-    el.innerHTML = `<div class="wx-grid">` + w.map(c => `<div class="wx">
-      <div class="wx-ic">${c.icon || "🌡️"}</div>
-      <div class="wx-city">${esc(c.city_fa)}</div>
-      <div class="wx-temp">${faN(c.temp)}°</div>
-      <div class="wx-cond">${esc(c.cond_fa || "")}</div>
-      <div class="wx-mm"><span class="wx-min">${faN(c.min)}°</span> / <span class="wx-max">${faN(c.max)}°</span></div></div>`).join("")
-      + `</div><aside class="weather-expert"><div><span class="weather-expert-kicker">کارشناس مرتبط</span><strong>محمد اصغری</strong><p>پیش‌بینی، تحلیل سامانه‌های بارشی، هشدارهای جوی و هواشناسی کشاورزی</p></div><button onclick="openFigure(\'asghari_weatherman\')">صفحهٔ محمد اصغری ←</button></aside><p class="muted" style="margin-top:14px">منبع دادهٔ عددی: Open-Meteo — دمای کنونی و کمینه/بیشینهٔ امروز. هر ساعت به‌روز می‌شود. تحلیل‌های محمد اصغری به‌عنوان دیدگاه کارشناس، جدا از دادهٔ عددی نمایش داده می‌شوند.</p>`;
+    const polluted=w.filter(x=>Number.isFinite(Number(x.aqi))).sort((a,b)=>Number(b.aqi)-Number(a.aqi));
+    const top=polluted.slice(0,3);
+    const official=polluted.filter(x=>!x.air_estimated).length;
+    const estimated=polluted.filter(x=>x.air_estimated).length;
+    const overview=top.length?`<section class="air-overview">
+      <div class="air-overview-head"><div><span class="press-kicker">کیفیت هوای فعلی</span><h2>آلوده‌ترین‌های این فهرست</h2></div><div class="air-source-count">${official?faN(official)+" شهر رسمی":""}${official&&estimated?" · ":""}${estimated?faN(estimated)+" شهر برآوردی":""}</div></div>
+      <div class="air-rank">${top.map((c,i)=>`<div class="air-rank-row"><span class="air-rank-no">${faN(i+1)}</span><strong>${esc(c.city_fa)}</strong>${_airBadge(c)}</div>`).join("")}</div>
+      <div class="aqi-legend"><span class="aqi-good">۰–۵۰ خوب</span><span class="aqi-moderate">۵۱–۱۰۰ قابل قبول</span><span class="aqi-sensitive">۱۰۱–۱۵۰ حساس</span><span class="aqi-unhealthy">۱۵۱–۲۰۰ ناسالم</span><span class="aqi-very-unhealthy">۲۰۱–۳۰۰ بسیار ناسالم</span><span class="aqi-hazardous">+۳۰۰ خطرناک</span></div>
+    </section>`:"";
+    const cards=w.map(c=>`<article class="wx wx-rich">
+      <div class="wx-weather-row"><div class="wx-ic">${c.icon || "🌡️"}</div><div class="wx-weather-copy"><div class="wx-city">${esc(c.city_fa)}</div><div class="wx-cond">${esc(c.cond_fa || "")}</div></div><div class="wx-temp">${_wxNum(c.temp,"°")}</div></div>
+      <div class="wx-mm"><span class="wx-min">کمینه ${_wxNum(c.min,"°")}</span><span class="wx-max">بیشینه ${_wxNum(c.max,"°")}</span></div>
+      ${c.aqi!==undefined&&c.aqi!==null?`<div class="air-card-head">${_airBadge(c)}<span class="air-source ${c.air_estimated?"estimate":"official"}">${c.air_estimated?"برآورد مدل":"دادهٔ رسمی"}</span></div>
+        ${(c.dominant||[]).length?`<div class="dominant-copy">آلایندهٔ غالب: <b>${esc((c.dominant||[]).join("، "))}</b></div>`:""}
+        ${_pollutants(c)}
+        ${_airForecast(c)}
+        <div class="air-source-line">${esc(c.air_source_fa||"")}</div>`:`<div class="air-no-data">دادهٔ آلودگی در دسترس نیست</div>`}
+    </article>`).join("");
+    el.innerHTML = overview+`<div class="wx-grid wx-air-grid">${cards}</div>
+      <aside class="weather-expert"><div><span class="weather-expert-kicker">کارشناس مرتبط</span><strong>محمد اصغری</strong><p>پیش‌بینی، تحلیل سامانه‌های بارشی، هشدارهای جوی و هواشناسی کشاورزی</p></div><button onclick="openFigure('asghari_weatherman')">صفحهٔ محمد اصغری ←</button></aside>
+      <div class="weather-sources"><p><b>دما و شرایط جوی:</b> Open-Meteo.</p><p><b>آلودگی هوا:</b> ابتدا شبکهٔ ملی پایش کیفیت هوای سازمان حفاظت محیط‌زیست با همان endpointها و منطق منبعی که پروژهٔ متن‌باز AirCheck استفاده می‌کند. اگر دسترسی رسمی از سرور GitHub ممکن نباشد، Open-Meteo / Copernicus CAMS با برچسب «برآورد مدل» جایگزین می‌شود.</p><a href="https://github.com/ZethRise/AirCheck" target="_blank" rel="noopener">AirCheck روی GitHub ↗</a></div>`;
   } catch (e) { el.innerHTML = `<div class="state"><div class="big">آب‌وهوا بارگذاری نشد</div></div>`; }
 }
 
