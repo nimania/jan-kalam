@@ -443,6 +443,10 @@ async function loadPeriodicals() {
 }
 async function loadPressDirectory(){
   if(pressDirectoryCache!==null) return pressDirectoryCache;
+  if(Array.isArray(window.__PRESS_DIRECTORY__)){
+    pressDirectoryCache=window.__PRESS_DIRECTORY__;
+    return pressDirectoryCache;
+  }
   let rows=[];
   try{rows=await getJSON(`${DATA}/press-directory.json?v=${Date.now()}`,5000);}catch(_){}
   pressDirectoryCache=Array.isArray(rows)?rows:[];
