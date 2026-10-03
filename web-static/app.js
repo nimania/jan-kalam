@@ -546,11 +546,11 @@ async function renderPress(sourceName) {
       const dr=sourceDirRow(s)||{count:0,latest_at:null};
       const h=pressSourceHealth(s,health);
       const bits=[faN(dr.count)+" مطلب"];
-      if(dr.latest_at) bits.push("آخرین: "+ago(dr.latest_at));
+      if(dr.latest_at) bits.push("آخرین: "+relTime(dr.latest_at));
       const status=bits.join(" · ");
       return `<button class="press-source press-source-rich" onclick="showPress('${esc(s.name)}')">
         ${pressLogo(s)}
-        <span class="press-source-copy"><span class="press-source-title"><strong>${esc(s.name)}</strong>${pressHealthBadge(h)}</span><small>${esc(s.type)} · ${PRESS_LANG_FA[s.lang]||s.lang}</small><em>${status}${h&&h.last_run?` · پایش ${ago(h.last_run)}`:""}</em></span>
+        <span class="press-source-copy"><span class="press-source-title"><strong>${esc(s.name)}</strong>${pressHealthBadge(h)}</span><small>${esc(s.type)} · ${PRESS_LANG_FA[s.lang]||s.lang}</small><em>${status}${h&&h.last_run?` · پایش ${relTime(h.last_run)}`:""}</em></span>
       </button>`;
     }).join("");
     const known=new Set(PRESS_SOURCES.flatMap(s=>[s.name,...(s.aliases||[])]));
@@ -588,7 +588,7 @@ async function renderPress(sourceName) {
     </article>`;
   };
   const renderSourcePage=(feedItems=[])=>{
-    el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)} ${pressHealthBadge(h)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}${st.iran_story_count?` · ${faN(st.iran_story_count)} خبر مرتبط با ایران`:""}${st.latest_at?` · آخرین خبر: ${ago(st.latest_at)}`:""}${h&&h.last_run?` · آخرین پایش: ${ago(h.last_run)}`:""}${h?` · دریافت آخر: ${faN(h.last_fetched||0)} / جدید: ${faN(h.last_new||0)}`:""}</p>`:""}</div></div>
+    el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)} ${pressHealthBadge(h)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}${st.iran_story_count?` · ${faN(st.iran_story_count)} خبر مرتبط با ایران`:""}${st.latest_at?` · آخرین خبر: ${relTime(st.latest_at)}`:""}${h&&h.last_run?` · آخرین پایش: ${relTime(h.last_run)}`:""}${h?` · دریافت آخر: ${faN(h.last_fetched||0)} / جدید: ${faN(h.last_new||0)}`:""}</p>`:""}</div></div>
       ${(items.length||feedItems.length)?`<div class="press-source-count">${faN(feedItems.length + items.length)} مطلب موجود از این منبع</div><div class="press-list">${feedItems.map(sourceStoryCard).join("")}${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle(\'${esc(x.id)}\')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
   };
   renderSourcePage([]);
