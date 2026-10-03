@@ -34,6 +34,7 @@ _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 # Shared across every GeminiProvider instance for the life of the process.
 _resolved_model: str | None = None
 _bad_models: set[str] = set()
+_quota_models: set[str] = set()
 _key_idx: int = 0
 
 
@@ -111,7 +112,7 @@ def _resolve_model(preferred: str, api_key: str, timeout: float) -> str:
 
     pref = _short(preferred)
     try:
-        available = [a for a in _list_models(api_key, timeout) if a not in _bad_models]
+        available = [a for a in _list_models(api_key, timeout) if a not in _bad_models and a not in _quota_models]
     except Exception as exc:
         logger.warning("could not list Gemini models (%s); using '%s'", exc, pref)
         _resolved_model = pref
@@ -185,12 +186,17 @@ class GeminiProvider:
                 _mark_bad(model)
                 continue
             if code == 429:
+                # Quotas can be model-specific. Try another usable text model
+                # before repeatedly sleeping on the same exhausted model.
+                global _resolved_model
+                _quota_models.add(model)
+                _resolved_model = None
                 if n_keys > 1:
-                    logger.info("key #%d rate-limited; rotating key", _key_idx + 1)
+                    logger.info("model '%s' rate-limited; rotating key/model", model)
                     _rotate_key(keys)
                 else:
-                    wait = min(2 * (i + 1), 12)
-                    logger.info("rate limited; backing off %ss", wait)
+                    wait = min(i + 1, 4)
+                    logger.info("model '%s' rate-limited; trying another model after %ss", model, wait)
                     time.sleep(wait)
                 continue
             resp.raise_for_status()  # other errors: surface immediately
