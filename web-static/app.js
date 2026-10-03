@@ -483,20 +483,12 @@ function pressSourceStats(s, stats){
 }
 async function renderPress(sourceName) {
   const el=document.getElementById("press-content");
-  // A source page must wait for the long-form periodical dataset; otherwise a
-  // direct visit can render a false empty state before periodicals.json arrives.
-  if(sourceName && !periodicalRows.length){
+  // Never decide that the public directory is empty before its generated data
+  // has actually loaded. Empty-state text must mean "zero published content",
+  // not "the fetch is still in flight".
+  if(!periodicalRows.length || pressStatsCache===null || pressHealthCache===null){
     el.innerHTML='<div class="spinner"></div>';
-    // Only the periodical dataset is required to render a source page.
-    // Stats/health are enhancements and must never block visible articles.
-    await loadPeriodicals();
-    Promise.allSettled([loadPressStats(),loadPressHealth()]).then(()=>{
-      if(document.getElementById("press-content")===el && location.hash.startsWith("#/press-source/")) renderPress(sourceName);
-    });
-  } else if(!periodicalRows.length || pressStatsCache===null || pressHealthCache===null){
-    Promise.allSettled([loadPeriodicals(),loadPressStats(),loadPressHealth()]).then(()=>{
-      if(document.getElementById("press-content")===el && location.hash.startsWith("#/press")) renderPress(sourceName);
-    });
+    await Promise.allSettled([loadPeriodicals(),loadPressStats(),loadPressHealth()]);
   }
   const rows=periodicalRows||[];
   const stats=pressStatsCache||[];
