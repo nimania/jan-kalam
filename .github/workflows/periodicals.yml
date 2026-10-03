@@ -25,11 +25,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  publish:
+  build-periodicals:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -99,10 +96,6 @@ jobs:
         with:
           path: site
 
-      - name: Deploy Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
       - name: Save diagnostics
         if: always()
         uses: actions/upload-artifact@v4
@@ -113,5 +106,17 @@ jobs:
             backend/periodicals/site_articles.json
             backend/periodicals/quarantine.json
             backend/periodicals/archive.json
+            backend/public/data/press-registry-health.json
           if-no-files-found: ignore
           retention-days: 3
+
+  deploy:
+    needs: build-periodicals
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
