@@ -26,6 +26,14 @@ PUBLISHERS = [
     (re.compile(r"\bnew\s*york\s+times\b|\bnyt\b", re.I), "نیویورک تایمز"),
     (re.compile(r"\bwashington\s+post\b", re.I), "واشنگتن پست"),
     (re.compile(r"\btime\b", re.I), "تایم"),
+    (re.compile(r"(?:مجله|ماهنامه)?\s*تجربه(?!\s*و\s*شهر)", re.I), "تجربه"),
+    (re.compile(r"(?:مجله)?\s*بخارا", re.I), "بخارا"),
+    (re.compile(r"(?:مجله)?\s*اندیشه\s*پویا", re.I), "اندیشه پویا"),
+    (re.compile(r"(?:مجله)?\s*مروارید", re.I), "مروارید"),
+    (re.compile(r"(?:مجله)?\s*غروب", re.I), "غروب"),
+    (re.compile(r"(?:مجله)?\s*تجربه\s*و\s*شهر", re.I), "تجربه و شهر"),
+    (re.compile(r"(?:مجله)?\s*هنر\s*و\s*جامعه", re.I), "هنر و جامعه"),
+    (re.compile(r"(?:مجله|ماهنامه)?\s*روزنامک", re.I), "روزنامک"),
 ]
 
 def publisher_for(filename: str) -> str | None:
