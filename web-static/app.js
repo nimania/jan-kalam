@@ -60,7 +60,8 @@ function showFaq() { show("faq"); setTab("faq"); renderFaq(); setHash("#/faq"); 
 let periodicalRows = [];
 let pressScope = "all";
 let pressLanguage = "all";
-let pressStatsCache = null;\nlet pressHealthCache = null;
+let pressStatsCache = null;
+let pressHealthCache = null;
 
 const PRESS_SOURCES = [
   // خبرگزاری‌ها و رسانه‌های خبری داخل ایران
@@ -246,7 +247,8 @@ async function renderPress(sourceName) {
   // Render the directory immediately. Generated datasets are enhancements,
   // never a prerequisite for navigation.
   const rows=periodicalRows||[];
-  const stats=pressStatsCache||[];\n  const health=pressHealthCache||[];
+  const stats=pressStatsCache||[];
+  const health=pressHealthCache||[];
   const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
   if(!periodicalRows.length || pressStatsCache===null){
     Promise.allSettled([loadPeriodicals(),loadPressStats()]).then(()=>{
