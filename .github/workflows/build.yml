@@ -106,6 +106,15 @@ jobs:
             echo "::warning::Could not download latest periodicals artifact; keeping generated build data."
           fi
 
+          weather_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/weather.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -n "$weather_id" ]; then
+            rm -rf /tmp/weather && mkdir -p /tmp/weather
+            if gh run download "$weather_id" -n weather-data -D /tmp/weather && [ -f /tmp/weather/weather.json ]; then
+              mkdir -p backend/public/data
+              cp /tmp/weather/weather.json backend/public/data/weather.json
+            fi
+          fi
+
       - name: Save the figures published in this build
         uses: actions/upload-artifact@v4
         with:
