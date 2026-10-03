@@ -17,17 +17,30 @@ ARCHIVE=ROOT/"archive.json"
 PUBLIC=Path("public/data/periodicals.json")
 MAX_ITEMS=300
 
-SYSTEM="""You are a meticulous Persian periodical editor. Return JSON only.
-From the supplied PDF page candidate, determine whether it contains a coherent article.
-If it does, create a faithful Persian rendering that preserves the article's claims,
-qualifications, sequence and attribution without adding facts. It must read naturally in
-Persian and must not invent missing text. When a page is only a fragment that clearly
-continues elsewhere, be conservative. Classify it into one useful section such as
-سیاست، اقتصاد، جهان، ایران، فناوری، فرهنگ، جامعه، علم، کسب‌وکار or سبک زندگی.
+SYSTEM="""You are a meticulous Persian periodical editor and SEO writer. Return JSON only.
+The input may contain a full source article, an RSS excerpt, or a PDF page candidate.
+
+Create an original Persian article based on the source facts and arguments. Do not copy
+the source sentence-by-sentence or imitate its exact wording/structure. Preserve claims,
+qualifications, chronology and attribution; do not add facts. For Persian sources, rewrite
+into a clear independent article. For non-Persian sources, translate and synthesize faithfully.
+The result should be useful on its own while clearly attributing the original publisher.
+
+SEO requirements:
+- headline_fa: accurate, natural, search-friendly; avoid clickbait.
+- seo_title_fa: <= 65 Persian characters when practical.
+- meta_description_fa: 120-165 Persian characters when practical.
+- body_fa: structured, coherent, substantial but not a substitute copy of the source.
+- key_points_fa: 3-5 concrete points.
+- seo_keywords_fa: 3-8 short relevant phrases.
+- section_fa: one useful section such as سیاست، اقتصاد، جهان، ایران، فناوری، فرهنگ،
+  جامعه، علم، کسب‌وکار or سبک زندگی.
+
 Output:
-{"publish":true|false,"headline_fa":"","summary_fa":"","body_fa":"",
- "section_fa":"","key_points_fa":["",""]}.
-body_fa should be a detailed Persian rendering of the available article text, not a short card."""
+{"publish":true|false,"headline_fa":"","seo_title_fa":"","meta_description_fa":"",
+ "summary_fa":"","body_fa":"","section_fa":"","key_points_fa":[""],
+ "seo_keywords_fa":[""]}.
+"""
 
 
 def _persian_text(s):
@@ -100,8 +113,9 @@ def main():
             fresh.append(fb)
             metadata_ids.add(x.get("id"))
 
-    # AI is reserved for items that actually need transformation/translation.
-    ai_site_rows=[x for x in site_rows if x.get("id") not in metadata_ids]
+    # Full source pages get AI synthesis even when a safe RSS fallback is already
+    # publishable. The later AI result replaces the fallback for the same id.
+    ai_site_rows=sorted(site_rows,key=lambda x:bool(x.get("source_text")),reverse=True)
     article_rows=(ai_site_rows[:24] + pdf_rows[:16])[:40]
 
     if getattr(provider,"name","mock")=="mock":
@@ -110,8 +124,9 @@ def main():
         consecutive_provider_errors=0
         for idx,x in enumerate(article_rows):
             try:
-                prompt_kind = "RSS/site article metadata or snippet" if x.get("kind")=="site_feed" else "PDF page candidate"
-                r=provider.generate(system=SYSTEM,user=("Input type: "+prompt_kind+"\nPublisher: "+x["publisher"]+"\nText:\n"+x["text"][:10000]),context={"articles":[]}).data
+                prompt_kind = "full source article" if x.get("source_text") else ("RSS/site article metadata or snippet" if x.get("kind")=="site_feed" else "PDF page candidate")
+                source_text=(x.get("source_text") or x.get("text") or "")[:16000]
+                r=provider.generate(system=SYSTEM,user=("Input type: "+prompt_kind+"\nPublisher: "+x["publisher"]+"\nOriginal title: "+str(x.get("title_original") or "")+"\nSource URL: "+str(x.get("article_url") or x.get("telegram_post_url") or "")+"\nText:\n"+source_text),context={"articles":[]}).data
                 consecutive_provider_errors=0
                 if not r.get("publish") or not r.get("headline_fa") or not r.get("summary_fa"):
                     fb=fallback_site_card(x)
@@ -122,18 +137,23 @@ def main():
                     "title_original":x.get("title_original"),
                     "source_lang":x.get("lang"),
                     "headline_fa":str(r["headline_fa"]).strip(),
+                    "seo_title_fa":str(r.get("seo_title_fa") or r["headline_fa"]).strip(),
+                    "meta_description_fa":str(r.get("meta_description_fa") or r["summary_fa"]).strip(),
                     "summary_fa":str(r["summary_fa"]).strip(),
                     "body_fa":str(r.get("body_fa") or "").strip(),
                     "section_fa":str(r.get("section_fa") or "سایر").strip(),
-                    "key_points_fa":[str(v).strip() for v in (r.get("key_points_fa") or [])[:4] if str(v).strip()],
+                    "key_points_fa":[str(v).strip() for v in (r.get("key_points_fa") or [])[:5] if str(v).strip()],
+                    "seo_keywords_fa":[str(v).strip() for v in (r.get("seo_keywords_fa") or [])[:8] if str(v).strip()],
                     "telegram_post_url":x.get("telegram_post_url"),
                     "article_url":x.get("article_url"),
+                    "source_url":x.get("article_url") or x.get("telegram_post_url"),
+                    "source_published_at":x.get("source_published_at"),
                     "transport":x.get("transport"),"page":x.get("page"),
                     "image_url":x.get("image_url"),
                     "issue_key":(f'{x.get("publisher","")}:article:{x.get("id","")}' if x.get("kind")=="site_feed" else f'{x.get("publisher","")}:{x.get("transport","")}:{x.get("telegram_message_id","")}'),
                     "cover_url":next((v.get("cover_url") for v in sorted(covers,key=lambda z:abs(int(z.get("telegram_message_id",0))-int(x.get("telegram_message_id",0)))) if v.get("publisher")==x.get("publisher") and abs(int(v.get("telegram_message_id",0))-int(x.get("telegram_message_id",0)))<=3),None),
                     "published_at":datetime.now(timezone.utc).isoformat(),
-                    "enrichment_state":"ai",
+                    "enrichment_state":("ai_fulltext" if x.get("source_text") else "ai"),
                 })
             except Exception as exc:
                 consecutive_provider_errors += 1
