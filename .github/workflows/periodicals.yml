@@ -81,8 +81,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh run download "${{ steps.base.outputs.run_id }}" -n latest-static-site -D site
 
-      - name: Overlay Jan-e Jarayed data and extracted PDF images
+      - name: Overlay Jan-e Jarayed data and current UI
         run: |
+          # Keep the generated data from this run, but always ship the current UI.
+          rsync -a --exclude 'data/' web-static/ site/
           mkdir -p site/data
           cp backend/public/data/periodicals.json site/data/periodicals.json
           cp backend/public/data/press-registry-health.json site/data/press-registry-health.json
@@ -90,6 +92,30 @@ jobs:
             mkdir -p site/assets/periodicals
             cp -R backend/web-static/assets/periodicals/. site/assets/periodicals/
           fi
+          python - <<'PY'
+          import hashlib, pathlib, re
+          root = pathlib.Path("site")
+          versions = {}
+          for name in ("app.js", "styles.css", "iran-provinces.js"):
+              p = root / name
+              if p.exists():
+                  versions[name] = hashlib.md5(p.read_bytes()).hexdigest()[:8]
+          idx = root / "index.html"
+          text = idx.read_text(encoding="utf-8")
+          for name, version in versions.items():
+              text = re.sub(
+                  r'((?:src|href)="' + re.escape(name) + r')(?:\?v=[0-9a-f]+)?(")',
+                  r'\1?v=' + version + r'\2',
+                  text,
+              )
+          idx.write_text(text, encoding="utf-8")
+          sw = root / "sw.js"
+          app_v = versions.get("app.js")
+          if sw.exists() and app_v:
+              s = sw.read_text(encoding="utf-8")
+              s = re.sub(r'const V = "[^"]*";', f'const V = "jankalam-{app_v}";', s, count=1)
+              sw.write_text(s, encoding="utf-8")
+          PY
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
