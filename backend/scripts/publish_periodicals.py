@@ -35,11 +35,18 @@ SEO requirements:
 - seo_keywords_fa: 3-8 short relevant phrases.
 - section_fa: one useful section such as سیاست، اقتصاد، جهان، ایران، فناوری، فرهنگ،
   جامعه، علم، کسب‌وکار or سبک زندگی.
+- If the article announces or describes a real-world event, extract the event metadata.
+  Keep the Persian display wording in date_fa/time_fa/location_fa/address_fa. When the
+  source gives enough information to identify an exact time, also provide start_iso and
+  end_iso as ISO-8601 with timezone offset. For Iranian events use Asia/Tehran unless the
+  source clearly indicates another timezone. Never invent a missing date, time or address.
 
 Output:
 {"publish":true|false,"headline_fa":"","seo_title_fa":"","meta_description_fa":"",
  "summary_fa":"","body_fa":"","section_fa":"","key_points_fa":[""],
- "seo_keywords_fa":[""]}.
+ "seo_keywords_fa":[""],
+ "event":{"is_event":false,"date_fa":"","time_fa":"","start_iso":"","end_iso":"",
+          "timezone":"","location_fa":"","address_fa":""}}.
 """
 
 
@@ -63,9 +70,9 @@ def fallback_site_card(x):
     excerpt=re.sub(r"\\s*\\[(?:…|\\.\\.\\.)\\]\\s*$","",excerpt).strip()
     # RSS descriptions are already source-authored summaries/excerpts. Keep them
     # short and clearly attributed rather than replacing them with a generic notice.
-    body=excerpt[:1400].strip()
-    if len(excerpt)>1400: body=body.rstrip()+"…"
-    summary=body
+    body=""
+    summary=excerpt[:1400].strip()
+    if len(excerpt)>1400: summary=summary.rstrip()+"…"
     if len(summary)>360:
         cut=max(summary.rfind("。",0,360),summary.rfind("؟",0,360),summary.rfind("!",0,360),summary.rfind(".",0,360))
         summary=(summary[:cut+1] if cut>140 else summary[:360].rstrip()+"…")
@@ -151,6 +158,16 @@ def main():
                     "section_fa":str(r.get("section_fa") or "سایر").strip(),
                     "key_points_fa":[str(v).strip() for v in (r.get("key_points_fa") or [])[:5] if str(v).strip()],
                     "seo_keywords_fa":[str(v).strip() for v in (r.get("seo_keywords_fa") or [])[:8] if str(v).strip()],
+                    "event":({
+                        "is_event":bool((r.get("event") or {}).get("is_event")),
+                        "date_fa":str((r.get("event") or {}).get("date_fa") or "").strip(),
+                        "time_fa":str((r.get("event") or {}).get("time_fa") or "").strip(),
+                        "start_iso":str((r.get("event") or {}).get("start_iso") or "").strip(),
+                        "end_iso":str((r.get("event") or {}).get("end_iso") or "").strip(),
+                        "timezone":str((r.get("event") or {}).get("timezone") or "").strip(),
+                        "location_fa":str((r.get("event") or {}).get("location_fa") or "").strip(),
+                        "address_fa":str((r.get("event") or {}).get("address_fa") or "").strip(),
+                    }),
                     "telegram_post_url":x.get("telegram_post_url"),
                     "article_url":x.get("article_url"),
                     "source_url":x.get("article_url") or x.get("telegram_post_url"),
