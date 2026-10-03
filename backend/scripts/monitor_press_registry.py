@@ -17,9 +17,9 @@ def excluded(name: str, url: str) -> bool:
     n=(name or "").casefold(); u=(url or "").casefold()
     return any(t.casefold() in n for t in _EXCLUDED_SOURCE_TERMS) or any(d in u for d in _EXCLUDED_SOURCE_DOMAINS)
 
-def fetch(url: str):
+def fetch(url: str, timeout: int = 20):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept":"text/html,application/xhtml+xml,application/rss+xml,application/atom+xml;q=0.9,*/*;q=0.7"})
-    with urllib.request.urlopen(req, timeout=20) as r:
+    with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.geturl(), r.status, r.headers.get("content-type",""), r.read(1_000_000).decode("utf-8","replace")
 
 def looks_feed(ctype: str, body: str) -> bool:
@@ -34,7 +34,7 @@ def discover_feed(base: str, html: str) -> list[str]:
         mm=re.search(r'href=["\']([^"\']+)', tag, re.I)
         if mm: found.append(urllib.parse.urljoin(base, mm.group(1)))
     root=urllib.parse.urljoin(base, "/")
-    found += [urllib.parse.urljoin(root,"feed/"), urllib.parse.urljoin(root,"feed"), urllib.parse.urljoin(root,"rss.xml"), urllib.parse.urljoin(root,"index.xml")]
+    found += [urllib.parse.urljoin(root,"feed/"), urllib.parse.urljoin(root,"rss.xml")]
     return list(dict.fromkeys(found))
 
 def main():
@@ -52,7 +52,7 @@ def main():
             for candidate in discover_feed(final,body):
                 if excluded(name,candidate): continue
                 try:
-                    _,fs,fc,fb=fetch(candidate)
+                    _,fs,fc,fb=fetch(candidate, 6)
                     if fs < 400 and looks_feed(fc,fb): feed=candidate; break
                 except Exception: pass
             if feed:
