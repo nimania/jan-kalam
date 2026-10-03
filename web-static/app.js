@@ -39,6 +39,36 @@ async function getJSON(path, timeoutMs = 12000) {
   } finally { clearTimeout(timer); }
 }
 
+
+// Header smart search — searches already-published Jan Kalam datasets locally.
+let _smartSearchTimer=null, _smartSearchDocs=null;
+function toggleSmartSearch(force){
+  const box=document.getElementById("smart-search");
+  const open=typeof force==="boolean"?force:!box.classList.contains("open");
+  box.classList.toggle("open",open);
+  if(open) setTimeout(()=>document.getElementById("smart-search-input")?.focus(),30);
+}
+function smartSearchKey(e){ if(e.key==="Escape"){toggleSmartSearch(false);e.currentTarget.blur();} }
+function _sq(s){return String(s||"").toLowerCase().replace(/[يى]/g,"ی").replace(/ك/g,"ک").replace(/‌/g," ").replace(/[^\p{L}\p{N}\s]/gu," ").replace(/\s+/g," ").trim()}
+async function smartSearch(q){
+  clearTimeout(_smartSearchTimer);
+  _smartSearchTimer=setTimeout(async()=>{
+    const out=document.getElementById("smart-search-results"), nq=_sq(q);
+    if(nq.length<2){out.innerHTML='<div class="smart-search-hint">حداقل دو حرف بنویس؛ جست‌وجو در خبرها، چهره‌ها و جراید انجام می‌شود.</div>';return}
+    if(!_smartSearchDocs){
+      const docs=[];
+      try{const f=await loadFigures();(f.figures||[]).forEach(x=>docs.push({kind:"چهره",title:x.name_fa,sub:x.role_fa||"",go:`openFigure('${String(x.handle).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,x.handle,(x.posts||[]).map(p=>p.summary_fa).join(" ")] .join(" ")}))}catch(_){}
+      try{const feed=await getJSON(`${DATA}/feed.json`);const arr=Array.isArray(feed)?feed:(feed.items||[]);arr.forEach(x=>docs.push({kind:"خبر",title:x.headline_fa||x.title_fa||x.title||"",sub:(x.source_names||[]).slice(0,3).join(" · "),go:`openStory('${x.id}')`,text:[x.headline_fa,x.summary_fa,x.what_happened_fa,(x.source_names||[]).join(" ")].join(" ")}))}catch(_){}
+      PRESS_SOURCES.forEach(x=>docs.push({kind:"جریده",title:x.name,sub:x.type||"",go:`showPress('${String(x.name).replace(/'/g,"\\'")}')`,text:[x.name,(x.aliases||[]).join(" "),x.type,x.lang].join(" ")}));
+      _smartSearchDocs=docs;
+    }
+    const terms=nq.split(" ").filter(Boolean);
+    const ranked=_smartSearchDocs.map(d=>{const t=_sq(d.text),tt=_sq(d.title);let score=0;for(const z of terms){if(tt===z)score+=12;else if(tt.includes(z))score+=7;if(t.includes(z))score+=2}if(terms.every(z=>t.includes(z)))score+=6;return {d,score}}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12);
+    out.innerHTML=ranked.length?ranked.map(({d})=>`<button class="smart-search-result" onclick="${d.go};toggleSmartSearch(false)"><span class="ss-kind">${esc(d.kind)}</span><span><b>${esc(d.title)}</b><small>${esc(d.sub)}</small></span></button>`).join(""):'<div class="smart-search-hint">نتیجه‌ای پیدا نشد.</div>';
+  },120);
+}
+document.addEventListener("click",e=>{const box=document.getElementById("smart-search");if(box?.classList.contains("open")&&!box.contains(e.target))toggleSmartSearch(false)});
+
 const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
   factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
   weather: "weather-view", iran: "iran-view", faq: "faq-view", market: "market-view",
