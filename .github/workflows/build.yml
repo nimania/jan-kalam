@@ -26,6 +26,7 @@ on:
                                     # run only synthesizes genuinely NEW stories)
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -78,6 +79,33 @@ jobs:
           python -m scripts.collect_external_figures
           python -m scripts.export_static
           python -m scripts.build_periodicals
+      - name: Overlay freshest Jan-e Jaraid data before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          press_id="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/periodicals.yml/runs?status=success&per_page=1" --jq '.workflow_runs[0].id // empty')"
+          if [ -z "$press_id" ]; then
+            echo "::warning::No successful periodicals run found; keeping generated build data."
+            exit 0
+          fi
+          rm -rf /tmp/press-pages /tmp/press-site
+          mkdir -p /tmp/press-pages /tmp/press-site
+          if gh run download "$press_id" -n github-pages -D /tmp/press-pages && [ -f /tmp/press-pages/artifact.tar ]; then
+            tar -xf /tmp/press-pages/artifact.tar -C /tmp/press-site
+            mkdir -p backend/public/data
+            for name in periodicals.json press-directory.json press-directory.js press-registry-health.json; do
+              if [ -f "/tmp/press-site/data/$name" ]; then
+                cp "/tmp/press-site/data/$name" "backend/public/data/$name"
+              fi
+            done
+            if [ -d /tmp/press-site/assets/periodicals ]; then
+              mkdir -p backend/public/assets/periodicals
+              rsync -a /tmp/press-site/assets/periodicals/ backend/public/assets/periodicals/
+            fi
+          else
+            echo "::warning::Could not download latest periodicals artifact; keeping generated build data."
+          fi
+
       - name: Save the figures published in this build
         uses: actions/upload-artifact@v4
         with:
