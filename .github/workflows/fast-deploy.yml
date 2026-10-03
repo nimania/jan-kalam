@@ -56,7 +56,7 @@ jobs:
             rm -rf /tmp/press-site && mkdir -p /tmp/press-site
             tar -xf /tmp/press-pages/artifact.tar -C /tmp/press-site
             mkdir -p site/data
-            for name in periodicals.json press-directory.json press-registry-health.json; do
+            for name in periodicals.json press-directory.json press-directory.js press-registry-health.json; do
               if [ -f "/tmp/press-site/data/$name" ]; then
                 cp "/tmp/press-site/data/$name" "site/data/$name"
               fi
@@ -78,7 +78,7 @@ jobs:
           import hashlib, pathlib, re
           root = pathlib.Path("site")
           versions = {}
-          for name in ("app.js", "styles.css", "iran-provinces.js"):
+          for name in ("app.js", "styles.css", "iran-provinces.js", "data/press-directory.js"):
               p = root / name
               if p.exists():
                   versions[name] = hashlib.md5(p.read_bytes()).hexdigest()[:8]
