@@ -910,3 +910,9 @@
 @media(max-width:620px){.x-profile-tabs button{flex:1 0 25%;font-size:12px}.curated-poems-head{padding:20px 16px 16px;display:block}.curated-count{display:inline-block;margin-top:12px}.curated-poem-list{padding:4px 16px 24px}.curated-poem{grid-template-columns:1fr;gap:7px;padding:22px 0}.curated-poem-text{font-size:18px;line-height:2.05}}
 
 .smart-search-result em{display:block;margin-top:5px;color:var(--ink-faint);font-style:normal;font-size:12px;line-height:1.65}.ss-answer{padding:10px 9px 8px;border-bottom:1px solid var(--line)}.ss-answer strong,.ss-answer small{display:block}.ss-answer strong{font-size:13px}.ss-answer small{margin-top:2px;color:var(--ink-faint);font-size:11px}.ss-divider{padding:10px 8px 5px;color:var(--ink-faint);font-size:11px;font-weight:700;border-top:1px solid var(--line)}
+
+/* Works/poetry: reset legacy absolute badge rules that squeezed text into a narrow column. */
+.x-profile .curated-poem{position:relative;display:block!important;padding:28px 0!important;min-width:0}
+.x-profile .curated-poem-no{position:static!important;display:inline-flex!important;width:auto!important;height:auto!important;place-items:initial!important;border-radius:999px!important;padding:5px 9px!important;margin:0 0 13px!important;background:var(--surface)!important;font:600 11px/1.2 "Vazirmatn",sans-serif!important}
+.x-profile .curated-poem-text{display:block!important;width:100%!important;max-width:680px!important;min-width:0!important;white-space:normal!important;word-break:normal!important;overflow-wrap:normal!important;writing-mode:horizontal-tb!important;text-orientation:mixed!important;direction:rtl!important;text-align:right!important}
+@media(max-width:620px){.x-profile .curated-poem{padding:22px 0!important}.x-profile .curated-poem-text{max-width:100%!important}}
