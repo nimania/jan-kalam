@@ -141,15 +141,17 @@ const PRESS_SOURCES = [
   {name:"NPR", domain:"npr.org", scope:"world", lang:"en", type:"رادیو/آنلاین"},
   {name:"Newsweek", domain:"newsweek.com", scope:"world", lang:"en", type:"مجله"},
   {name:"Sky News", domain:"news.sky.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
-  {name:"Time", domain:"time.com", scope:"world", lang:"en", type:"مجله"},
+  {name:"Time", aliases:["تایم"], domain:"time.com", scope:"world", lang:"en", type:"مجله"},
   // رسانه‌های جهان
   {name:"Reuters", domain:"reuters.com", scope:"world", lang:"en", type:"خبرگزاری"},
   {name:"Associated Press", domain:"apnews.com", scope:"world", lang:"en", type:"خبرگزاری"},
   {name:"BBC", domain:"bbc.com", scope:"world", lang:"en", type:"رسانه عمومی"},
   {name:"The Guardian", domain:"theguardian.com", scope:"world", lang:"en", type:"روزنامه"},
+  {name:"Guardian Weekly", aliases:["هفته‌نامه گاردین"], domain:"theguardian.com", scope:"world", lang:"en", type:"هفته‌نامه"},
   {name:"Financial Times", domain:"ft.com", scope:"world", lang:"en", type:"روزنامه"},
-  {name:"The Economist", domain:"economist.com", scope:"world", lang:"en", type:"هفته‌نامه"},
+  {name:"The Economist", aliases:["اکونومیست"], domain:"economist.com", scope:"world", lang:"en", type:"هفته‌نامه"},
   {name:"The New York Times", domain:"nytimes.com", scope:"world", lang:"en", type:"روزنامه"},
+  {name:"The Wall Street Journal", aliases:["وال‌استریت ژورنال"], domain:"wsj.com", scope:"world", lang:"en", type:"روزنامه"},
   {name:"The Washington Post", domain:"washingtonpost.com", scope:"world", lang:"en", type:"روزنامه"},
   {name:"CNN", domain:"cnn.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
   {name:"Al Jazeera English", aliases:["Al Jazeera"], domain:"aljazeera.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
@@ -186,7 +188,12 @@ const PRESS_SOURCES = [
   {name:"Süddeutsche Zeitung", domain:"sueddeutsche.de", scope:"world", lang:"de", type:"روزنامه"}
 ]
 
-const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان"};
+const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان", magazine:"مجلات و هفته‌نامه‌ها"};
+function pressMatchesScope(s, scope){
+  if(scope==="all") return true;
+  if(scope==="magazine") return /مجله|هفته‌نامه/.test(String(s.type||""));
+  return s.scope===scope;
+}
 const PRESS_LANG_FA = {all:"همه زبان‌ها", fa:"فارسی", en:"انگلیسی", es:"اسپانیایی", fr:"فرانسوی", tr:"ترکی", ar:"عربی", de:"آلمانی"};
 
 function pressLogo(s) {
@@ -257,9 +264,9 @@ async function renderPress(sourceName) {
   }
 
   if(!sourceName){
-    const sources=PRESS_SOURCES.filter(s => (pressScope==="all"||s.scope===pressScope) && (pressLanguage==="all"||s.lang===pressLanguage));
+    const sources=PRESS_SOURCES.filter(s => pressMatchesScope(s,pressScope) && (pressLanguage==="all"||s.lang===pressLanguage));
     const scopeControls=Object.entries(PRESS_SCOPE_FA).map(([k,v])=>`<button class="fchip ${pressScope===k?"on":""}" onclick="setPressScope('${k}')">${v}</button>`).join("");
-    const langs=[...new Set(PRESS_SOURCES.filter(s=>pressScope==="all"||s.scope===pressScope).map(s=>s.lang))];
+    const langs=[...new Set(PRESS_SOURCES.filter(s=>pressMatchesScope(s,pressScope)).map(s=>s.lang))];
     const langControls=["all",...langs].map(k=>`<button class="fchip ${pressLanguage===k?"on":""}" onclick="setPressLanguage('${k}')">${PRESS_LANG_FA[k]||k}</button>`).join("");
     const cards=sources.map(s=>{
       const items=[s.name,...(s.aliases||[])].flatMap(n=>groups.get(n)||[]);
@@ -276,7 +283,7 @@ async function renderPress(sourceName) {
         <span class="press-source-copy"><span class="press-source-title"><strong>${esc(s.name)}</strong>${pressHealthBadge(h)}</span><small>${esc(s.type)} · ${PRESS_LANG_FA[s.lang]||s.lang}</small><em>${status}${h&&h.last_run?` · پایش ${ago(h.last_run)}`:""}</em></span>
       </button>`;
     }).join("");
-    const known=new Set(PRESS_SOURCES.map(s=>s.name));
+    const known=new Set(PRESS_SOURCES.flatMap(s=>[s.name,...(s.aliases||[])]));
     const extra=[...groups.entries()].filter(([name])=>!known.has(name));
     el.innerHTML=`<div class="press-directory-note"><b>تمرکز تحریریه:</b> مطالبی که به ایران، ایرانیان، سیاست خارجی ایران یا پیامدهای منطقه‌ای مرتبط‌اند؛ زبان منبع محدودیت نیست.</div>
       <div class="press-filter-row">${scopeControls}</div>
