@@ -475,6 +475,23 @@ def run() -> None:
     # the same profile whenever their normalized Persian name matches. News-only
     # people are appended to the same index, so the UI never creates duplicate identities.
     figure_index = figure_svc.figures_index(fig_posts, avatars=fig_avatars)
+    # External/multilingual collectors write normalized Persian figure posts here.
+    # Keeping this as a small JSON interchange makes Truth Social, French media,
+    # English interviews, etc. independent from the Telegram ingestion model.
+    ext_path = os.path.join(os.path.dirname(__file__), "..", "data", "external-figure-posts.json")
+    try:
+        with open(ext_path, encoding="utf-8") as ef:
+            external_posts = json.load(ef)
+    except (OSError, ValueError):
+        external_posts = []
+    by_handle = {str(x.get("handle")): x for x in figure_index.get("figures", [])}
+    for post in external_posts if isinstance(external_posts, list) else []:
+        fig = by_handle.get(str(post.get("handle") or ""))
+        if not fig or not post.get("summary_fa") or not post.get("url"):
+            continue
+        fig.setdefault("posts", []).append(post)
+        fig["posts"] = sorted(fig["posts"], key=lambda p: str(p.get("published_at") or ""), reverse=True)[:30]
+        fig["count"] = len(fig["posts"])
     figure_index = merge_news_people(figure_index, db, now=now, avatars=fig_avatars)
     _write(os.path.join(DATA, "figures.json"), figure_index)
     # Compatibility file for older cached clients; all new UI reads figures.json.
