@@ -35,6 +35,7 @@ _JSON_RE = re.compile(r"\{.*\}", re.DOTALL)
 _resolved_model: str | None = None
 _bad_models: set[str] = set()
 _quota_models: set[str] = set()
+_unavailable_models: set[str] = set()
 _key_idx: int = 0
 
 
@@ -112,7 +113,8 @@ def _resolve_model(preferred: str, api_key: str, timeout: float) -> str:
 
     pref = _short(preferred)
     try:
-        available = [a for a in _list_models(api_key, timeout) if a not in _bad_models and a not in _quota_models]
+        available = [a for a in _list_models(api_key, timeout)
+                     if a not in _bad_models and a not in _quota_models and a not in _unavailable_models]
     except Exception as exc:
         logger.warning("could not list Gemini models (%s); using '%s'", exc, pref)
         _resolved_model = pref
@@ -198,6 +200,16 @@ class GeminiProvider:
                     wait = min(i + 1, 4)
                     logger.info("model '%s' rate-limited; trying another model after %ss", model, wait)
                     time.sleep(wait)
+                continue
+            if code in {500, 502, 503, 504}:
+                # Service availability is often model-specific too. Do not let
+                # one flaky preview/lite endpoint stop the whole publication run.
+                _unavailable_models.add(model)
+                _resolved_model = None
+                wait=min(i + 1, 3)
+                logger.info("model '%s' unavailable (HTTP %s); trying another model after %ss",
+                            model, code, wait)
+                time.sleep(wait)
                 continue
             resp.raise_for_status()  # other errors: surface immediately
         if resp is not None:
