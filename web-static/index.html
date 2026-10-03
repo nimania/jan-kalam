@@ -22,6 +22,15 @@
         <span class="tag">هوش خبری فارسی</span>
       </div>
       <span class="spacer"></span>
+      <div class="smart-search" id="smart-search">
+        <button class="icon-btn smart-search-toggle" onclick="toggleSmartSearch()" aria-label="جست‌وجو" title="جست‌وجوی هوشمند">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m16 16 4.2 4.2" stroke-linecap="round"/></svg>
+        </button>
+        <div class="smart-search-panel" id="smart-search-panel">
+          <input id="smart-search-input" type="search" autocomplete="off" placeholder="خبر، چهره، منبع یا موضوع…" oninput="smartSearch(this.value)" onkeydown="smartSearchKey(event)">
+          <div class="smart-search-results" id="smart-search-results"><div class="smart-search-hint">مثلاً «مونا برزویی»، «اسرائیل»، «اکونومیست» یا «هوش مصنوعی»</div></div>
+        </div>
+      </div>
       <button class="icon-btn" onclick="showMarket()" aria-label="بازار" title="بازار — ارز، طلا و رمزارز">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18V11M10 18V6M16 18v-9M21 18H3" stroke-linecap="round"/><path d="M4 8l5-4 5 3 6-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
