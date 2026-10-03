@@ -100,6 +100,7 @@ FIGURES: list[Figure] = [
     Figure("vahid-jalili", "وحید جلیلی", "فعال فرهنگی و رسانه‌ای", "media", external=True),
     Figure("mehdi-jamshidi", "مهدی جمشیدی", "پژوهشگر فرهنگ و اندیشه", "culture", external=True),
     Figure("shahriar-zarshenas", "شهریار زرشناس", "نویسنده و پژوهشگر فلسفه و سیاست", "culture", external=True),
+    Figure("mohammad-sadegh-kooshki", "محمدصادق کوشکی", "پژوهشگر و استاد علوم سیاسی", "politics", external=True, aliases=("صادق کوشکی",)),
     Figure("sajjad-saffar-harandi", "محمدسجاد صفار هرندی", "جامعه‌شناس و پژوهشگر فرهنگی", "society", external=True, aliases=("سجاد صفار هرندی", "محمد سجاد صفار هرندی")),
     Figure("hasan-shamaizadeh", "حسن شماعی‌زاده", "خواننده و آهنگساز", "culture", external=True),
     Figure("hila-sedighi", "هیلا صدیقی", "شاعر و هنرمند", "culture",
