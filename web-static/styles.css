@@ -1015,3 +1015,85 @@
 .press-book-links span{font-size:10px;color:var(--accent);font-weight:750}
 .press-book-links b{font-family:"Noto Naskh Arabic",serif;font-size:16px;line-height:1.5}
 @media(max-width:620px){.press-book-links{grid-template-columns:1fr}}
+
+
+/* Weather + air quality, based on the data model used by AirCheck */
+.air-overview{margin:0 0 20px;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--surface-2);box-shadow:var(--shadow-soft)}
+.air-overview-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:13px}
+.air-overview-head h2{font-family:"Noto Naskh Arabic",serif;font-size:22px;line-height:1.4;margin:3px 0 0}
+.air-source-count{font-size:11px;color:var(--ink-faint);white-space:nowrap;margin-top:4px}
+.air-rank{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.air-rank-row{display:grid;grid-template-columns:auto 1fr;gap:5px 9px;align-items:center;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+.air-rank-row .aqi-chip{grid-column:1/-1}
+.air-rank-no{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:var(--surface-2);color:var(--ink-faint);font-size:10px}
+.air-rank-row strong{font-size:14px}
+.aqi-legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:13px}
+.aqi-legend span{font-size:10.5px;padding:4px 8px;border-radius:999px;border:1px solid transparent}
+.aqi-good{background:#eaf7ef;color:#247645;border-color:#bfe5cc}
+.aqi-moderate{background:#fff8d7;color:#8a6d00;border-color:#eadb91}
+.aqi-sensitive{background:#fff0dc;color:#965c15;border-color:#ebc58d}
+.aqi-unhealthy{background:#fde8e8;color:#a03737;border-color:#e9b3b3}
+.aqi-very-unhealthy{background:#f4e9f7;color:#764883;border-color:#d6b7dc}
+.aqi-hazardous{background:#f3e5e7;color:#752c39;border-color:#d5a8af}
+
+.wx-air-grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.wx-rich{text-align:right;padding:16px;display:block}
+.wx-weather-row{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:11px}
+.wx-rich .wx-ic{font-size:32px}
+.wx-weather-copy .wx-city{margin:0;font-size:18px}
+.wx-weather-copy .wx-cond{margin:1px 0 0}
+.wx-rich .wx-temp{font-size:30px;margin:0}
+.wx-rich .wx-mm{display:flex;gap:9px;justify-content:flex-start;margin:10px 0 0;padding-bottom:11px;border-bottom:1px solid var(--line)}
+.wx-rich .wx-mm .wx-min,.wx-rich .wx-mm .wx-max{font-size:11.5px;color:var(--ink-faint);font-weight:500}
+.air-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:12px 0 7px}
+.aqi-chip{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:5px 9px;border:1px solid var(--line);font-size:10.5px}
+.aqi-chip b{font-size:12px;font-variant-numeric:tabular-nums}
+.aqi-chip span{font-weight:650}
+.aqi-chip.aqi-good{background:#eaf7ef;color:#247645;border-color:#bfe5cc}
+.aqi-chip.aqi-moderate{background:#fff8d7;color:#8a6d00;border-color:#eadb91}
+.aqi-chip.aqi-sensitive{background:#fff0dc;color:#965c15;border-color:#ebc58d}
+.aqi-chip.aqi-unhealthy{background:#fde8e8;color:#a03737;border-color:#e9b3b3}
+.aqi-chip.aqi-very-unhealthy{background:#f4e9f7;color:#764883;border-color:#d6b7dc}
+.aqi-chip.aqi-hazardous{background:#f3e5e7;color:#752c39;border-color:#d5a8af}
+.aqi-chip.estimate{border-style:dashed}
+.air-source{font-size:9.5px;border:1px solid var(--line);border-radius:999px;padding:4px 7px;color:var(--ink-faint)}
+.air-source.official{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 35%,var(--line))}
+.air-source.estimate{border-style:dashed}
+.dominant-copy{font-size:11.5px;color:var(--ink-faint);margin:0 0 8px}
+.dominant-copy b{color:var(--ink-soft)}
+.pollutants{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.pollutant{display:flex;align-items:center;justify-content:space-between;gap:5px;padding:7px 8px;border-radius:9px;background:var(--surface-2);border:1px solid transparent}
+.pollutant span{font-size:10px;color:var(--ink-faint)}
+.pollutant b{font-size:12px;font-variant-numeric:tabular-nums}
+.pollutant.dominant{border-color:var(--accent);background:var(--accent-soft)}
+.pollutant.dominant span,.pollutant.dominant b{color:var(--accent-2)}
+.air-forecast{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:9px;padding-top:9px;border-top:1px dashed var(--line)}
+.air-forecast>span{font-size:10px;color:var(--ink-faint)}
+.air-forecast em{font-size:9.5px;font-style:normal;padding:3px 6px;border-radius:7px;background:var(--surface-2);color:var(--ink-faint)}
+.air-forecast b{color:var(--ink-soft)}
+.air-source-line{font-size:9.5px;color:var(--ink-faint);margin-top:9px;line-height:1.55}
+.air-no-data{margin-top:12px;padding:9px;border-radius:9px;background:var(--surface-2);color:var(--ink-faint);font-size:11px;text-align:center}
+.weather-sources{margin-top:14px;padding:15px 17px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2);font-size:11.5px;line-height:1.8;color:var(--ink-faint)}
+.weather-sources p{margin:0 0 5px}
+.weather-sources b{color:var(--ink-soft)}
+.weather-sources a{color:var(--accent);text-decoration:none}
+@media(max-width:720px){
+  .air-overview-head{display:block}.air-source-count{margin-top:7px}
+  .air-rank{grid-template-columns:1fr}
+  .wx-air-grid{grid-template-columns:1fr}
+  .pollutants{grid-template-columns:repeat(3,1fr)}
+}
+@media(prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .aqi-good,:root:not([data-theme="light"]) .aqi-chip.aqi-good{background:#173526;color:#93d3aa;border-color:#2d5a40}
+  :root:not([data-theme="light"]) .aqi-moderate,:root:not([data-theme="light"]) .aqi-chip.aqi-moderate{background:#3a351c;color:#e4cf75;border-color:#5c5227}
+  :root:not([data-theme="light"]) .aqi-sensitive,:root:not([data-theme="light"]) .aqi-chip.aqi-sensitive{background:#412f1e;color:#e7b06c;border-color:#684a29}
+  :root:not([data-theme="light"]) .aqi-unhealthy,:root:not([data-theme="light"]) .aqi-chip.aqi-unhealthy{background:#402525;color:#e59696;border-color:#633434}
+  :root:not([data-theme="light"]) .aqi-very-unhealthy,:root:not([data-theme="light"]) .aqi-chip.aqi-very-unhealthy{background:#39263d;color:#c99fd2;border-color:#5c3a63}
+  :root:not([data-theme="light"]) .aqi-hazardous,:root:not([data-theme="light"]) .aqi-chip.aqi-hazardous{background:#3b2227;color:#d899a4;border-color:#5f333b}
+}
+:root[data-theme="dark"] .aqi-good,:root[data-theme="dark"] .aqi-chip.aqi-good{background:#173526;color:#93d3aa;border-color:#2d5a40}
+:root[data-theme="dark"] .aqi-moderate,:root[data-theme="dark"] .aqi-chip.aqi-moderate{background:#3a351c;color:#e4cf75;border-color:#5c5227}
+:root[data-theme="dark"] .aqi-sensitive,:root[data-theme="dark"] .aqi-chip.aqi-sensitive{background:#412f1e;color:#e7b06c;border-color:#684a29}
+:root[data-theme="dark"] .aqi-unhealthy,:root[data-theme="dark"] .aqi-chip.aqi-unhealthy{background:#402525;color:#e59696;border-color:#633434}
+:root[data-theme="dark"] .aqi-very-unhealthy,:root[data-theme="dark"] .aqi-chip.aqi-very-unhealthy{background:#39263d;color:#c99fd2;border-color:#5c3a63}
+:root[data-theme="dark"] .aqi-hazardous,:root[data-theme="dark"] .aqi-chip.aqi-hazardous{background:#3b2227;color:#d899a4;border-color:#5f333b}
