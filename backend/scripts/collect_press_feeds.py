@@ -10,6 +10,7 @@ from app.ingestion.service import _EXCLUDED_SOURCE_TERMS, _EXCLUDED_SOURCE_DOMAI
 HEALTH=Path("public/data/press-registry-health.json")
 OUT=Path("periodicals/site_articles.json")
 DIAG_OUT=Path("periodicals/site_articles_diag.json")
+ARCHIVE=Path("periodicals/archive.json")
 UA="Mozilla/5.0 (compatible; JanKalamPressFeeds/1.1; +https://nimania.github.io/jan-kalam/)"
 
 ARTICLE_RULES={
@@ -147,16 +148,24 @@ def main():
     # Pull a bounded number of complete article pages. Cover Iranian magazines
     # broadly (up to 10 per publisher) instead of letting one prolific source
     # consume the whole full-text budget.
+    done_full=set()
+    if ARCHIVE.exists():
+        try:
+            done_full={x.get("id") for x in json.loads(ARCHIVE.read_text(encoding="utf-8"))
+                       if x.get("id") and x.get("enrichment_state")=="ai_fulltext"}
+        except Exception:
+            done_full=set()
     full_ids=set(); per_publisher={}
+    # Prioritize articles that have never received full-text enrichment.
     for x in rows:
-        if x.get("scope")!="iran-magazine": continue
+        if x.get("scope")!="iran-magazine" or x.get("id") in done_full: continue
         p=x.get("publisher")
         n=per_publisher.get(p,0)
         if n<4:
             full_ids.add(x["id"]); per_publisher[p]=n+1
     other=0
     for x in rows:
-        if x["id"] in full_ids or other>=12: continue
+        if x["id"] in full_ids or x.get("id") in done_full or other>=12: continue
         full_ids.add(x["id"]); other+=1
     with ThreadPoolExecutor(max_workers=6) as pool:
         enriched=list(pool.map(enrich_full_article,[x for x in rows if x["id"] in full_ids]))
