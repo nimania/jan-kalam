@@ -95,6 +95,19 @@ SOURCES = [
     ("زومیت", "https://www.zoomit.ir", "https://www.zoomit.ir/feed", "iran-tech", 0.65),
     ("گیمفا", "https://gamefa.com", "https://gamefa.com/feed/", "iran-entertainment", 0.5),
     ("سلامت نیوز", "https://www.salamatnews.com", "http://salamatnews.com/rss.xml", "iran-health", 0.5),
+    # --- Jan-e Jaraid / domestic expansion ---
+    ("شرق", "https://www.sharghdaily.com", "https://www.sharghdaily.com/fa/rss/allnews", "iran", 0.55),
+    ("اعتماد", "https://www.etemadonline.com", "https://www.etemadonline.com/fa/rss/allnews", "iran", 0.55),
+    ("دنیای اقتصاد", "https://donya-e-eqtesad.com", "https://donya-e-eqtesad.com/fa/rss/allnews", "iran", 0.6),
+    ("ایلنا", "https://www.ilna.ir", "https://www.ilna.ir/fa/rss/allnews", "iran", 0.6),
+    ("تسنیم", "https://www.tasnimnews.com", "https://www.tasnimnews.com/fa/rss/feed/0/8/0/%D8%A2%D8%AE%D8%B1%DB%8C%D9%86-%D8%A7%D8%AE%D8%A8%D8%A7%D8%B1", "iran", 0.6),
+    ("آنا", "https://ana.ir", "https://ana.ir/fa/rss/allnews", "iran", 0.5),
+    ("اقتصادنیوز", "https://www.eghtesadnews.com", "https://www.eghtesadnews.com/fa/rss/allnews", "iran", 0.55),
+    ("اکوایران", "https://ecoiran.com", "https://ecoiran.com/fa/rss/allnews", "iran", 0.6),
+    ("دیپلماسی ایرانی", "https://irdiplomacy.ir", "https://irdiplomacy.ir/fa/rss", "iran", 0.55),
+    ("جماران", "https://www.jamaran.news", "https://www.jamaran.news/fa/rss/allnews", "iran", 0.5),
+    ("میزان", "https://www.mizanonline.ir", "https://www.mizanonline.ir/fa/rss/allnews", "iran", 0.5),
+    ("شفقنا فارسی", "https://fa.shafaqna.com", "https://fa.shafaqna.com/feed/", "iran", 0.5),
     ("اخبار روز", "https://akhbar-rooz.com", "https://akhbar-rooz.com/feed/", "iran-intl", 0.5),
     ("رادیو زمانه", "https://www.radiozamaneh.com", "http://radiozamaneh.com/rss.xml", "iran-intl", 0.6),
     # Official RSS endpoints verified from each publisher's own RSS surface.
@@ -110,6 +123,9 @@ SOURCES = [
     ("یورونیوز فارسی", "https://parsi.euronews.com", "https://parsi.euronews.com/rss", "iran-intl", 0.7),
     ("کیهان لندن", "https://kayhan.london", "https://kayhan.london/feed/", "iran-intl", 0.55),
     ("زیتون", "https://www.zeitoons.com", "https://www.zeitoons.com/feed", "iran-intl", 0.5),
+    ("ایندیپندنت فارسی", "https://www.independentpersian.com", "https://www.independentpersian.com/rss.xml", "iran-intl", 0.65),
+    ("صدای آمریکا فارسی", "https://ir.voanews.com", "https://ir.voanews.com/api/zmgqoe$mvi", "iran-intl", 0.7),
+    ("العربیه فارسی", "https://farsi.alarabiya.net", "https://farsi.alarabiya.net/tools/rss", "iran-intl", 0.65),
 ]
 
 SOURCE_CATEGORIES = {
