@@ -29,6 +29,7 @@ REFRESH_DAYS = 7
 # just like Telegram avatars, so clients never depend on the remote host.
 _EXTERNAL_AVATARS = {
     "donald-trump": "https://www.whitehouse.gov/wp-content/uploads/2025/06/President-Donald-Trump-Official-Presidential-Portrait.png",
+    "monaborzouei": "https://pbs.twimg.com/profile_images/1787448818503479296/2ruhVAQW_400x400.jpg",
 }
 _TIMEOUT = 20.0
 _MAX_BYTES = 600_000
@@ -37,6 +38,15 @@ _MAX_BYTES = 600_000
 def _fetch_avatar(handle: str) -> tuple[bytes, str] | None:
     """Return (jpeg_bytes, ext) for a channel avatar, or None."""
     headers = {"User-Agent": settings.ingest_user_agent}
+    external_url = _EXTERNAL_AVATARS.get(handle)
+    if external_url:
+        img = httpx.get(external_url, headers=headers, timeout=_TIMEOUT, follow_redirects=True)
+        img.raise_for_status()
+        data = img.content
+        if not data or len(data) > _MAX_BYTES:
+            return None
+        ext = "png" if data[:8] == b"\x89PNG\r\n\x1a\n" else "jpg"
+        return data, ext
     page = httpx.get(f"https://t.me/s/{handle}", headers=headers,
                      timeout=_TIMEOUT, follow_redirects=True)
     page.raise_for_status()
