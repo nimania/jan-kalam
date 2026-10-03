@@ -68,6 +68,19 @@ jobs:
           else
             echo "::warning::Could not download latest periodicals Pages artifact; keeping build data."
           fi
+          # Guarantee a synchronous manifest even when the selected historical
+          # periodicals artifact predates press-directory.js.
+          if [ -f site/data/press-directory.json ]; then
+            python - <<'PY'
+          import json, pathlib
+          p=pathlib.Path("site/data/press-directory.json")
+          rows=json.loads(p.read_text(encoding="utf-8"))
+          pathlib.Path("site/data/press-directory.js").write_text(
+              "window.__PRESS_DIRECTORY__="+json.dumps(rows,ensure_ascii=False,separators=(",",":"))+";\n",
+              encoding="utf-8",
+          )
+          PY
+          fi
 
       - name: Overlay current UI without overwriting generated data
         run: |
