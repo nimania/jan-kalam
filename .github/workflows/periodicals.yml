@@ -84,8 +84,12 @@ jobs:
 
       - name: Overlay Jan-e Jarayed data and current UI
         run: |
-          # Keep the generated data from this run, but always ship the current UI.
-          rsync -a --exclude 'data/' web-static/ site/
+          # Content runs can outlive UI commits. Pull only the latest web-static
+          # tree from main so a later periodical deploy never rolls the UI back.
+          git fetch origin main --depth=1
+          rm -rf /tmp/jankalam-ui && mkdir -p /tmp/jankalam-ui
+          git archive origin/main web-static | tar -x -C /tmp/jankalam-ui
+          rsync -a --exclude 'data/' /tmp/jankalam-ui/web-static/ site/
           mkdir -p site/data
           cp backend/public/data/periodicals.json site/data/periodicals.json
           cp backend/public/data/press-registry-health.json site/data/press-registry-health.json
