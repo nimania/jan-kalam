@@ -43,9 +43,11 @@ jobs:
             echo "::warning::Could not download latest-static-site; deploying repository UI/data fallback."
             cp -a web-static/. site/
           fi
-      - name: Overlay current UI
+      - name: Overlay current UI without overwriting generated data
         run: |
-          cp -a web-static/. site/
+          # Generated datasets (especially Jan-e Jaraid) belong to collector/build
+          # artifacts. A UI hotfix must never replace them with seeded repo data.
+          rsync -a --exclude 'data/' web-static/ site/
           python - <<'PY'
           import hashlib, pathlib, re
           root = pathlib.Path("site")
