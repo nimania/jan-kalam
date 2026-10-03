@@ -414,6 +414,19 @@ def run() -> None:
         _write(os.path.join(DATA, "story", f"{card['id']}.json"), d)
 
     _write(os.path.join(DATA, "stories.json"), cards)
+    # Source activity summary for the press directory.
+    press_stats = {}
+    for card in cards:
+        published = card.get("published_at")
+        for source_name in card.get("source_names", []) or []:
+            row = press_stats.setdefault(source_name, {"source_name": source_name, "story_count": 0, "iran_story_count": 0, "latest_at": None})
+            row["story_count"] += 1
+            if str(card.get("iran_relevance", "")).lower() in ("high", "medium"):
+                row["iran_story_count"] += 1
+            if published and (not row["latest_at"] or published > row["latest_at"]):
+                row["latest_at"] = published
+    _write(os.path.join(DATA, "press-stats.json"), list(press_stats.values()))
+
 
     # Keep deep links durable beyond the 60-card home feed. Export a larger
     # read-only story archive as individual JSON files; these do not inflate
