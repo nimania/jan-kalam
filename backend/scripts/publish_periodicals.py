@@ -73,18 +73,26 @@ def main():
     provider=get_provider()
     fresh=[]
     covers=[x for x in rows if x.get("kind")=="issue_cover"]
-    article_rows=[x for x in rows if x.get("kind")!="issue_cover"]
-    # Give newly discovered official-site/RSS material a fair share instead
-    # of letting PDF pages consume the whole synthesis budget.
-    site_rows=[x for x in article_rows if x.get("kind")=="site_feed"]
-    pdf_rows=[x for x in article_rows if x.get("kind")!="site_feed"]
-    article_rows=(site_rows[:24] + pdf_rows[:16])[:40]
+    all_article_rows=[x for x in rows if x.get("kind")!="issue_cover"]
+    site_rows=[x for x in all_article_rows if x.get("kind")=="site_feed"]
+    pdf_rows=[x for x in all_article_rows if x.get("kind")!="site_feed"]
+
+    # Trusted Persian RSS is metadata-safe and already in the target language.
+    # Publish every such item immediately; AI enrichment must never gate presence
+    # on a source page.
+    metadata_ids=set()
+    for x in site_rows:
+        fb=fallback_site_card(x)
+        if fb:
+            fresh.append(fb)
+            metadata_ids.add(x.get("id"))
+
+    # AI is reserved for items that actually need transformation/translation.
+    ai_site_rows=[x for x in site_rows if x.get("id") not in metadata_ids]
+    article_rows=(ai_site_rows[:24] + pdf_rows[:16])[:40]
 
     if getattr(provider,"name","mock")=="mock":
-        print("periodicals: AI provider unavailable; publishing safe metadata fallbacks for Persian RSS")
-        for x in article_rows:
-            fb=fallback_site_card(x)
-            if fb: fresh.append(fb)
+        print("periodicals: AI provider unavailable; Persian RSS metadata cards already published")
     else:
         consecutive_provider_errors=0
         for idx,x in enumerate(article_rows):
