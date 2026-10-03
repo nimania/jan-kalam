@@ -6,6 +6,7 @@ published. Existing archive is merged by id and capped.
 """
 from __future__ import annotations
 import json, os, re
+from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from app.ai.providers import get_provider
@@ -15,7 +16,7 @@ IN=ROOT/"articles.json"
 SITE_IN=ROOT/"site_articles.json"
 ARCHIVE=ROOT/"archive.json"
 PUBLIC=Path("public/data/periodicals.json")
-MAX_ITEMS=300
+MAX_ITEMS=800
 
 SYSTEM="""You are a meticulous Persian periodical editor and SEO writer. Return JSON only.
 The input may contain a full source article, an RSS excerpt, or a PDF page candidate.
@@ -116,6 +117,7 @@ def fallback_site_card(x):
         "telegram_post_url":x.get("telegram_post_url"),
         "article_url":x.get("article_url"),
         "source_url":x.get("article_url"),
+        "source_published_at":x.get("source_published_at"),
         "transport":x.get("transport"),"page":x.get("page"),
         "image_url":x.get("image_url"),
         "issue_key":f'{publisher}:article:{x.get("id","")}',
@@ -123,6 +125,41 @@ def fallback_site_card(x):
         "published_at":datetime.now(timezone.utc).isoformat(),
         "enrichment_state":"metadata_fallback",
     }
+
+def select_fair_site_rows(site_rows, old_by_id, old, limit=16):
+    """Choose AI work across publishers instead of by raw feed order."""
+    done_counts=Counter(
+        x.get("publisher") for x in old
+        if x.get("publisher") and x.get("enrichment_state") in {"ai","ai_fulltext"}
+    )
+    by_pub=defaultdict(list); pub_scope={}; pub_order={}
+    for idx,x in enumerate(site_rows):
+        p=x.get("publisher") or ""
+        if not p: continue
+        by_pub[p].append(x); pub_scope[p]=x.get("scope"); pub_order.setdefault(p,idx)
+    scope_priority={"iran-agency":0,"iran-paper":0,"diaspora":1,"world":2,"iran-magazine":3}
+    pubs=sorted(by_pub,key=lambda p:(done_counts.get(p,0),scope_priority.get(pub_scope.get(p),4),pub_order[p]))
+    chosen=[]
+    # First pass: one best unfinished item per source.
+    for p in pubs:
+        candidates=sorted(
+            by_pub[p],
+            key=lambda x:(
+                old_by_id.get(x.get("id"),{}).get("enrichment_state")=="ai_fulltext",
+                not bool(x.get("source_text")),
+                old_by_id.get(x.get("id"),{}).get("enrichment_state") in {"ai","ai_fulltext"},
+            )
+        )
+        x=next((z for z in candidates if old_by_id.get(z.get("id"),{}).get("enrichment_state")!="ai_fulltext"),None)
+        if x: chosen.append(x)
+        if len(chosen)>=limit: return chosen
+    # Second pass: use remaining budget for another unfinished item per source.
+    seen={x.get("id") for x in chosen}
+    for p in pubs:
+        x=next((z for z in by_pub[p] if z.get("id") not in seen and old_by_id.get(z.get("id"),{}).get("enrichment_state")!="ai_fulltext"),None)
+        if x: chosen.append(x)
+        if len(chosen)>=limit: break
+    return chosen
 
 def main():
     rows=json.loads(IN.read_text(encoding="utf-8")) if IN.exists() else []
@@ -141,22 +178,23 @@ def main():
     # Publish every such item immediately; AI enrichment must never gate presence
     # on a source page.
     metadata_ids=set()
+    # Publish a small newest slice from every Persian source immediately, but
+    # never replace a previously AI-enriched article with a metadata fallback.
+    fallback_counts=Counter()
     for x in site_rows:
+        if fallback_counts[x.get("publisher")]>=4: continue
+        prev=old_by_id.get(x.get("id"),{})
+        if prev.get("enrichment_state") in {"ai","ai_fulltext"}: continue
         fb=fallback_site_card(x)
         if fb:
             fresh.append(fb)
             metadata_ids.add(x.get("id"))
+            fallback_counts[x.get("publisher")]+=1
 
-    # Full source pages get AI synthesis even when a safe RSS fallback is already
-    # publishable. The later AI result replaces the fallback for the same id.
-    ai_site_rows=sorted(
-        site_rows,
-        key=lambda x:(
-            old_by_id.get(x.get("id"),{}).get("enrichment_state")=="ai_fulltext",
-            not bool(x.get("source_text")),
-        )
-    )
-    article_rows=(ai_site_rows[:24] + pdf_rows[:16])[:40]
+    # AI budget is allocated fairly across publishers; news/papers are currently
+    # prioritized, then diaspora/world sources, then magazines.
+    ai_site_rows=select_fair_site_rows(site_rows,old_by_id,old,limit=16)
+    article_rows=(ai_site_rows + pdf_rows[:4])[:20]
 
     if getattr(provider,"name","mock")=="mock":
         print("periodicals: AI provider unavailable; Persian RSS metadata cards already published")
@@ -221,7 +259,11 @@ def main():
                     break
     merged={x["id"]:x for x in old if x.get("id")}
     for x in fresh: merged[x["id"]]=x
-    out=list(merged.values())[-MAX_ITEMS:]
+    out=sorted(
+        merged.values(),
+        key=lambda x:str(x.get("source_published_at") or x.get("published_at") or ""),
+        reverse=True,
+    )[:MAX_ITEMS]
     ROOT.mkdir(exist_ok=True); ARCHIVE.write_text(json.dumps(out,ensure_ascii=False),encoding="utf-8")
     PUBLIC.parent.mkdir(parents=True,exist_ok=True); PUBLIC.write_text(json.dumps(out,ensure_ascii=False),encoding="utf-8")
     print(f"periodicals: published archive {len(out)} items (+{len(fresh)} new)")
