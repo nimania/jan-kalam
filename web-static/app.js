@@ -93,6 +93,16 @@ const PRESS_SOURCES = [
   {name:"جمهوری اسلامی", domain:"jomhourieslami.net", scope:"iran-paper", lang:"fa", type:"روزنامه"},
   {name:"هم‌میهن", domain:"hammihanonline.ir", scope:"iran-paper", lang:"fa", type:"روزنامه"},
   {name:"سازندگی", domain:"sazandeginews.com", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  // مجلات و فصلنامه‌های ایرانی
+  {name:"تجربه", aliases:["مجله تجربه","ماهنامه تجربه"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"ماهنامه فرهنگی و هنری"},
+  {name:"بخارا", aliases:["مجله بخارا"], domain:"bukharamag.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و ادبی"},
+  {name:"اندیشه پویا", aliases:["مجله اندیشه پویا"], domain:"andishepooya.ir", scope:"iran-magazine", lang:"fa", type:"ماهنامه فرهنگی و سیاسی"},
+  {name:"مروارید", aliases:["مجله مروارید"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
+  {name:"غروب", aliases:["مجله غروب"], domain:"goroobonline.ir", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و تاریخی"},
+  {name:"تجربه و شهر", aliases:["مجله تجربه و شهر"], domain:"goroobonline.ir", scope:"iran-magazine", lang:"fa", type:"مجله شهر و فرهنگ"},
+  {name:"هنر و جامعه", aliases:["مجله هنر و جامعه"], domain:"goroobonline.ir", scope:"iran-magazine", lang:"fa", type:"مجله هنر و جامعه"},
+  {name:"روزنامک", aliases:["ماهنامه روزنامک"], domain:"rooznamak-magazine.com", scope:"iran-magazine", lang:"fa", type:"ماهنامه فرهنگی و تاریخی"},
+
   // رسانه‌های ایرانی غیرفارسی‌زبان؛ در دستهٔ داخل ایران، نه رسانه‌های جهان
   {name:"Press TV", domain:"presstv.ir", scope:"iran-agency", lang:"en", type:"تلویزیون/رسانه خبری"},
   {name:"Tehran Times", domain:"tehrantimes.com", scope:"iran-paper", lang:"en", type:"روزنامه"},
@@ -188,10 +198,11 @@ const PRESS_SOURCES = [
   {name:"Süddeutsche Zeitung", domain:"sueddeutsche.de", scope:"world", lang:"de", type:"روزنامه"}
 ]
 
-const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان", magazine:"مجلات و هفته‌نامه‌ها"};
+const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", "iran-magazine":"مجلات ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان", magazine:"همهٔ مجلات و هفته‌نامه‌ها"};
 function pressMatchesScope(s, scope){
   if(scope==="all") return true;
   if(scope==="magazine") return /مجله|هفته‌نامه/.test(String(s.type||""));
+  if(scope==="iran-magazine") return s.scope==="iran-magazine";
   return s.scope===scope;
 }
 const PRESS_LANG_FA = {all:"همه زبان‌ها", fa:"فارسی", en:"انگلیسی", es:"اسپانیایی", fr:"فرانسوی", tr:"ترکی", ar:"عربی", de:"آلمانی"};
