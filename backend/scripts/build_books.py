@@ -19,6 +19,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 ARCHIVE = ROOT / "periodicals" / "archive.json"
 OUT = ROOT / "public" / "data" / "books.json"
+OUT_JS = ROOT / "public" / "data" / "books.js"
 CANDIDATES = ROOT / "periodicals" / "book_candidates.json"
 
 # Hand-verified seed/enrichment. Automatic discoveries merge into this registry.
@@ -360,7 +361,9 @@ def build() -> dict:
         "auto_verified_count": sum(1 for x in candidates.values() if x.get("status") == "auto_verified"),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    compact=json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
+    OUT.write_text(compact, encoding="utf-8")
+    OUT_JS.write_text("window.__BOOKS_DATA__="+compact+";\n", encoding="utf-8")
     print(
         f"books: published {len(public_books)} books "
         f"({payload['auto_verified_count']} auto-verified candidates), "
