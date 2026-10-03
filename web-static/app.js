@@ -62,31 +62,49 @@ let pressScope = "all";
 let pressLanguage = "all";
 
 const PRESS_SOURCES = [
-  // داخل ایران
-  {name:"ایرنا", domain:"irna.ir", scope:"iran", lang:"fa", type:"خبرگزاری"},
-  {name:"ایسنا", domain:"isna.ir", scope:"iran", lang:"fa", type:"خبرگزاری"},
-  {name:"مهر", domain:"mehrnews.com", scope:"iran", lang:"fa", type:"خبرگزاری"},
-  {name:"فارس", domain:"farsnews.ir", scope:"iran", lang:"fa", type:"خبرگزاری"},
-  {name:"خبرآنلاین", domain:"khabaronline.ir", scope:"iran", lang:"fa", type:"رسانه آنلاین"},
-  {name:"همشهری", domain:"hamshahrionline.ir", scope:"iran", lang:"fa", type:"روزنامه"},
-  {name:"انتخاب", domain:"entekhab.ir", scope:"iran", lang:"fa", type:"رسانه آنلاین"},
-  {name:"عصر ایران", domain:"asriran.com", scope:"iran", lang:"fa", type:"رسانه آنلاین"},
-  {name:"شرق", domain:"sharghdaily.com", scope:"iran", lang:"fa", type:"روزنامه"},
-  {name:"اعتماد", domain:"etemadonline.com", scope:"iran", lang:"fa", type:"روزنامه"},
-  {name:"دنیای اقتصاد", domain:"donya-e-eqtesad.com", scope:"iran", lang:"fa", type:"روزنامه"},
+  // خبرگزاری‌ها و رسانه‌های خبری داخل ایران
+  {name:"ایرنا", aliases:["خبرگزاری ایرنا (IRNA)"], domain:"irna.ir", scope:"iran-agency", lang:"fa", type:"خبرگزاری"},
+  {name:"ایسنا", aliases:["خبرگزاری ایسنا (ISNA)"], domain:"isna.ir", scope:"iran-agency", lang:"fa", type:"خبرگزاری"},
+  {name:"مهر", aliases:["خبرگزاری مهر (Mehr)"], domain:"mehrnews.com", scope:"iran-agency", lang:"fa", type:"خبرگزاری"},
+  {name:"فارس", aliases:["خبرگزاری فارس (Fars)"], domain:"farsnews.ir", scope:"iran-agency", lang:"fa", type:"خبرگزاری"},
+  {name:"خبرگزاری صداوسیما", domain:"iribnews.ir", scope:"iran-agency", lang:"fa", type:"خبرگزاری"},
+  {name:"باشگاه خبرنگاران جوان", domain:"yjc.ir", scope:"iran-agency", lang:"fa", type:"خبرگزاری"},
+  {name:"خبرآنلاین", domain:"khabaronline.ir", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"تابناک", domain:"tabnak.ir", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"فرارو", domain:"fararu.com", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"انتخاب", domain:"entekhab.ir", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"عصر ایران", domain:"asriran.com", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"فردانیوز", domain:"fardanews.com", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"رویداد۲۴", domain:"rouydad24.ir", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"آفتاب‌نیوز", domain:"aftabnews.ir", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"مشرق نیوز", domain:"mashreghnews.ir", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+  {name:"انصاف نیوز", domain:"ensafnews.com", scope:"iran-agency", lang:"fa", type:"رسانه خبری"},
+
+  // روزنامه‌ها و مطبوعات داخل ایران
+  {name:"همشهری", aliases:["همشهری آنلاین"], domain:"hamshahrionline.ir", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"پیام ما", aliases:["روزنامه پیام‌ما"], domain:"payamema.ir", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"شرق", domain:"sharghdaily.com", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"اعتماد", domain:"etemadonline.com", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"دنیای اقتصاد", domain:"donya-e-eqtesad.com", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"اطلاعات", domain:"ettelaat.com", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"کیهان", domain:"kayhan.ir", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"جمهوری اسلامی", domain:"jomhourieslami.net", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"هم‌میهن", domain:"hammihanonline.ir", scope:"iran-paper", lang:"fa", type:"روزنامه"},
+  {name:"سازندگی", domain:"sazandeginews.com", scope:"iran-paper", lang:"fa", type:"روزنامه"},
 
   // فارسی‌زبان خارج از ایران
-  {name:"بی‌بی‌سی فارسی", domain:"bbc.com", scope:"diaspora", lang:"fa", type:"رسانه بین‌المللی"},
+  {name:"بی‌بی‌سی فارسی", aliases:["بی‌بی‌سی فارسی (BBC Persian)"], domain:"bbc.com", scope:"diaspora", lang:"fa", type:"رسانه بین‌المللی"},
   {name:"رادیو فردا", domain:"radiofarda.com", scope:"diaspora", lang:"fa", type:"رادیو/آنلاین"},
-  {name:"ایران اینترنشنال", domain:"iranintl.com", scope:"diaspora", lang:"fa", type:"تلویزیون/آنلاین"},
-  {name:"دویچه‌وله فارسی", domain:"dw.com", scope:"diaspora", lang:"fa", type:"رسانه بین‌المللی"},
+  {name:"ایران اینترنشنال", aliases:["ایران اینترنشنال (Iran International)"], domain:"iranintl.com", scope:"diaspora", lang:"fa", type:"تلویزیون/آنلاین"},
+  {name:"دویچه‌وله فارسی", aliases:["دویچه‌وله فارسی (DW Persian)"], domain:"dw.com", scope:"diaspora", lang:"fa", type:"رسانه بین‌المللی"},
   {name:"یورونیوز فارسی", domain:"parsi.euronews.com", scope:"diaspora", lang:"fa", type:"رسانه بین‌المللی"},
   {name:"ایران‌وایر", domain:"iranwire.com", scope:"diaspora", lang:"fa", type:"رسانه آنلاین"},
   {name:"کیهان لندن", domain:"kayhan.london", scope:"diaspora", lang:"fa", type:"روزنامه/آنلاین"},
   {name:"رادیو زمانه", domain:"radiozamaneh.com", scope:"diaspora", lang:"fa", type:"رادیو/آنلاین"},
   {name:"ایندیپندنت فارسی", domain:"independentpersian.com", scope:"diaspora", lang:"fa", type:"رسانه آنلاین"},
+  {name:"اخبار روز", domain:"akhbar-rooz.com", scope:"diaspora", lang:"fa", type:"رسانه آنلاین"},
 
-  // جهان — انگلیسی
+  // رسانه‌های جهان
   {name:"Reuters", domain:"reuters.com", scope:"world", lang:"en", type:"خبرگزاری"},
   {name:"Associated Press", domain:"apnews.com", scope:"world", lang:"en", type:"خبرگزاری"},
   {name:"BBC", domain:"bbc.com", scope:"world", lang:"en", type:"رسانه عمومی"},
@@ -96,31 +114,25 @@ const PRESS_SOURCES = [
   {name:"The New York Times", domain:"nytimes.com", scope:"world", lang:"en", type:"روزنامه"},
   {name:"The Washington Post", domain:"washingtonpost.com", scope:"world", lang:"en", type:"روزنامه"},
   {name:"CNN", domain:"cnn.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
-  {name:"Al Jazeera English", domain:"aljazeera.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
-
-  // جهان — فرانسوی
+  {name:"Al Jazeera English", aliases:["Al Jazeera"], domain:"aljazeera.com", scope:"world", lang:"en", type:"تلویزیون/آنلاین"},
   {name:"Le Monde", domain:"lemonde.fr", scope:"world", lang:"fr", type:"روزنامه"},
   {name:"France 24", domain:"france24.com", scope:"world", lang:"fr", type:"تلویزیون/آنلاین"},
   {name:"RFI", domain:"rfi.fr", scope:"world", lang:"fr", type:"رادیو/آنلاین"},
   {name:"Le Figaro", domain:"lefigaro.fr", scope:"world", lang:"fr", type:"روزنامه"},
   {name:"Libération", domain:"liberation.fr", scope:"world", lang:"fr", type:"روزنامه"},
-
-  // جهان — ترکی
   {name:"Anadolu Ajansı", domain:"aa.com.tr", scope:"world", lang:"tr", type:"خبرگزاری"},
   {name:"TRT Haber", domain:"trthaber.com", scope:"world", lang:"tr", type:"تلویزیون/آنلاین"},
   {name:"Hürriyet", domain:"hurriyet.com.tr", scope:"world", lang:"tr", type:"روزنامه"},
   {name:"Cumhuriyet", domain:"cumhuriyet.com.tr", scope:"world", lang:"tr", type:"روزنامه"},
-
-  // جهان — عربی و آلمانی
   {name:"الجزيرة", domain:"aljazeera.net", scope:"world", lang:"ar", type:"تلویزیون/آنلاین"},
   {name:"العربية", domain:"alarabiya.net", scope:"world", lang:"ar", type:"تلویزیون/آنلاین"},
   {name:"الشرق الأوسط", domain:"aawsat.com", scope:"world", lang:"ar", type:"روزنامه"},
   {name:"Der Spiegel", domain:"spiegel.de", scope:"world", lang:"de", type:"مجله"},
   {name:"Frankfurter Allgemeine", domain:"faz.net", scope:"world", lang:"de", type:"روزنامه"},
   {name:"Süddeutsche Zeitung", domain:"sueddeutsche.de", scope:"world", lang:"de", type:"روزنامه"}
-];
+]
 
-const PRESS_SCOPE_FA = {all:"همه", iran:"داخل ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان"};
+const PRESS_SCOPE_FA = {all:"همه", "iran-agency":"خبرگزاری‌ها و رسانه‌های خبری ایران", "iran-paper":"روزنامه‌های ایران", diaspora:"فارسی‌زبان خارج", world:"رسانه‌های جهان"};
 const PRESS_LANG_FA = {all:"همه زبان‌ها", fa:"فارسی", en:"انگلیسی", fr:"فرانسوی", tr:"ترکی", ar:"عربی", de:"آلمانی"};
 
 function pressLogo(s) {
@@ -152,7 +164,7 @@ async function renderPress(sourceName) {
     const langs=[...new Set(PRESS_SOURCES.filter(s=>pressScope==="all"||s.scope===pressScope).map(s=>s.lang))];
     const langControls=["all",...langs].map(k=>`<button class="fchip ${pressLanguage===k?"on":""}" onclick="setPressLanguage('${k}')">${PRESS_LANG_FA[k]||k}</button>`).join("");
     const cards=sources.map(s=>{
-      const items=groups.get(s.name)||[];
+      const items=[s.name,...(s.aliases||[])].flatMap(n=>groups.get(n)||[]);
       const status=items.length ? `${faN(items.length)} مطلب پردازش‌شده` : "در فهرست پایش";
       return `<button class="press-source press-source-rich" onclick="showPress('${esc(s.name)}')">
         ${pressLogo(s)}
@@ -170,7 +182,7 @@ async function renderPress(sourceName) {
   }
 
   const meta=PRESS_SOURCES.find(s=>s.name===sourceName);
-  const items=groups.get(sourceName)||[];
+  const items=meta ? [meta.name,...(meta.aliases||[])].flatMap(n=>groups.get(n)||[]) : (groups.get(sourceName)||[]);
   el.innerHTML=`<div class="press-source-head"><button class="back" onclick="showPress()">همهٔ رسانه‌ها</button>${meta?pressLogo(meta):""}<div><h2>${esc(sourceName)}</h2>${meta?`<p>${esc(meta.type)} · ${PRESS_LANG_FA[meta.lang]||meta.lang} · ${PRESS_SCOPE_FA[meta.scope]||""}</p>`:""}</div></div>
     ${items.length?`<div class="press-list">${items.map(x=>`<article class="press-article press-click" onclick="openPressArticle('${esc(x.id)}')"><span class="chip">${esc(sourceName)}</span><h2>${esc(x.headline_fa||x.title_fa||x.title_original||"")}</h2>${x.summary_fa?`<p>${esc(x.summary_fa)}</p>`:""}<div class="press-read">خواندن بازگویی تفصیلی ←</div></article>`).join("")}</div>`:`<div class="state press-empty"><div class="big">هنوز مطلبی از این رسانه پردازش نشده</div><p class="muted">این منبع در فهرست پایش است. مطالب مرتبط با ایران پس از دریافت و پردازش در همین صفحه ظاهر می‌شوند.</p></div>`}`;
 }
