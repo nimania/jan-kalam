@@ -1615,6 +1615,19 @@ async function renderFigureTimeline() {
   if (isNewsMode) posts = posts.filter(p => p.kind === "news_statement");
   if (_figTimelineMode === "following") posts = posts.filter(p => follows.has(String(p.handle).toLowerCase()));
   if (_figTimelineField !== "all" && !isNewsMode) posts = posts.filter(p => p.field === _figTimelineField);
+  // Self-heal stale/removed field values left behind by an older deployment.
+  // This also protects deep links after the exported field taxonomy changes.
+  if (!posts.length && _figTimelineMode === "all" && _figTimelineField !== "all") {
+    _figTimelineField = "all";
+    posts = (d.figures || []).flatMap(f => (f.posts || []).map(p => ({
+      ...p, field: f.field,
+      name_fa: p.name_fa || f.name_fa,
+      role_fa: p.role_fa || f.role_fa,
+      field_fa: f.field_fa || fields[f.field] || "",
+      avatar: p.avatar || f.avatar,
+      _newsPerson: false
+    }))).sort((a,b) => String(b.published_at || "").localeCompare(String(a.published_at || "")));
+  }
   const controls = `<div class="fig-tl-controls">
     <div class="imp-filter">
       <button class="fchip ${_figTimelineMode === "all" ? "on" : ""}" onclick="setFigureTimelineMode('all')">همه</button>
@@ -1698,7 +1711,18 @@ function showTech() {
     <div class="tech-card"><p>در بازطراحی تدریجی جان‌کلام، الگوهای Card و Stat برای خلاصه‌ها و اعداد، Avatar برای چهره‌ها، Segmented Control/Tabs برای فیلترها، Badge برای وضعیت‌ها، Timeline برای زنجیرهٔ رویداد و Skeleton/Empty State برای وضعیت‌های بارگذاری و نبود داده مبنا قرار می‌گیرند. این تطبیق مرحله‌ای است تا معماری سبک فعلی حفظ شود.</p></div>
   `;
 }
-function showFigures() { show("figures"); setTab(""); document.getElementById("figures-lede").style.display = ""; document.getElementById("figures").innerHTML = ""; renderFigureTimeline(); setHash("#/figures"); }
+function showFigures() {
+  show("figures"); setTab("");
+  document.getElementById("figures-lede").style.display = "";
+  document.getElementById("figures").innerHTML = "";
+  // A previous visit can leave timeline filters in local page state.  The
+  // /figures route itself must always open on a useful default instead of an
+  // apparently broken empty filtered view.
+  _figTimelineMode = "all";
+  _figTimelineField = "all";
+  renderFigureTimeline();
+  setHash("#/figures");
+}
 function renderFiguresDirectory() {
   document.getElementById("figure-timeline").innerHTML = "";
   _figDirectoryMode = "direct";
