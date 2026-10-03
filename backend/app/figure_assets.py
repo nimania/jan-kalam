@@ -24,6 +24,12 @@ logger = get_logger("figures.assets")
 
 _OG_RE = re.compile(r'<meta property="og:image" content="([^"]+)"', re.IGNORECASE)
 REFRESH_DAYS = 7
+
+# Trusted portrait sources for external figures. These are fetched and self-hosted
+# just like Telegram avatars, so clients never depend on the remote host.
+_EXTERNAL_AVATARS = {
+    "donald-trump": "https://www.whitehouse.gov/wp-content/uploads/2025/06/President-Donald-Trump-Official-Presidential-Portrait.png",
+}
 _TIMEOUT = 20.0
 _MAX_BYTES = 600_000
 
@@ -83,7 +89,10 @@ def refresh_avatars(db, *, now: datetime | None = None, fetcher=_fetch_avatar) -
 
 def avatar_paths(db) -> dict[str, str]:
     """Return the stable self-hosted paths for all cached figure assets."""
-    external = {f.handle for f in FIGURES if f.external}\n    return {a.handle: f"figures/{a.handle}.{a.ext}" for a in db.query(FigureAsset).all() if a.handle not in external}
+    allowed_external = set(_EXTERNAL_AVATARS)
+    return {a.handle: f"figures/{a.handle}.{a.ext}" for a in db.query(FigureAsset).all()
+            if not next((f.external for f in FIGURES if f.handle == a.handle), False)
+            or a.handle in allowed_external}
 
 
 def write_avatars(db, out_dir: str) -> dict[str, str]:
