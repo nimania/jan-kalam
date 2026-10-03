@@ -1,6 +1,9 @@
 """Collect recent article metadata from RSS/Atom and source-aware HTML collectors."""
 from __future__ import annotations
 import hashlib, html, json, re, urllib.parse, urllib.request
+from collections import Counter, defaultdict
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from concurrent.futures import ThreadPoolExecutor
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -49,11 +52,29 @@ def allowed_article(src, path):
     if not rules: return True
     return any(re.search(p,path,re.I) for p in rules)
 
-def make_row(src,title,link,text,transport):
+def parse_published(value):
+    value=(value or "").strip()
+    if not value: return None
+    try:
+        d=parsedate_to_datetime(value)
+        if d.tzinfo is None: d=d.replace(tzinfo=timezone.utc)
+        return d.isoformat()
+    except Exception:
+        pass
+    try:
+        d=datetime.fromisoformat(value.replace("Z","+00:00"))
+        if d.tzinfo is None: d=d.replace(tzinfo=timezone.utc)
+        return d.isoformat()
+    except Exception:
+        return None
+
+def make_row(src,title,link,text,transport,published=None):
     ident=hashlib.sha1((src["source_name"]+"|"+link).encode()).hexdigest()
-    return {"id":"site:"+ident,"publisher":src["source_name"],"kind":"site_feed","title_original":title,
+    row={"id":"site:"+ident,"publisher":src["source_name"],"kind":"site_feed","title_original":title,
       "text":text[:5000],"article_url":link,"transport":transport,"page":None,"lang":src.get("lang"),
       "scope":src.get("scope"),"source_homepage":src.get("homepage")}
+    if published: row["source_published_at"]=published
+    return row
 
 def enrich_full_article(row):
     """Fetch article HTML for transformation. Raw source text stays workflow-local."""
@@ -138,36 +159,47 @@ def main():
                     for ch in list(it):
                         if ch.tag.split("}")[-1].lower()=="link" and ch.attrib.get("href"): link=ch.attrib["href"]; break
                 link=urllib.parse.urljoin(src.get("homepage") or feed,link)
+                published=parse_published(first_text(it,{"pubdate","published","updated","date"}))
                 if not title or not link: continue
                 if excluded({**src,"feed_url":link}): continue
-                rows.append(make_row(src,title,link,summary,"rss:"+feed))
+                rows.append(make_row(src,title,link,summary,"rss:"+feed,published))
             print("press feeds:",src.get("source_name"),"collected",sum(1 for x in rows if x["publisher"]==src["source_name"]),"RSS candidates")
         except Exception as exc: print("press feeds:",src.get("source_name"),"failed:",str(exc)[:180])
     rows=list({x["id"]:x for x in rows}.values())
 
-    # Pull a bounded number of complete article pages. Cover Iranian magazines
-    # broadly (up to 10 per publisher) instead of letting one prolific source
-    # consume the whole full-text budget.
-    done_full=set()
+    # Fetch full pages fairly across publishers. The least-enriched publishers
+    # go first, so adding many feeds does not let the first/high-volume outlets
+    # monopolize long-form processing.
+    old=[]
     if ARCHIVE.exists():
-        try:
-            done_full={x.get("id") for x in json.loads(ARCHIVE.read_text(encoding="utf-8"))
-                       if x.get("id") and x.get("enrichment_state")=="ai_fulltext"}
-        except Exception:
-            done_full=set()
-    full_ids=set(); per_publisher={}
-    # Prioritize articles that have never received full-text enrichment.
-    for x in rows:
-        if x.get("scope")!="iran-magazine" or x.get("id") in done_full: continue
-        p=x.get("publisher")
-        n=per_publisher.get(p,0)
-        if n<4:
-            full_ids.add(x["id"]); per_publisher[p]=n+1
-    other=0
-    for x in rows:
-        if x["id"] in full_ids or x.get("id") in done_full or other>=12: continue
-        full_ids.add(x["id"]); other+=1
-    with ThreadPoolExecutor(max_workers=6) as pool:
+        try: old=json.loads(ARCHIVE.read_text(encoding="utf-8"))
+        except Exception: old=[]
+    done_full={x.get("id") for x in old if x.get("id") and x.get("enrichment_state")=="ai_fulltext"}
+    done_counts=Counter(
+        x.get("publisher") for x in old
+        if x.get("publisher") and x.get("enrichment_state")=="ai_fulltext"
+    )
+    by_pub=defaultdict(list)
+    pub_scope={}
+    pub_order={}
+    for idx,x in enumerate(rows):
+        p=x.get("publisher") or ""
+        if not p: continue
+        by_pub[p].append(x)
+        pub_scope[p]=x.get("scope")
+        pub_order.setdefault(p,idx)
+    scope_priority={"iran-agency":0,"iran-paper":0,"diaspora":1,"world":2,"iran-magazine":3}
+    publishers=sorted(
+        by_pub,
+        key=lambda p:(done_counts.get(p,0),scope_priority.get(pub_scope.get(p),4),pub_order[p])
+    )
+    full_ids=set()
+    for p in publishers:
+        candidate=next((x for x in by_pub[p] if x.get("id") not in done_full),None)
+        if candidate:
+            full_ids.add(candidate["id"])
+        if len(full_ids)>=48: break
+    with ThreadPoolExecutor(max_workers=8) as pool:
         enriched=list(pool.map(enrich_full_article,[x for x in rows if x["id"] in full_ids]))
     enriched_by_id={x["id"]:x for x in enriched}
     rows=[enriched_by_id.get(x["id"],x) for x in rows]
