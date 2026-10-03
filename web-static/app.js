@@ -215,7 +215,11 @@ function pressSourceStats(s, stats){
 }
 async function renderPress(sourceName) {
   const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
-  const [rows,stats]=await Promise.all([loadPeriodicals(),loadPressStats()]);
+  // Keep the directory usable even when one generated data file is missing,
+  // stale, or temporarily unavailable during a deploy.
+  const [rowsResult,statsResult]=await Promise.allSettled([loadPeriodicals(),loadPressStats()]);
+  const rows=rowsResult.status==="fulfilled" ? rowsResult.value : [];
+  const stats=statsResult.status==="fulfilled" ? statsResult.value : [];
   const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
 
   if(!sourceName){
