@@ -152,11 +152,11 @@ def main():
         if x.get("scope")!="iran-magazine": continue
         p=x.get("publisher")
         n=per_publisher.get(p,0)
-        if n<10:
+        if n<4:
             full_ids.add(x["id"]); per_publisher[p]=n+1
     other=0
     for x in rows:
-        if x["id"] in full_ids or other>=20: continue
+        if x["id"] in full_ids or other>=12: continue
         full_ids.add(x["id"]); other+=1
     with ThreadPoolExecutor(max_workers=6) as pool:
         enriched=list(pool.map(enrich_full_article,[x for x in rows if x["id"] in full_ids]))
