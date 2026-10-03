@@ -40,6 +40,32 @@ async function getJSON(path, timeoutMs = 12000) {
 }
 
 
+function setArticleSeo(x){
+  const title=(x.seo_title_fa||x.headline_fa||x.title_original||"جان جراید").trim();
+  const desc=(x.meta_description_fa||x.summary_fa||"").trim();
+  document.title=title+" | جان‌کلام";
+  let m=document.querySelector('meta[name="description"]');
+  if(!m){m=document.createElement("meta");m.name="description";document.head.appendChild(m);}
+  if(desc)m.content=desc;
+  let k=document.querySelector('meta[name="keywords"]');
+  if(!k){k=document.createElement("meta");k.name="keywords";document.head.appendChild(k);}
+  k.content=(x.seo_keywords_fa||[]).join("، ");
+  let schema=document.getElementById("press-article-schema");
+  if(!schema){schema=document.createElement("script");schema.type="application/ld+json";schema.id="press-article-schema";document.head.appendChild(schema);}
+  schema.textContent=JSON.stringify({
+    "@context":"https://schema.org","@type":"Article",
+    "headline":title,"description":desc,
+    "datePublished":x.source_published_at||x.published_at||undefined,
+    "dateModified":x.published_at||undefined,
+    "author":{"@type":"Organization","name":x.publisher||"جان جراید"},
+    "publisher":{"@type":"Organization","name":"جان‌کلام"},
+    "mainEntityOfPage":location.href,
+    "isBasedOn":x.source_url||x.article_url||undefined,
+    "keywords":(x.seo_keywords_fa||[]).join(", ")
+  });
+}
+
+
 // Header smart search — natural-language, cross-dataset local retrieval.
 let _smartSearchTimer=null, _smartSearchDocs=null;
 function toggleSmartSearch(force){
@@ -526,6 +552,7 @@ async function openPressArticle(id) {
   show("press"); setTab("press"); const el=document.getElementById("press-content"); el.innerHTML='<div class="spinner"></div>';
   const rows=await loadPeriodicals(); const x=rows.find(r=>String(r.id)===String(id));
   if(!x){el.innerHTML='<div class="state"><div class="big">مطلب پیدا نشد</div></div>';return;}
+  setArticleSeo(x);
   const body=x.body_fa||x.longform_fa||"";
   const points=(x.key_points_fa||[]).map(p=>`<li>${esc(p)}</li>`).join("");
   const hero=x.image_url||x.hero_image_url||x.source_image_url||x.og_image||"";
