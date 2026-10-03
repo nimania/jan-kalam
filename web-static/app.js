@@ -151,14 +151,13 @@ async function _buildSmartSearchDocs(){
   }catch(_){}
   const visiblePressNames=new Set();
   try{
-    const rows=await loadPeriodicals();
-    (rows||[]).forEach(x=>{if(x&&x.publisher)visiblePressNames.add(String(x.publisher));});
+    const manifest=await loadPressDirectory();
+    (manifest||[]).forEach(x=>{if(x&&x.source_name&&Number(x.count||0)>0)visiblePressNames.add(String(x.source_name));});
   }catch(_){}
   try{
     const archive=await getJSON(`${DATA}/press-source-stories.json`);
     Object.entries(archive||{}).forEach(([source,items])=>{
       const arr=Array.isArray(items)?items:[];
-      if(arr.length) visiblePressNames.add(source);
       arr.forEach(x=>docs.push({kind:"مطلب جریده",title:x.headline_fa||x.title_fa||"",sub:source,source,go:`openStory('${x.id}')`,text:[source,x.headline_fa,x.summary_fa,x.category].join(" "),snippet:x.summary_fa||""}));
     });
   }catch(_){}
@@ -229,6 +228,7 @@ let pressScope = "all";
 let pressLanguage = "all";
 let pressStatsCache = null;
 let pressHealthCache = null;
+let pressDirectoryCache = null;
 
 const PRESS_SOURCES = [
   // خبرگزاری‌ها و رسانه‌های خبری داخل ایران
@@ -441,6 +441,13 @@ async function loadPeriodicals() {
   periodicalRows=Array.isArray(rows)?rows:((rows && Array.isArray(rows.articles))?rows.articles:[]);
   return periodicalRows;
 }
+async function loadPressDirectory(){
+  if(pressDirectoryCache!==null) return pressDirectoryCache;
+  let rows=[];
+  try{rows=await getJSON(`${DATA}/press-directory.json`,5000);}catch(_){}
+  pressDirectoryCache=Array.isArray(rows)?rows:[];
+  return pressDirectoryCache;
+}
 async function loadPressStats(){
   if(pressStatsCache) return pressStatsCache;
   let rows=[]; try{rows=await getJSON(`${DATA}/press-stats.json`);}catch(_){}
@@ -483,51 +490,59 @@ function pressSourceStats(s, stats){
 }
 async function renderPress(sourceName) {
   const el=document.getElementById("press-content");
-  // Never decide that the public directory is empty before its generated data
-  // has actually loaded. Empty-state text must mean "zero published content",
-  // not "the fetch is still in flight".
-  if(!periodicalRows.length || pressStatsCache===null || pressHealthCache===null){
-    el.innerHTML='<div class="spinner"></div>';
-    await Promise.allSettled([loadPeriodicals(),loadPressStats(),loadPressHealth()]);
+  if(sourceName){
+    if(!periodicalRows.length || pressStatsCache===null || pressHealthCache===null){
+      el.innerHTML='<div class="spinner"></div>';
+      await Promise.allSettled([loadPeriodicals(),loadPressStats(),loadPressHealth()]);
+    }
+  }else{
+    if(pressDirectoryCache===null || pressHealthCache===null){
+      el.innerHTML='<div class="spinner"></div>';
+      await Promise.allSettled([loadPressDirectory(),loadPressHealth()]);
+    }
   }
   const rows=periodicalRows||[];
   const stats=pressStatsCache||[];
   const health=pressHealthCache||[];
+  const manifest=pressDirectoryCache||[];
+  const directoryMap=new Map(manifest.filter(x=>x&&x.source_name&&Number(x.count||0)>0).map(x=>[String(x.source_name),x]));
   const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
 
   if(!sourceName){
-    const hasContent=s=>{
-      const items=[s.name,...(s.aliases||[])].flatMap(n=>groups.get(n)||[]);
-      const st=pressSourceStats(s,stats);
-      return items.length>0 || (st.story_count||0)>0 || (st.iran_story_count||0)>0;
+    const sourceDirRow=s=>{
+      const names=[s.name,...(s.aliases||[])];
+      const matches=names.map(n=>directoryMap.get(n)).filter(Boolean);
+      if(!matches.length) return null;
+      return matches.reduce((a,x)=>({
+        count:a.count+Number(x.count||0),
+        latest_at:(!a.latest_at||String(x.latest_at||"")>String(a.latest_at||""))?(x.latest_at||a.latest_at):a.latest_at
+      }),{count:0,latest_at:null});
     };
-    const visibleSources=PRESS_SOURCES.filter(hasContent);
+    const visibleSources=PRESS_SOURCES.filter(s=>sourceDirRow(s)?.count>0);
     const sources=visibleSources.filter(s => pressMatchesScope(s,pressScope) && (pressLanguage==="all"||s.lang===pressLanguage));
     const scopeControls=Object.entries(PRESS_SCOPE_FA).map(([k,v])=>`<button class="fchip ${pressScope===k?"on":""}" onclick="setPressScope('${k}')">${v}</button>`).join("");
     const langs=[...new Set(visibleSources.filter(s=>pressMatchesScope(s,pressScope)).map(s=>s.lang))];
     const langControls=["all",...langs].map(k=>`<button class="fchip ${pressLanguage===k?"on":""}" onclick="setPressLanguage('${k}')">${PRESS_LANG_FA[k]||k}</button>`).join("");
     const cards=sources.map(s=>{
-      const items=[s.name,...(s.aliases||[])].flatMap(n=>groups.get(n)||[]);
-      const st=pressSourceStats(s,stats);
+      const dr=sourceDirRow(s)||{count:0,latest_at:null};
       const h=pressSourceHealth(s,health);
-      const bits=[];
-      if(st.iran_story_count) bits.push(faN(st.iran_story_count)+" خبر مرتبط با ایران");
-      else if(st.story_count) bits.push(faN(st.story_count)+" حضور در خط خبری");
-      if(items.length) bits.push(faN(items.length)+" مطلب تفصیلی");
-      if(st.latest_at) bits.push("آخرین: "+ago(st.latest_at));
-      const status=bits.length?bits.join(" · "):"در فهرست پایش";
+      const bits=[faN(dr.count)+" مطلب"];
+      if(dr.latest_at) bits.push("آخرین: "+ago(dr.latest_at));
+      const status=bits.join(" · ");
       return `<button class="press-source press-source-rich" onclick="showPress('${esc(s.name)}')">
         ${pressLogo(s)}
         <span class="press-source-copy"><span class="press-source-title"><strong>${esc(s.name)}</strong>${pressHealthBadge(h)}</span><small>${esc(s.type)} · ${PRESS_LANG_FA[s.lang]||s.lang}</small><em>${status}${h&&h.last_run?` · پایش ${ago(h.last_run)}`:""}</em></span>
       </button>`;
     }).join("");
     const known=new Set(PRESS_SOURCES.flatMap(s=>[s.name,...(s.aliases||[])]));
-    const extra=[...groups.entries()].filter(([name])=>!known.has(name));
+    const extra=manifest
+      .filter(x=>x&&x.source_name&&Number(x.count||0)>0&&!known.has(String(x.source_name)))
+      .map(x=>[String(x.source_name),Number(x.count||0)]);
     el.innerHTML=`<div class="press-directory-note"><b>تمرکز تحریریه:</b> مطالبی که به ایران، ایرانیان، سیاست خارجی ایران یا پیامدهای منطقه‌ای مرتبط‌اند؛ زبان منبع محدودیت نیست.</div>
       <div class="press-filter-row">${scopeControls}</div>
       <div class="press-filter-row press-langs">${langControls}</div>
       ${cards?`<div class="press-grid">${cards}</div>`:`<div class="state"><div class="big">در این بخش هنوز منبعی با محتوای منتشرشده نداریم</div></div>`}
-      ${extra.length?`<div class="rule"><span>دیگر نشریات پردازش‌شده</span><span class="l"></span></div><div class="press-grid">${extra.map(([name,items])=>`<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span><strong>${esc(name)}</strong><small>${faN(items.length)} مطلب</small></button>`).join("")}</div>`:""}`;
+      ${extra.length?`<div class="rule"><span>دیگر نشریات پردازش‌شده</span><span class="l"></span></div><div class="press-grid">${extra.map(([name,count])=>`<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span><strong>${esc(name)}</strong><small>${faN(count)} مطلب</small></button>`).join("")}</div>`:""}`;
     return;
   }
 
