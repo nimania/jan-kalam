@@ -93,6 +93,7 @@ jobs:
           mkdir -p site/data
           cp backend/public/data/periodicals.json site/data/periodicals.json
           cp backend/public/data/press-directory.json site/data/press-directory.json
+          cp backend/public/data/press-directory.js site/data/press-directory.js
           cp backend/public/data/press-registry-health.json site/data/press-registry-health.json
           if [ -d backend/web-static/assets/periodicals ]; then
             mkdir -p site/assets/periodicals
@@ -102,7 +103,7 @@ jobs:
           import hashlib, pathlib, re
           root = pathlib.Path("site")
           versions = {}
-          for name in ("app.js", "styles.css", "iran-provinces.js"):
+          for name in ("app.js", "styles.css", "iran-provinces.js", "data/press-directory.js"):
               p = root / name
               if p.exists():
                   versions[name] = hashlib.md5(p.read_bytes()).hexdigest()[:8]
