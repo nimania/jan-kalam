@@ -1002,3 +1002,16 @@
   .book-desc{font-size:1rem}
   .book-entities,.book-buy-grid{grid-template-columns:1fr}
 }
+
+
+/* Cross-navigation for the knowledge layer */
+.section-shortcuts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.section-shortcuts button{font:650 12px/1.2 "Vazirmatn",sans-serif;border:1px solid var(--line);background:transparent;color:var(--accent);border-radius:999px;padding:7px 12px;cursor:pointer}
+.section-shortcuts button:hover{background:var(--surface);border-color:var(--accent)}
+.press-books{margin:22px 0;border:1px solid var(--line);border-radius:14px;padding:15px;background:var(--surface)}
+.press-book-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:9px}
+.press-book-links button{display:flex;flex-direction:column;text-align:right;gap:3px;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:var(--card);color:inherit;font-family:inherit;cursor:pointer}
+.press-book-links button:hover{border-color:var(--accent)}
+.press-book-links span{font-size:10px;color:var(--accent);font-weight:750}
+.press-book-links b{font-family:"Noto Naskh Arabic",serif;font-size:16px;line-height:1.5}
+@media(max-width:620px){.press-book-links{grid-template-columns:1fr}}
