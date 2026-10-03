@@ -96,6 +96,10 @@ const PRESS_SOURCES = [
   // مجلات و فصلنامه‌های ایرانی
   {name:"تجربه", aliases:["مجله تجربه","ماهنامه تجربه"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"ماهنامه فرهنگی و هنری"},
   {name:"بخارا", aliases:["مجله بخارا"], domain:"bukharamag.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و ادبی"},
+  {name:"تنور", aliases:["مجله تنور"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و ادبی"},
+  {name:"ناداستان", aliases:["مجله ناداستان"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله روایت و ادبیات غیرداستانی"},
+  {name:"عصر اندیشه", aliases:["مجله عصر اندیشه"], domain:"asreandisheh.ir", scope:"iran-magazine", lang:"fa", type:"مجله اندیشه و علوم انسانی"},
+  {name:"شهریور", aliases:["مجله شهریور"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
   {name:"اندیشه پویا", aliases:["مجله اندیشه پویا"], domain:"andishepooya.ir", scope:"iran-magazine", lang:"fa", type:"ماهنامه فرهنگی و سیاسی"},
   {name:"مروارید", aliases:["مجله مروارید"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
   {name:"غروب", aliases:["مجله غروب"], domain:"goroobonline.ir", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و تاریخی"},
@@ -107,6 +111,9 @@ const PRESS_SOURCES = [
   {name:"Press TV", domain:"presstv.ir", scope:"iran-agency", lang:"en", type:"تلویزیون/رسانه خبری"},
   {name:"Tehran Times", domain:"tehrantimes.com", scope:"iran-paper", lang:"en", type:"روزنامه"},
   {name:"Al-Alam", aliases:["العالم"], domain:"alalam.ir", scope:"iran-agency", lang:"ar", type:"تلویزیون/رسانه خبری"},
+
+  // مجلات فارسی‌زبان خارج از ایران
+  {name:"فریدون", aliases:["مجله فریدون"], domain:"fereydoun.org", scope:"diaspora", lang:"fa", type:"مجله فارسی‌زبان خارج از ایران"},
 
   // فارسی‌زبان خارج از ایران
   {name:"بی‌بی‌سی فارسی", aliases:["بی‌بی‌سی فارسی (BBC Persian)"], domain:"bbc.com", scope:"diaspora", lang:"fa", type:"رسانه بین‌المللی"},
