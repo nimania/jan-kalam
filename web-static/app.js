@@ -99,7 +99,7 @@ const PRESS_SOURCES = [
   {name:"تنور", aliases:["مجله تنور"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و ادبی"},
   {name:"ناداستان", aliases:["مجله ناداستان"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله روایت و ادبیات غیرداستانی"},
   {name:"عصر اندیشه", aliases:["مجله عصر اندیشه"], domain:"asreandisheh.ir", scope:"iran-magazine", lang:"fa", type:"مجله اندیشه و علوم انسانی"},
-  {name:"شهریور", aliases:["مجله شهریور"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
+  {name:"شهریور", aliases:["مجله شهریور"], domain:"shahrivar.org", scope:"diaspora", lang:"fa", type:"مجله فارسی‌زبان خارج از ایران"},
   {name:"اندیشه پویا", aliases:["مجله اندیشه پویا"], domain:"andishepooya.ir", scope:"iran-magazine", lang:"fa", type:"ماهنامه فرهنگی و سیاسی"},
   {name:"مروارید", aliases:["مجله مروارید"], domain:"taaghche.com", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی"},
   {name:"غروب", aliases:["مجله غروب"], domain:"goroobonline.ir", scope:"iran-magazine", lang:"fa", type:"مجله فرهنگی و تاریخی"},
@@ -114,6 +114,8 @@ const PRESS_SOURCES = [
 
   // مجلات فارسی‌زبان خارج از ایران
   {name:"فریدون", aliases:["مجله فریدون"], domain:"fereydoun.org", scope:"diaspora", lang:"fa", type:"مجله فارسی‌زبان خارج از ایران"},
+  {name:"ایران‌نامه", aliases:["ایران نامه","Iran Namag"], domain:"irannamag.com", scope:"diaspora", lang:"fa", type:"فصلنامه ایران‌شناسی خارج از ایران"},
+  {name:"ایران‌شناسی", aliases:["ایران شناسی"], domain:"fis-iran.org", scope:"diaspora", lang:"fa", type:"فصلنامه ایران‌شناسی خارج از ایران"},
 
   // فارسی‌زبان خارج از ایران
   {name:"بی‌بی‌سی فارسی", aliases:["بی‌بی‌سی فارسی (BBC Persian)"], domain:"bbc.com", scope:"diaspora", lang:"fa", type:"رسانه بین‌المللی"},
