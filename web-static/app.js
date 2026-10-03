@@ -138,19 +138,33 @@ async function _buildSmartSearchDocs(){
   try{
     const f=await loadFigures();
     (f.figures||[]).forEach(x=>{
-      docs.push({kind:"چهره",title:x.name_fa,sub:x.role_fa||"",handle:x.handle,go:`openFigure('${String(x.handle).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,x.handle].join(" ")});
-      (x.posts||[]).forEach(p=>docs.push({kind:"دیدگاه",title:x.name_fa,sub:p.topic_fa||p.source_name||"دیدگاه",handle:x.handle,go:`openStatement('${String(statementKey(p)).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,p.topic_fa,p.summary_fa,p.source_name].join(" "),snippet:p.summary_fa||""}));
+      const posts=x.posts||[];
+      if(posts.length || (x.count||0)>0){
+        docs.push({kind:"چهره",title:x.name_fa,sub:x.role_fa||"",handle:x.handle,go:`openFigure('${String(x.handle).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,x.handle].join(" ")});
+      }
+      posts.forEach(p=>docs.push({kind:"دیدگاه",title:x.name_fa,sub:p.topic_fa||p.source_name||"دیدگاه",handle:x.handle,go:`openStatement('${String(statementKey(p)).replace(/'/g,"\\'")}')`,text:[x.name_fa,x.role_fa,p.topic_fa,p.summary_fa,p.source_name].join(" "),snippet:p.summary_fa||""}));
     });
   }catch(_){}
   try{
     const feed=await getJSON(`${DATA}/feed.json`), arr=Array.isArray(feed)?feed:(feed.items||[]);
     arr.forEach(x=>docs.push({kind:"خبر",title:x.headline_fa||x.title_fa||x.title||"",sub:(x.source_names||[]).slice(0,3).join(" · "),go:`openStory('${x.id}')`,text:[x.headline_fa,x.summary_fa,x.what_happened_fa,(x.source_names||[]).join(" ")].join(" "),snippet:x.summary_fa||x.what_happened_fa||""}));
   }catch(_){}
+  const visiblePressNames=new Set();
+  try{
+    const rows=await loadPeriodicals();
+    (rows||[]).forEach(x=>{if(x&&x.publisher)visiblePressNames.add(String(x.publisher));});
+  }catch(_){}
   try{
     const archive=await getJSON(`${DATA}/press-source-stories.json`);
-    Object.entries(archive||{}).forEach(([source,items])=>(Array.isArray(items)?items:[]).forEach(x=>docs.push({kind:"مطلب جریده",title:x.headline_fa||x.title_fa||"",sub:source,source,go:`openStory('${x.id}')`,text:[source,x.headline_fa,x.summary_fa,x.category].join(" "),snippet:x.summary_fa||""})));
+    Object.entries(archive||{}).forEach(([source,items])=>{
+      const arr=Array.isArray(items)?items:[];
+      if(arr.length) visiblePressNames.add(source);
+      arr.forEach(x=>docs.push({kind:"مطلب جریده",title:x.headline_fa||x.title_fa||"",sub:source,source,go:`openStory('${x.id}')`,text:[source,x.headline_fa,x.summary_fa,x.category].join(" "),snippet:x.summary_fa||""}));
+    });
   }catch(_){}
-  PRESS_SOURCES.forEach(x=>docs.push({kind:"جریده",title:x.name,sub:x.type||"",source:x.name,go:`showPress('${String(x.name).replace(/'/g,"\\'")}')`,text:[x.name,(x.aliases||[]).join(" "),x.type,x.lang].join(" ")}));
+  PRESS_SOURCES
+    .filter(x=>[x.name,...(x.aliases||[])].some(n=>visiblePressNames.has(n)))
+    .forEach(x=>docs.push({kind:"جریده",title:x.name,sub:x.type||"",source:x.name,go:`showPress('${String(x.name).replace(/'/g,"\\'")}')`,text:[x.name,(x.aliases||[]).join(" "),x.type,x.lang].join(" ")}));
   _smartSearchDocs=docs; return docs;
 }
 function _ssExcerpt(s,Q){
@@ -490,9 +504,15 @@ async function renderPress(sourceName) {
   const groups=new Map(); rows.forEach(x=>{const n=x.publisher||"نشریه";if(!groups.has(n))groups.set(n,[]);groups.get(n).push(x);});
 
   if(!sourceName){
-    const sources=PRESS_SOURCES.filter(s => pressMatchesScope(s,pressScope) && (pressLanguage==="all"||s.lang===pressLanguage));
+    const hasContent=s=>{
+      const items=[s.name,...(s.aliases||[])].flatMap(n=>groups.get(n)||[]);
+      const st=pressSourceStats(s,stats);
+      return items.length>0 || (st.story_count||0)>0 || (st.iran_story_count||0)>0;
+    };
+    const visibleSources=PRESS_SOURCES.filter(hasContent);
+    const sources=visibleSources.filter(s => pressMatchesScope(s,pressScope) && (pressLanguage==="all"||s.lang===pressLanguage));
     const scopeControls=Object.entries(PRESS_SCOPE_FA).map(([k,v])=>`<button class="fchip ${pressScope===k?"on":""}" onclick="setPressScope('${k}')">${v}</button>`).join("");
-    const langs=[...new Set(PRESS_SOURCES.filter(s=>pressMatchesScope(s,pressScope)).map(s=>s.lang))];
+    const langs=[...new Set(visibleSources.filter(s=>pressMatchesScope(s,pressScope)).map(s=>s.lang))];
     const langControls=["all",...langs].map(k=>`<button class="fchip ${pressLanguage===k?"on":""}" onclick="setPressLanguage('${k}')">${PRESS_LANG_FA[k]||k}</button>`).join("");
     const cards=sources.map(s=>{
       const items=[s.name,...(s.aliases||[])].flatMap(n=>groups.get(n)||[]);
@@ -514,7 +534,7 @@ async function renderPress(sourceName) {
     el.innerHTML=`<div class="press-directory-note"><b>تمرکز تحریریه:</b> مطالبی که به ایران، ایرانیان، سیاست خارجی ایران یا پیامدهای منطقه‌ای مرتبط‌اند؛ زبان منبع محدودیت نیست.</div>
       <div class="press-filter-row">${scopeControls}</div>
       <div class="press-filter-row press-langs">${langControls}</div>
-      <div class="press-grid">${cards}</div>
+      ${cards?`<div class="press-grid">${cards}</div>`:`<div class="state"><div class="big">در این بخش هنوز منبعی با محتوای منتشرشده نداریم</div></div>`}
       ${extra.length?`<div class="rule"><span>دیگر نشریات پردازش‌شده</span><span class="l"></span></div><div class="press-grid">${extra.map(([name,items])=>`<button class="press-source" onclick="showPress('${esc(name)}')"><span class="press-mark">ج</span><strong>${esc(name)}</strong><small>${faN(items.length)} مطلب</small></button>`).join("")}</div>`:""}`;
     return;
   }
@@ -2114,14 +2134,16 @@ async function renderFigures() {
   const el = document.getElementById("figures");
   el.innerHTML = `<div class="spinner"></div>`;
   const d = await loadFigures();
-  const people = (d.figures || []).filter(x => x.directory !== false)
+  const people = (d.figures || []).filter(x =>
+      x.directory !== false && (((x.posts||[]).length > 0) || (x.count||0) > 0)
+    )
     .sort((a,b) => (b.count||0)-(a.count||0) || String(a.name_fa||"").localeCompare(String(b.name_fa||""),"fa"));
   el.innerHTML = `<p class="muted">چهره‌ها در یک فهرست واحد؛ دیدگاه‌های مستقیم و گفته‌های منتسب در خبرها داخل همان پروفایل جمع می‌شوند.</p>` +
     (people.length ? `<div class="fig-grid">${people.map(x => `<button class="fig-person" onclick="openFigure('${esc(x.handle)}')">
       ${avatar(x, "md")}
       <span class="fp-body"><span class="fp-name">${esc(x.name_fa)}</span><span class="fp-role">${esc(x.role_fa||"")}</span>
       <span class="fp-count">${faN(x.count||0)} گفته</span></span></button>`).join("")}</div>`
-    : `<div class="state"><div class="big">هنوز شخصی ثبت نشده</div></div>`);
+    : `<div class="state"><div class="big">هنوز چهره‌ای با محتوای منتشرشده نداریم</div></div>`);
 }
 async function openNewsPerson(handle) { return openFigure(handle); }
 async function openFigureByName(name) {
