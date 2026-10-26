@@ -1221,6 +1221,7 @@ async function openStory(id) {
     return;
   }
 
+  setStorySeo(s, cleanId);
   const imp = impInfo(s.importance_score);
   const peopleSuggestions = await storyPeopleSuggestions(s);
   const li = a => (a || []).map(x => `<li>${esc(x)}</li>`).join("");
@@ -1301,9 +1302,13 @@ async function openStory(id) {
     ${cred}
     ${trendSec}
     ${relSection}
-    <div class="layers"><h3 class="section-h">منابع چه می‌گویند <span class="n">دیدگاه هر منبع، جدا از واقعیت</span></h3><div class="views">${views || '<p class="muted">—</p>'}</div>${consensus}</div>
+    <div class="layers"><h3 class="section-h">ذره‌بین جان‌کلام <span class="n">روایت منابع، نقاط اشتراک و اختلاف</span></h3><div class="views">${views || '<p class="muted">—</p>'}</div>${consensus}</div>
     ${figuresSection(s.figures)}
     <div class="layers"><h3 class="section-h">منابع</h3><div class="cites">${cites}</div></div>
+    <div class="ref-strip" aria-label="خبر مرتبط در پندار">
+      <span class="ref-hd"><b>خبر و پروندهٔ مرتبط</b> · پوشش خبری در پندار</span>
+      <div class="ref-links"><a href="https://pendar.io/story/${encodeURIComponent(cleanId)}/"><span class="ref-src">پندار</span>مشاهدهٔ خبر و منابع آن ↗</a></div>
+    </div>
     <div class="ask"><div class="a-h"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="color:var(--accent)"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z" stroke-linejoin="round"/></svg> دربارهٔ این خبر بپرس</div>
       <p class="a-sub">پاسخ‌های آماده از روی همین خبر.</p>
       <div class="chips">${chips}</div>
