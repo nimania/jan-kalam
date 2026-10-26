@@ -26,6 +26,8 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Generate sitemap and robots targets
+        run: python3 scripts/generate_sitemap.py
       - name: Upload standalone Jan Kalam
         uses: actions/upload-pages-artifact@v3
         with:
