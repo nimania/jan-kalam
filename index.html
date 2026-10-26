@@ -5,6 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>جان‌کلام</title>
   <meta name="description" content="هوش خبری فارسی — واقعیت جدا از تحلیل، و دیدگاه هر منبع به‌تفکیک.">
+  <link id="page-canonical" rel="canonical" href="https://nimania.github.io/jan-kalam/">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="جان‌کلام — هوش خبری فارسی">
+  <meta property="og:description" content="واقعیت خبر، روایت منابع و نقاط اشتراک و اختلاف را در جان‌کلام ببینید.">
+  <meta property="og:url" content="https://nimania.github.io/jan-kalam/">
+  <script>
+    (function () {
+      var id = new URLSearchParams(location.search).get("story") || "";
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return;
+      var canonical = document.getElementById("page-canonical");
+      if (canonical) canonical.href = "https://nimania.github.io/jan-kalam/?story=" + encodeURIComponent(id);
+    })();
+  </script>
   <meta name="theme-color" content="#155a4f">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
