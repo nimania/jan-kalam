@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://nimania.github.io/jan-kalam/sitemap.xml
