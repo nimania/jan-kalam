@@ -819,18 +819,70 @@ async function openPressArticle(id) {
   setHash("#/press-article/"+encodeURIComponent(id));
 }
 
-/* ---- hash routing: shareable URLs + working Back button ----
-   Each view/story gets its own #/… URL. Deep links and Back/Forward work.
-   _navLock stops our own setHash() from re-triggering the router. */
+/* ---- crawlable story URLs + hash routes for the remaining app views ---- */
 let _navLock = false;
 function setHash(h) {
-  h = h || "#/";                              // home sentinel
-  if ((location.hash || "#/") === h) return;  // no change (also no-op on first load)
+  h = h || "#/";
+  if (new URLSearchParams(location.search).has("story")) {
+    const url = new URL(location.href);
+    url.searchParams.delete("story");
+    history.replaceState(null, "", url.pathname + url.search);
+  }
+  if ((location.hash || "#/") === h) return;
   _navLock = true;
   location.hash = h;
   setTimeout(() => { _navLock = false; }, 0);
 }
+function setStoryUrl(id, replace = false) {
+  const url = new URL(location.href);
+  url.hash = "";
+  url.searchParams.set("story", id);
+  const next = url.pathname + url.search;
+  if ((location.pathname + location.search) === next && !location.hash) return;
+  if (replace) history.replaceState(null, "", next);
+  else history.pushState(null, "", next);
+}
+function setStorySeo(story, id) {
+  const canonical = new URL(location.pathname, location.origin);
+  canonical.searchParams.set("story", id);
+  const title = (story.seo_title_fa || story.headline_fa || "خبر").trim() + " | جان‌کلام";
+  const description = String(story.meta_description_fa || story.summary_fa || story.what_happened_fa || "")
+    .replace(/\s+/g, " ").trim().slice(0, 180);
+  document.title = title;
+  const setMeta = (key, value, attr = "name") => {
+    let node = document.head.querySelector('meta[' + attr + '="' + key + '"]');
+    if (!node) { node = document.createElement("meta"); node.setAttribute(attr, key); document.head.appendChild(node); }
+    node.content = value;
+  };
+  setMeta("description", description);
+  setMeta("og:type", "article", "property");
+  setMeta("og:title", title, "property");
+  setMeta("og:description", description, "property");
+  setMeta("og:url", canonical.href, "property");
+  if (story.image_url) setMeta("og:image", story.image_url, "property");
+  let canonicalLink = document.head.querySelector('link[rel="canonical"]');
+  if (!canonicalLink) { canonicalLink = document.createElement("link"); canonicalLink.rel = "canonical"; document.head.appendChild(canonicalLink); }
+  canonicalLink.href = canonical.href;
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": story.headline_fa || title,
+    "description": description,
+    "datePublished": story.published_at || undefined,
+    "dateModified": story.updated_at || story.published_at || undefined,
+    "image": story.image_url ? [story.image_url] : undefined,
+    "author": {"@type": "Organization", "name": "جان‌کلام"},
+    "publisher": {"@type": "Organization", "name": "جان‌کلام"},
+    "mainEntityOfPage": canonical.href,
+    "articleSection": CAT_FA[story.category] || undefined
+  };
+  let schemaNode = document.getElementById("story-article-schema");
+  if (!schemaNode) { schemaNode = document.createElement("script"); schemaNode.id = "story-article-schema"; schemaNode.type = "application/ld+json"; document.head.appendChild(schemaNode); }
+  schemaNode.textContent = JSON.stringify(schema).replace(/</g, "\\u003c");
+}
 async function route() {
+  const queryStory = new URLSearchParams(location.search).get("story");
+  if (queryStory) return openStory(queryStory);
   const raw = (location.hash || "").replace(/^#\/?/, "");
   const i = raw.indexOf("/");
   const kind = i < 0 ? raw : raw.slice(0, i);
@@ -864,6 +916,7 @@ async function route() {
   return showFeed();
 }
 window.addEventListener("hashchange", () => { if (!_navLock) route(); });
+window.addEventListener("popstate", () => route());
 
 function credBadge(c) {
   if (!c) return "";
@@ -1154,11 +1207,8 @@ async function openStory(id) {
   const rawId = String(id || "");
   const uuidMatch = rawId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
   const cleanId = uuidMatch ? uuidMatch[0] : rawId.replace(/[\\x00-\\x1F\\x7F]/g, "").trim();
-  if (cleanId !== rawId) {
-    history.replaceState(null, "", "#/story/" + encodeURIComponent(cleanId));
-  } else {
-    setHash("#/story/" + cleanId);
-  }
+  const legacyStoryHash = /^#\/story\//.test(location.hash);
+  setStoryUrl(cleanId, cleanId !== rawId || legacyStoryHash);
   show("detail"); setTab("feed");
   const v = document.getElementById("detail-view");
   v.innerHTML = `<div class="spinner"></div>`;
