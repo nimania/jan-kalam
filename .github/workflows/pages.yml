@@ -1,4 +1,4 @@
-name: Redirect Jan Kalam to Pendar
+name: Deploy standalone Jan Kalam
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
-      - name: Upload redirect site
+      - name: Upload standalone Jan Kalam
         uses: actions/upload-pages-artifact@v3
         with:
           path: .

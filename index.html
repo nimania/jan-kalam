@@ -2,20 +2,257 @@
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="robots" content="noindex,follow">
-  <link rel="canonical" href="https://nimania.github.io/pendar/">
-  <meta http-equiv="refresh" content="0; url=https://nimania.github.io/pendar/">
-  <title>انتقال به پندار</title>
-  <script>
-    (function () {
-      var target = "https://nimania.github.io/pendar/";
-      var suffix = (window.location.search || "") + (window.location.hash || "");
-      window.location.replace(target + suffix);
-    })();
-  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>جان‌کلام</title>
+  <meta name="description" content="هوش خبری فارسی — واقعیت جدا از تحلیل، و دیدگاه هر منبع به‌تفکیک.">
+  <meta name="theme-color" content="#155a4f">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <p>در حال انتقال به <a href="https://nimania.github.io/pendar/">پندار</a>…</p>
+  <header class="top">
+    <div class="wrap">
+      <div class="brand" onclick="showFeed()">
+        <span class="logo">جان‌کلام</span>
+        <span class="tag">هوش خبری فارسی</span>
+      </div>
+      <span class="spacer"></span>
+      <div class="smart-search" id="smart-search">
+        <button class="icon-btn smart-search-toggle" onclick="toggleSmartSearch()" aria-label="جست‌وجو" title="جست‌وجوی هوشمند">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10.8" cy="10.8" r="6.4"/><path d="m16 16 4.2 4.2" stroke-linecap="round"/></svg>
+        </button>
+        <div class="smart-search-panel" id="smart-search-panel">
+          <input id="smart-search-input" type="search" autocomplete="off" placeholder="خبر، چهره، منبع یا موضوع…" oninput="smartSearch(this.value)" onkeydown="smartSearchKey(event)">
+          <div class="smart-search-results" id="smart-search-results"><div class="smart-search-hint">مثلاً «مونا برزویی»، «اسرائیل»، «اکونومیست» یا «هوش مصنوعی»</div></div>
+        </div>
+      </div>
+      <button class="icon-btn" onclick="showMarket()" aria-label="بازار" title="بازار — ارز، طلا و رمزارز">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 18V11M10 18V6M16 18v-9M21 18H3" stroke-linecap="round"/><path d="M4 8l5-4 5 3 6-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showWeather()" aria-label="آب‌وهوا" title="آب‌وهوا">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7.5 18.5h9a4 4 0 0 0 .5-8 5.5 5.5 0 0 0-10.4-1.7A4.9 4.9 0 0 0 7.5 18.5Z" stroke-linejoin="round"/><path d="M16.5 4.5l1-1M20 8h1.5M12 3V1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showFigures()" aria-label="چهره‌ها" title="چهره‌ها — دیدگاه تحلیلگران">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5" stroke-linecap="round"/><path d="M15.5 5.2a3 3 0 0 1 0 5.6M17.5 14.3c1.7.6 2.8 2.2 3.1 4.7" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showPress()" aria-label="جان جراید" title="جانِ جراید — گزیدهٔ فارسی مطبوعات جهان">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4h12a2 2 0 0 1 2 2v14H7a2 2 0 0 1-2-2V4Z"/><path d="M8 8h8M8 12h8M8 16h5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showBooks()" aria-label="کتاب‌ها" title="کتاب‌ها — کتاب‌های دیده‌شده در جان‌کلام">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 4.5h9a3 3 0 0 1 3 3V20H8a3 3 0 0 1-3-3V4.5Z"/><path d="M8 7.5h6M8 11h6" stroke-linecap="round"/><path d="M17 7.5h2v12.5h-2" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showTech()" aria-label="فناوری و طراحی" title="فناوری و طراحی">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 9l-4 3 4 3M16 9l4 3-4 3M14 5l-4 14" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button class="icon-btn" onclick="showFaq()" aria-label="راهنما" title="راهنما">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.5 2.5 0 1 1 3.3 2.4c-.8.3-1.3.9-1.3 1.7v.4M12 17h.01" stroke-linecap="round"/></svg>
+      </button>
+      <button class="icon-btn" id="theme" aria-label="روشن / تیره" title="روشن / تیره">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="feed-view">
+      <div class="lede">
+        <h1>مهم‌ترین‌های امروز، در چند جمله</h1>
+        <p class="muted" id="built" style="margin-top:6px"></p>
+        <div class="section-shortcuts home-shortcuts">
+          <button onclick="showBooks()">کتابخانه</button>
+          <button onclick="showPress()">جان جراید</button>
+          <button onclick="showFigures()">چهره‌ها</button>
+        </div>
+      </div>
+      <div class="home-stats" id="home-stats"></div>
+      <div class="home-glance" id="home-glance" aria-label="بازار و آب‌وهوای امروز"></div>
+      <div class="rule"><span>خط خبری</span><span class="l"></span></div>
+      <div class="feed-controls">
+        <div class="feed-control-row feed-days"><span class="fc-label">بازه</span><div class="day-chips day-range-chips">
+  <button class="day-chip on" data-range="all" onclick="setFeedRange('all')">همه</button>
+  <button class="day-chip" data-range="4" onclick="setFeedRange(4)">۴ ساعت</button>
+  <button class="day-chip" data-range="8" onclick="setFeedRange(8)">۸ ساعت</button>
+  <button class="day-chip" data-range="12" onclick="setFeedRange(12)">۱۲ ساعت</button>
+  <button class="day-chip" data-range="24" onclick="setFeedRange(24)">۲۴ ساعت</button>
+  <button class="day-chip" data-range="48" onclick="setFeedRange(48)">۴۸ ساعت</button>
+  <span class="fchip-sep"></span><div id="day-chips"></div>
+</div></div>
+        <div class="feed-control-row">
+          <span class="fc-label">فیلتر</span>
+          <div class="imp-filter" id="imp-filter">
+            <button class="fchip on" onclick="setTier('all')">همه</button>
+            <button class="fchip" onclick="setTier('mine')">خط خبری من <span class="mine-badge" id="mine-badge" style="display:none"></span></button>
+            <button class="fchip" onclick="setTier('rising')">در حال رشد</button>
+            <button class="fchip" onclick="setTier('hot')">🔥 داغ</button>
+            <span class="fchip-sep"></span>
+            <button class="fchip" onclick="setTier('high')">بسیار مهم</button>
+            <button class="fchip" onclick="setTier('mid')">مهم</button>
+            <button class="fchip" onclick="setTier('low')">متوسط</button>
+          </div>
+        </div>
+        <div class="feed-control-row">
+          <span class="fc-label">ترتیب</span>
+          <div class="sortbar">
+            <button class="sortchip on" id="sort-imp" onclick="setSort('imp')">مهم‌ترین</button>
+            <button class="sortchip" id="sort-new" onclick="setSort('new')">تازه‌ترین</button>
+            <button class="sortchip" id="sort-sources" onclick="setSort('sources')">بیشترین بسامد</button>
+            <button class="sortchip" id="sort-views" onclick="setSort('views')">پربحث‌ترین</button>
+            <button class="sortchip" id="sort-rising" onclick="setSort('rising')">سریع‌ترین رشد</button>
+          </div>
+        </div>
+      </div>
+      <div class="feed" id="feed"><div class="spinner"></div></div>
+    </section>
+
+    <section class="detail" id="detail-view"></section>
+
+    <section class="topics-view" id="topic-archive-view">
+      <button class="back" id="ta-back" onclick="showTopics()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> <span id="ta-back-t">بازگشت به موضوعات</span></button>
+      <div class="lede"><h1 id="ta-title"></h1><p class="muted" id="ta-sub"></p></div>
+      <div id="ta-feed"></div>
+    </section>
+
+    <section class="trends-view" id="trends-view">
+      <div class="lede">
+        <h1>بورس اخبار</h1>
+        <p>موضوع‌ها و خبرهایی که بیشترین پوشش را دارند — سنجه‌ای از «داغیِ» هر موضوع بر اساس تعداد خبرها و منابعِ مستقلی که آن را پوشش داده‌اند.</p>
+      </div>
+      <div id="trends"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="factchecks-view">
+      <div class="lede">
+        <h1>فکت — راستی‌آزمایی</h1>
+        <p>سنجهٔ خودکارِ ما (بر پایهٔ منابعِ مستقل و توافق/اختلاف) در کنارِ راستی‌آزماییِ حرفه‌ایِ <b>فکت‌نامه</b>.</p>
+      </div>
+      <div id="factchecks"><div class="spinner"></div></div>
+    </section>
+
+    <section class="topics-view" id="topics-view">
+      <div class="lede">
+        <h1>موضوعات را دنبال کن</h1>
+        <p>موضوع‌هایی که برایت مهم‌اند را انتخاب کن (روی این دستگاه ذخیره می‌شود).</p>
+      </div>
+      <div class="topic-grid" id="topic-grid"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="market-view">
+      <button class="back" onclick="showFeed()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به خط خبری</button>
+      <div class="lede">
+        <h1>بازار</h1>
+        <p>نرخِ لحظه‌ایِ ارز، طلا و سکه — هر ساعت از tgju به‌روز می‌شود.</p>
+      </div>
+      <div id="market"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="weather-view">
+      <button class="back" onclick="showFeed()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg> بازگشت به خط خبری</button>
+      <div class="lede">
+        <h1>آب‌وهوای ایران</h1>
+        <p>دمای کنونی و کمینه/بیشینهٔ امروزِ شهرهای ایران — هر ساعت به‌روز می‌شود.</p>
+      </div>
+      <div id="weather"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="iran-view">
+      <div class="lede">
+        <h1>ایران</h1>
+        <p>خبرها بر اساس جغرافیا — روی نقشه یک استان را بزن، یا بر اساس گسترهٔ خبر فیلتر کن.</p>
+      </div>
+      <div id="iran"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="figures-view">
+      <div class="lede" id="figures-lede">
+        <h1>چهره‌ها چه می‌گویند؟</h1>
+        <p>تایملاین مستقلِ دیدگاه‌ها و تحلیل‌ها؛ جدیدترین مورد همیشه بالاتر است. این‌ها نظرِ شخصی‌اند، نه واقعیتِ خبر.</p>
+        <div class="section-shortcuts"><button onclick="showBooks()">کتابخانهٔ جان‌کلام</button></div>
+      </div>
+      <div class="rule"><span>تایملاین چهره‌ها</span><span class="l"></span><button class="sortchip" onclick="renderFiguresDirectory()">فهرست همهٔ چهره‌ها</button></div>
+      <div class="figure-timeline" id="figure-timeline"><div class="spinner"></div></div>
+      <div id="figures"></div>
+    </section>
+
+    <section class="trends-view" id="press-view">
+      <button class="back" onclick="showFeed()">بازگشت به خط خبری</button>
+      <div class="lede press-lede">
+        <span class="press-kicker">ایران در آینهٔ رسانه‌ها</span>
+        <h1>جانِ جراید</h1>
+        <p>رسانه‌های داخل ایران، فارسی‌زبانان خارج از کشور و مطبوعات جهان در یک فهرست واحد؛ تمرکز بر مطالب مرتبط با ایران، با حفظ نام و زبان منبع.</p>
+        <div class="section-shortcuts"><button onclick="showBooks()">کتاب‌های دیده‌شده در جراید</button></div>
+      </div>
+      <div id="press-content"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="books-view">
+      <button class="back" onclick="showFeed()">بازگشت به خط خبری</button>
+      <div class="lede books-lede" id="books-lede">
+        <span class="press-kicker">کتاب‌هایی که در محتوا دیده‌ایم</span>
+        <h1>کتابخانهٔ جان‌کلام</h1>
+        <p>کتاب، پدیدآورنده، مترجم و ناشر در یک شبکهٔ واحد؛ هر کتاب فقط وقتی نمایش داده می‌شود که هویت و مشخصاتش تأیید شده باشد.</p>
+      </div>
+      <div id="books-content"><div class="spinner"></div></div>
+    </section>
+
+    <section class="trends-view" id="tech-view">
+      <div class="lede">
+        <span class="vf-badge">پشت صحنهٔ جان‌کلام</span>
+        <h1>فناوری و طراحی</h1>
+        <p>جان‌کلام چطور ساخته شده، داده‌ها از کجا می‌آیند و رابط فارسی آن از چه الگوهایی استفاده می‌کند.</p>
+      </div>
+      <div id="tech-content"></div>
+    </section>
+
+    <section class="trends-view" id="faq-view">
+      <div class="lede">
+        <h1>راهنما — همه‌چیز چطور کار می‌کند</h1>
+        <p>جان‌کلام چطور خبرها را جمع می‌کند، مقایسه می‌کند، و به تو نشان می‌دهد.</p>
+      </div>
+      <div class="faq" id="faq"></div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>جان‌کلام · هوش خبری فارسی</p>
+      <div class="footer-links"><button onclick="showBooks()">کتابخانه</button><button onclick="showPress()">جان جراید</button><button onclick="showFigures()">چهره‌ها</button><button onclick="showTech()">فناوری و طراحی</button><button onclick="showFaq()">روش کار</button><a href="https://vibefarsi.ir/" target="_blank" rel="noopener">VibeFarsi ↗</a></div>
+    </div>
+  </footer>
+
+  <nav class="tabbar">
+    <div class="inner">
+      <button class="tab active" id="tab-feed" onclick="showFeed()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 5h16M4 12h16M4 19h10" stroke-linecap="round"/></svg>
+        خط خبری
+      </button>
+      <button class="tab" id="tab-trends" onclick="showTrends()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 18l5-5 3 3 7-8" stroke-linecap="round" stroke-linejoin="round"/><path d="M16 8h4v4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        بورس اخبار
+      </button>
+      <button class="tab" id="tab-factchecks" onclick="showFactchecks()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3Z" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        فکت
+      </button>
+      <button class="tab" id="tab-iran" onclick="showIran()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 21s-7-4.5-7-10a7 7 0 0 1 14 0c0 5.5-7 10-7 10Z" stroke-linejoin="round"/><circle cx="12" cy="11" r="2.5"/></svg>
+        ایران
+      </button>
+      <button class="tab" id="tab-topics" onclick="showTopics()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/><circle cx="7" cy="6" r="1.4" fill="currentColor" stroke="none"/><circle cx="11" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="9" cy="18" r="1.4" fill="currentColor" stroke="none"/></svg>
+        موضوعات
+      </button>
+    </div>
+  </nav>
+
+  <script src="iran-provinces.js"></script>
+  <script src="world-map.js"></script>
+  <script src="data/press-directory.js"></script>
+  <script src="books-data.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
