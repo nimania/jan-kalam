@@ -1217,7 +1217,8 @@ async function openStory(id) {
   catch (e) {
     // Deep links can outlive the compact feed.  Give a useful failure state
     // rather than leaving a blank/spinner page.
-    v.innerHTML = `<button class="back" onclick="showFeed()">بازگشت به خط خبری</button><div class="state"><div class="big">این خبر در آرشیو فعلی پیدا نشد</div><p class="muted">شناسهٔ خبر: ${esc(cleanId)}</p></div>`;
+    const pendarStoryUrl = `https://pendar.io/story/${encodeURIComponent(cleanId)}/`;
+    v.innerHTML = `<button class="back" onclick="showFeed()">بازگشت به خط خبری</button><div class="state"><div class="big">این خبر هنوز در آرشیو مستقل جان‌کلام نیست</div><p class="muted">پیوند از پندار آمده است؛ نسخهٔ کامل خبر و منابعش را در پندار ببین.</p><a class="story-archive-fallback" href="${esc(pendarStoryUrl)}">مشاهدهٔ خبر و منابع در پندار ↗</a><p class="muted">شناسهٔ خبر: ${esc(cleanId)}</p></div>`;
     return;
   }
 
