@@ -35,11 +35,11 @@ async function getJSON(path, timeoutMs = 12000) {
   if (clean.startsWith(`${DATA}/`)) {
     if (!_DATA_SNAPSHOT_PROMISE) {
       const url = new URL(`${DATA}/snapshot.json.gz`, document.baseURI);
-      _DATA_SNAPSHOT_PROMISE = fetch(url, { cache: "force-cache" }).then(async r => {
+      _DATA_SNAPSHOT_PROMISE = fetch(url, { cache: "no-cache" }).then(async r => {
         if (!r.ok) throw new Error("HTTP " + r.status);
         if (!("DecompressionStream" in window)) throw new Error("Browser cannot read compressed data snapshot");
         return new Response(r.body.pipeThrough(new DecompressionStream("gzip"))).json();
-      });
+      }).catch(error => { _DATA_SNAPSHOT_PROMISE = null; throw error; });
     }
     const snapshot = await _DATA_SNAPSHOT_PROMISE;
     const key = clean.slice(DATA.length + 1);
