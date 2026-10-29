@@ -1,7 +1,7 @@
 /* جان‌کلام static PWA — network-first so new deploys always show; cache is the
    offline fallback only. Bump V on any shell change to evict old caches. */
-const V = "jankalam-standalone-snapshot-v2";
-const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./iran-provinces.js",
+const V = "jankalam-news-home-v3";
+const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./news-navigation.js", "./iran-provinces.js",
   "./manifest.webmanifest", "./icons/icon.svg", "./data/snapshot.json.gz"];
 
 self.addEventListener("install", e =>

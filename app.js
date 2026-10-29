@@ -44,7 +44,7 @@ async function getJSON(path, timeoutMs = 12000) {
     const snapshot = await _DATA_SNAPSHOT_PROMISE;
     const key = clean.slice(DATA.length + 1);
     const value = key === "feed.json" ? snapshot["stories.json"] : snapshot[key];
-    if (value === undefined) throw new Error("Missing snapshot data: " + key);
+    if (value === undefined) return loadMissingNewsStory(key, snapshot, timeoutMs);
     return value;
   }
   const ctl = new AbortController();
@@ -163,7 +163,7 @@ async function _buildSmartSearchDocs(){
     });
   }catch(_){}
   try{
-    const feed=await getJSON(`${DATA}/feed.json`), arr=Array.isArray(feed)?feed:(feed.items||[]);
+    const arr=await loadNewsArchive();
     arr.forEach(x=>docs.push({kind:"خبر",title:x.headline_fa||x.title_fa||x.title||"",sub:(x.source_names||[]).slice(0,3).join(" · "),go:`openStory('${x.id}')`,text:[x.headline_fa,x.summary_fa,x.what_happened_fa,(x.source_names||[]).join(" ")].join(" "),snippet:x.summary_fa||x.what_happened_fa||""}));
   }catch(_){}
   const visiblePressNames=new Set();
@@ -230,7 +230,7 @@ async function smartSearch(q){
 }
 document.addEventListener("click",e=>{const box=document.getElementById("smart-search");if(box?.classList.contains("open")&&!box.contains(e.target))toggleSmartSearch(false)});
 
-const VIEWS = { feed: "feed-view", detail: "detail-view", trends: "trends-view",
+const VIEWS = { newsarchive: "news-archive-view", feed: "feed-view", detail: "detail-view", trends: "trends-view",
   factchecks: "factchecks-view", topics: "topics-view", topicarchive: "topic-archive-view",
   weather: "weather-view", iran: "iran-view", faq: "faq-view", market: "market-view",
   figures: "figures-view", press: "press-view", books: "books-view", tech: "tech-view" };
@@ -887,6 +887,8 @@ async function route() {
   const i = raw.indexOf("/");
   const kind = i < 0 ? raw : raw.slice(0, i);
   const arg = i < 0 ? "" : decodeURIComponent(raw.slice(i + 1));
+  if (kind === "archive") return showNewsArchive(new URLSearchParams(location.search).get("q") || "");
+  if (kind === "event" && arg) return openNewsEvent(arg);
   if (kind === "story" && arg) return openStory(arg);
   if (kind === "person" && arg) return openEntity(arg);
   if (kind === "topic" && arg) return openTopic(arg);
@@ -1206,7 +1208,9 @@ async function openStory(id) {
   // route that could never match an exported story JSON file.
   const rawId = String(id || "");
   const uuidMatch = rawId.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
-  const cleanId = uuidMatch ? uuidMatch[0] : rawId.replace(/[\\x00-\\x1F\\x7F]/g, "").trim();
+  const cleanId = await resolveNewsId(uuidMatch ? uuidMatch[0] : rawId.replace(/[\\x00-\\x1F\\x7F]/g, "").trim());
+  const reportDestination = await pendarReportURL(cleanId);
+  if (reportDestination) { location.replace(reportDestination); return; }
   const legacyStoryHash = /^#\/story\//.test(location.hash);
   setStoryUrl(cleanId, cleanId !== rawId || legacyStoryHash);
   show("detail"); setTab("feed");
@@ -1217,11 +1221,12 @@ async function openStory(id) {
   catch (e) {
     // Deep links can outlive the compact feed.  Give a useful failure state
     // rather than leaving a blank/spinner page.
-    const pendarStoryUrl = `https://pendar.io/story/${encodeURIComponent(cleanId)}/`;
-    v.innerHTML = `<button class="back" onclick="showFeed()">بازگشت به خط خبری</button><div class="state"><div class="big">این خبر هنوز در آرشیو مستقل جان‌کلام نیست</div><p class="muted">پیوند از پندار آمده است؛ نسخهٔ کامل خبر و منابعش را در پندار ببین.</p><a class="story-archive-fallback" href="${esc(pendarStoryUrl)}">مشاهدهٔ خبر و منابع در پندار ↗</a><p class="muted">شناسهٔ خبر: ${esc(cleanId)}</p></div>`;
+    v.innerHTML = `<button class="back" onclick="showFeed()">بازگشت به خبرها</button><div class="state"><div class="big">این خبر فعلاً در دسترس نیست</div><p class="muted">دریافت نسخهٔ آرشیوی کامل نشد. دوباره تلاش کنید یا در آرشیو خبرها جست‌وجو کنید.</p><button onclick="route()">تلاش دوباره</button><button onclick="showNewsArchive()">جست‌وجوی آرشیو</button><p class="muted">شناسهٔ خبر: ${esc(cleanId)}</p></div>`;
     return;
   }
 
+  const authoredReport = await pendarReportURL(cleanId, s);
+  if (authoredReport) { location.replace(authoredReport); return; }
   setStorySeo(s, cleanId);
   const imp = impInfo(s.importance_score);
   const peopleSuggestions = await storyPeopleSuggestions(s);
@@ -1307,8 +1312,8 @@ async function openStory(id) {
     ${figuresSection(s.figures)}
     <div class="layers"><h3 class="section-h">منابع</h3><div class="cites">${cites}</div></div>
     <div class="ref-strip" aria-label="خبر مرتبط در پندار">
-      <span class="ref-hd"><b>خبر و پروندهٔ مرتبط</b> · پوشش خبری در پندار</span>
-      <div class="ref-links"><a href="https://pendar.io/story/${encodeURIComponent(cleanId)}/"><span class="ref-src">پندار</span>مشاهدهٔ خبر و منابع آن ↗</a></div>
+      <span class="ref-hd"><b>گزارش‌های تألیفی پندار</b> · روایت‌ها و گزارش‌های تحریریه</span>
+      <div class="ref-links"><a href="https://pendar.io/reports/"><span class="ref-src">پندار</span>خواندن گزارش‌های تألیفی ↗</a></div>
     </div>
     <div class="ask"><div class="a-h"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" style="color:var(--accent)"><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z" stroke-linejoin="round"/></svg> دربارهٔ این خبر بپرس</div>
       <p class="a-sub">پاسخ‌های آماده از روی همین خبر.</p>
@@ -1513,13 +1518,13 @@ function groupedByCategory(items) {
   }
   return html;
 }
-function openDay(dateStr) {
-  if (!ALL.length) return;
+async function openDay(dateStr) {
+  const archive = await loadNewsArchive();
   setHash("#/day/" + dateStr);
   show("topicarchive"); setTab("feed");
   document.getElementById("ta-back-t").textContent = "بازگشت به خط خبری";
   document.getElementById("ta-back").onclick = showFeed;
-  const items = ALL.filter(s => (s.published_at || "").slice(0, 10) === dateStr);
+  const items = archive.filter(s => (s.published_at || "").slice(0, 10) === dateStr);
   document.getElementById("ta-title").textContent = "خبرهای " + dayLabel(dateStr);
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر · " + dateStr;
   document.getElementById("ta-feed").innerHTML = groupedByCategory(items);
@@ -1552,12 +1557,13 @@ async function openTrendDossier(slug) {
     </div>` + groupedFeed(timeline);
 }
 
-function openTopic(slug) {
+async function openTopic(slug) {
+  const archive = await loadNewsArchive();
   setHash("#/topic/" + slug);
   show("topicarchive"); setTab("topics");
   document.getElementById("ta-back-t").textContent = "بازگشت به موضوعات";
   document.getElementById("ta-back").onclick = showTopics;
-  const items = ALL.filter(s => (s.topics || []).some(t => t.slug === slug));
+  const items = archive.filter(s => (s.topics || []).some(t => t.slug === slug));
   const name = ((items[0] && items[0].topics.find(t => t.slug === slug)) || {}).name_fa || slug;
   document.getElementById("ta-title").textContent = "موضوع: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر در این موضوع";
@@ -1596,13 +1602,13 @@ function openEntity(slug) {
 function followBar(kind, id, note) {
   return `<div class="follow-bar">${followBtn(kind, id, "در حال دنبال‌کردن", "دنبال کن")}<span class="fb-note">${esc(note)}</span></div>`;
 }
-function openSource(name) {
-  if (!ALL.length) return;
+async function openSource(name) {
+  const archive = await loadNewsArchive();
   setHash("#/source/" + encodeURIComponent(name));
   show("topicarchive"); setTab("feed");
   document.getElementById("ta-back-t").textContent = "بازگشت به خط خبری";
   document.getElementById("ta-back").onclick = showFeed;
-  const items = ALL.filter(s => (s.source_names || []).includes(name));
+  const items = archive.filter(s => (s.source_names || []).includes(name));
   document.getElementById("ta-title").textContent = "منبع: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر از این منبع";
   document.getElementById("ta-feed").innerHTML = followBar("sources", name, "خبرهای این منبع در «خط خبری من» بیاید") + groupedFeed(items);
@@ -1658,13 +1664,13 @@ function setIranScope(s) {
   const items = s === "all" ? ALL : ALL.filter(x => x.geo && x.geo.scope === s);
   document.getElementById("iran-body").innerHTML = groupedFeed(items);
 }
-function openProvince(slug) {
-  if (!ALL.length) return;
+async function openProvince(slug) {
+  const archive = await loadNewsArchive();
   setHash("#/province/" + slug);
   show("topicarchive"); setTab("iran");
   document.getElementById("ta-back-t").textContent = "بازگشت به ایران";
   document.getElementById("ta-back").onclick = showIran;
-  const items = ALL.filter(s => s.geo && (s.geo.provinces || []).some(p => p.slug === slug));
+  const items = archive.filter(s => s.geo && (s.geo.provinces || []).some(p => p.slug === slug));
   const name = (PATHS[slug] || {}).fa || slug;
   document.getElementById("ta-title").textContent = "استان: " + name;
   document.getElementById("ta-sub").textContent = faN(items.length) + " خبر در این استان";

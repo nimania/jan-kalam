@@ -25,7 +25,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Naskh+Arabic:wght@400;500;600;700&family=Vazirmatn:wght@300;400;500;600;700&display=swap">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20261029-news-home">
 </head>
 <body>
   <header class="top">
@@ -77,6 +77,8 @@
         <h1>مهم‌ترین‌های امروز، در چند جمله</h1>
         <p class="muted" id="built" style="margin-top:6px"></p>
         <div class="section-shortcuts home-shortcuts">
+          <button onclick="showNewsArchive()">آرشیو و جست‌وجوی خبرها</button>
+          <a href="https://pendar.io/reports/">گزارش‌های تألیفی پندار ↗</a>
           <button onclick="showBooks()">کتابخانه</button>
           <button onclick="showPress()">جان جراید</button>
           <button onclick="showFigures()">چهره‌ها</button>
@@ -120,6 +122,17 @@
         </div>
       </div>
       <div class="feed" id="feed"><div class="spinner"></div></div>
+    </section>
+
+    <section id="news-archive-view" style="display:none">
+      <div class="lede"><h1>آرشیو خبرها</h1><p>خبرهای تازه و قدیمی، با منابع و روایت‌های هر خبر.</p></div>
+      <div class="archive-controls">
+        <label>جست‌وجو <input id="news-archive-query" type="search" placeholder="عنوان، موضوع یا منبع خبر…" oninput="filterNewsArchive(this.value,document.getElementById('news-archive-category').value)"></label>
+        <label>موضوع <select id="news-archive-category" onchange="filterNewsArchive(document.getElementById('news-archive-query').value,this.value)"><option value="">همهٔ موضوعات</option><option value="iran">ایران</option><option value="world">جهان</option><option value="politics">سیاست</option><option value="economy">اقتصاد</option><option value="technology">فناوری</option><option value="culture">فرهنگ</option><option value="sport">ورزش</option><option value="environment">محیط‌زیست</option><option value="science">علم</option><option value="health">سلامت</option></select></label>
+        <span id="news-archive-count" role="status"></span>
+      </div>
+      <div class="feed" id="news-archive-feed"></div>
+      <button id="news-archive-more" class="fchip" onclick="moreNewsArchive()" hidden>خبرهای بیشتر</button>
     </section>
 
     <section class="detail" id="detail-view"></section>
@@ -266,7 +279,8 @@
   <script src="world-map.js"></script>
   <script src="data/press-directory.js"></script>
   <script src="books-data.js"></script>
-  <script src="app.js?v=20261027-story-fallback-1"></script>
+  <script src="news-navigation.js?v=20261029-news-home"></script>
+  <script src="app.js?v=20261029-news-home"></script>
   <script src="pendar-figures.js"></script>
 </body>
 </html>

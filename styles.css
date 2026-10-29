@@ -1015,3 +1015,9 @@
 .press-book-links span{font-size:10px;color:var(--accent);font-weight:750}
 .press-book-links b{font-family:"Noto Naskh Arabic",serif;font-size:16px;line-height:1.5}
 @media(max-width:620px){.press-book-links{grid-template-columns:1fr}}
+
+/* Complete news archive, with controls that also fit a narrow viewport. */
+.archive-controls{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin:20px 0}
+.archive-controls label{display:flex;flex:1 1 220px;flex-direction:column;gap:6px}
+.archive-controls input,.archive-controls select{font:inherit;color:inherit;background:var(--bg,#fff);border:1px solid #8886;border-radius:8px;padding:10px;min-width:0;width:100%;box-sizing:border-box}
+#news-archive-more{margin:24px auto;display:block}#news-archive-more[hidden]{display:none}
