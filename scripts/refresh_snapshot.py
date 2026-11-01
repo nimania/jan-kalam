@@ -62,6 +62,32 @@ def partition_news(updated, editorial):
         name: [row for row in rows if str(row.get('id')) not in editorial]
         for name, rows in groups.items() if isinstance(rows, list)}
 
+
+def include_curated_news(updated):
+    """Keep manually verified breaking news in the standalone reader across rebuilds.
+
+    Upstream exports remain authoritative for normal syndicated stories; this
+    additive collection is not written into Pendar's authored-report archive.
+    """
+    local_path = ROOT / 'data/manual-news.json'
+    if not local_path.exists():
+        return
+    rows = json.loads(local_path.read_text(encoding='utf-8'))
+    if not isinstance(rows, list):
+        raise ValueError('Manual news feed must be a list')
+    current = updated.get('stories.json', [])
+    known = {str(row.get('id')) for row in current if isinstance(row, dict)}
+    for row in rows:
+        if not isinstance(row, dict) or not row.get('id') or not row.get('headline_fa'):
+            raise ValueError('Invalid curated news entry')
+        sid = str(row['id'])
+        if sid in known:
+            continue
+        updated['story/' + sid + '.json'] = row
+        current.insert(0, news_card(row))
+        known.add(sid)
+    updated['stories.json'] = sorted(current, key=lambda row: row.get('published_at') or '', reverse=True)
+
 def refresh():
     with gzip.open(SNAPSHOT, 'rt', encoding='utf-8') as source:
         previous = json.load(source)
@@ -130,6 +156,7 @@ def refresh():
         for key, value in zip(details, pool.map(fetch, details)):
             assert isinstance(value, dict) and value.get('id'), 'Invalid story detail: ' + key
             updated[key] = value
+    include_curated_news(updated)
     partition_news(updated, editorial)
     updated['meta.json'] = dict(updated['meta.json'], count=len(updated['stories.json']))
     updated['snapshot-health.json'] = {'generated_at': datetime.now(timezone.utc).isoformat(), 'upstream_built_iso': updated['meta.json']['built_iso'], 'story_count': len(updated['stories.json']), 'archive_count': len(updated['news-archive.json']), 'pendar_reports': len(editorial), 'optional_source_errors': errors}
