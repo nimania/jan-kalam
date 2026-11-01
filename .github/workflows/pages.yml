@@ -35,6 +35,8 @@ jobs:
         run: |
           python3 -m unittest discover -s tests -v
           node tests/news-navigation.test.js
+      - name: Import explicitly approved Iran strategic news
+        run: python3 scripts/import_verified_simorgh.py
       - name: Refresh standalone content snapshot
         run: python3 scripts/refresh_snapshot.py
       - name: Generate sitemap and robots targets
